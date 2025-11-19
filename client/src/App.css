@@ -1,0 +1,114 @@
+.App {
+  text-align: center;
+}
+
+.loading {
+  padding: 2rem;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+header {
+  background-color: #282c34;
+  padding: 1rem 0;
+  color: white;
+  margin-bottom: 2rem;
+}
+
+header .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 2rem;
+}
+
+nav a {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+  transition: color 0.3s;
+}
+
+nav a:hover {
+  color: #61dafb;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.welcome-text {
+  color: #61dafb;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.logout-button {
+  background: transparent;
+  border: 1px solid #61dafb;
+  color: #61dafb;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+}
+
+.logout-button:hover {
+  background-color: #61dafb;
+  color: #282c34;
+}
+
+.hero {
+  padding: 3rem 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  margin-bottom: 2rem;
+  border-radius: 10px;
+}
+
+.hero h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  font-size: 1.2rem;
+  margin-bottom: 0;
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.feature {
+  padding: 2rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.feature h3 {
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.status {
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 5px;
+  background-color: #f0f8ff;
+  border-left: 4px solid #0066cc;
+}

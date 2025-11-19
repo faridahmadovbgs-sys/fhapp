@@ -1,0 +1,188 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Install All Dependencies",
+            "type": "shell",
+            "command": "npm",
+            "args": ["run", "install:all"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Install Client Dependencies",
+            "type": "shell",
+            "command": "npm",
+            "args": ["install"],
+            "options": {
+                "cwd": "${workspaceFolder}/client"
+            },
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Install Server Dependencies",
+            "type": "shell",
+            "command": "npm",
+            "args": ["install"],
+            "options": {
+                "cwd": "${workspaceFolder}/server"
+            },
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Start Frontend Dev Server",
+            "type": "shell",
+            "command": "npm",
+            "args": ["start"],
+            "options": {
+                "cwd": "${workspaceFolder}/client"
+            },
+            "group": "build",
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true
+            },
+            "problemMatcher": {
+                "owner": "webpack",
+                "pattern": {
+                    "regexp": "ERROR in (.*?):(\\d+):(\\d+)",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "Compiling\\.\\.\\.",
+                    "endsPattern": "(Compiled successfully|Failed to compile)"
+                }
+            }
+        },
+        {
+            "label": "Start Backend Dev Server",
+            "type": "shell",
+            "command": "npm",
+            "args": ["run", "dev"],
+            "options": {
+                "cwd": "${workspaceFolder}/server"
+            },
+            "group": "build",
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": true
+            },
+            "problemMatcher": {
+                "owner": "node",
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):(\\d+): (.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "message": 4
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "\\[nodemon\\] starting",
+                    "endsPattern": "Server running on port"
+                }
+            }
+        },
+        {
+            "label": "Start Full Stack Development",
+            "dependsOrder": "parallel",
+            "dependsOn": [
+                "Start Frontend Dev Server",
+                "Start Backend Dev Server"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build Frontend for Production",
+            "type": "shell",
+            "command": "npm",
+            "args": ["run", "build"],
+            "options": {
+                "cwd": "${workspaceFolder}/client"
+            },
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Test Frontend",
+            "type": "shell",
+            "command": "npm",
+            "args": ["test"],
+            "options": {
+                "cwd": "${workspaceFolder}/client"
+            },
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Test Backend",
+            "type": "shell",
+            "command": "npm",
+            "args": ["test"],
+            "options": {
+                "cwd": "${workspaceFolder}/server"
+            },
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ]
+}
