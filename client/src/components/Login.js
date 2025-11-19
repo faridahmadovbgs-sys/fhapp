@@ -84,8 +84,40 @@ const Login = ({ onLogin }) => {
       const data = await authService.forgotPassword(resetEmail);
 
       if (data.success) {
-        if (data.resetUrl) {
-          setSuccess(`Password reset instructions sent! For testing, use this link: ${data.resetUrl}`);
+        if (data.isDemoMode && data.resetUrl) {
+          // For demo mode, show a nicer message with clickable link
+          setSuccess(
+            <>
+              <div style={{ marginBottom: '10px' }}>
+                ✅ Password reset link generated successfully!
+              </div>
+              <div style={{ marginBottom: '10px', fontSize: '0.9em', color: '#666' }}>
+                🎯 <strong>Demo Mode:</strong> Click the link below to reset your password
+              </div>
+              <div style={{ 
+                background: '#f0f8ff', 
+                padding: '10px', 
+                borderRadius: '5px', 
+                border: '1px solid #007bff',
+                marginBottom: '10px'
+              }}>
+                <a 
+                  href={data.resetUrl} 
+                  style={{ 
+                    color: '#007bff', 
+                    textDecoration: 'none',
+                    fontWeight: 'bold'
+                  }}
+                  onClick={() => window.location.href = data.resetUrl}
+                >
+                  🔗 Reset Password Now
+                </a>
+              </div>
+              <div style={{ fontSize: '0.8em', color: '#888' }}>
+                💡 In production, this would be sent to your email
+              </div>
+            </>
+          );
         } else {
           setSuccess('Password reset instructions have been sent to your email!');
         }

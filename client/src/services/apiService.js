@@ -105,16 +105,23 @@ export const authService = {
 
   // Forgot password (local simulation)
   forgotPassword: async (email) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     const resetUrl = `${window.location.origin}/reset-password?token=${resetToken}&email=${email}`;
+    
+    // Store the reset token for validation later
+    localStorage.setItem(`reset_token_${email}`, JSON.stringify({
+      token: resetToken,
+      email: email,
+      expires: Date.now() + (15 * 60 * 1000) // 15 minutes
+    }));
     
     return {
       success: true,
       message: 'Password reset instructions sent to your email',
       resetUrl,
-      note: 'Copy and paste this URL in your browser to reset password'
+      isDemoMode: true
     };
   },
 
@@ -130,9 +137,33 @@ export const authService = {
       throw new Error('Password must be at least 6 characters long');
     }
 
+    // Validate the reset token
+    const storedTokenData = localStorage.getItem(`reset_token_${email}`);
+    if (!storedTokenData) {
+      throw new Error('Invalid or expired reset token');
+    }
+
+    const tokenData = JSON.parse(storedTokenData);
+    if (tokenData.token !== token || tokenData.expires < Date.now()) {
+      localStorage.removeItem(`reset_token_${email}`);
+      throw new Error('Invalid or expired reset token');
+    }
+
+    // Update the user's password in localStorage
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const userIndex = users.findIndex(u => u.email === email);
+    
+    if (userIndex !== -1) {
+      users[userIndex].password = password;
+      localStorage.setItem('users', JSON.stringify(users));
+    }
+
+    // Clean up the reset token
+    localStorage.removeItem(`reset_token_${email}`);
+
     return {
       success: true,
-      message: 'Password has been reset successfully'
+      message: 'Password has been reset successfully! You can now log in with your new password.'
     };
   },
 
