@@ -3,26 +3,18 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
 // Your web app's Firebase config
-// TODO: Replace with your actual Firebase config from Firebase Console
 const firebaseConfig = {
-  apiKey: "YOUR_ACTUAL_API_KEY",
-  authDomain: "your-project-id.firebaseapp.com", 
-  projectId: "your-project-id",
-  storageBucket: "your-project-id.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "YOUR_ACTUAL_APP_ID"
+  apiKey: "AIzaSyBYG7mANiuKWSHvZKOTuR-Jjgx0ZwTgcvE",
+  authDomain: "fhapp-ca321.firebaseapp.com",
+  projectId: "fhapp-ca321",
+  storageBucket: "fhapp-ca321.firebasestorage.app",
+  messagingSenderId: "321828975722",
+  appId: "1:321828975722:web:b1c8e8ab6462f74eb8c613",
+  measurementId: "G-C13GEDVMBF"
 };
 
-// INSTRUCTIONS:
-// 1. Go to https://console.firebase.google.com/
-// 2. Create a new project or select existing
-// 3. Go to Project Settings > Your apps > Web app 
-// 4. Copy the config and replace the values above
-// 5. Make sure to enable Authentication > Email/Password in Firebase Console
-
-// Check if Firebase is properly configured
-const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_ACTUAL_API_KEY" && 
-                             firebaseConfig.apiKey !== "your-api-key-here";
+// Firebase is now properly configured
+const isFirebaseConfigured = true;
 
 if (!isFirebaseConfigured) {
   console.warn('⚠️ Firebase not configured yet! Follow FIREBASE_SETUP.md to set up authentication.');
