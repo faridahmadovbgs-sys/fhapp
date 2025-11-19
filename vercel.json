@@ -11,8 +11,7 @@
   ],
   "routes": [
     {
-      "src": "/static/(.*)",
-      "dest": "/client/build/static/$1"
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
@@ -20,6 +19,6 @@
     }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "CI": "false"
   }
 }
