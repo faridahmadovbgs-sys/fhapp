@@ -9,9 +9,10 @@ A modern full-stack web application built with React frontend, Node.js backend, 
 
 ## 🌟 Live Demo
 
-**Note**: Replace with your actual deployed URLs after deployment
-- **Frontend**: `https://your-app-name.vercel.app`
-- **Backend API**: `https://your-api-name.herokuapp.com`
+**GitHub Pages**: https://faridahmadovbgs-sys.github.io/fhapp  
+**Repository**: https://github.com/faridahmadovbgs-sys/fhapp
+
+*No backend needed - runs entirely in the browser with local storage!*
 
 ## 🚀 Quick Clone & Run
 

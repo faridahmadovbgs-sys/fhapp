@@ -54,24 +54,8 @@ const ResetPassword = () => {
     }
 
     try {
-      // Use production API or local development
-      const apiUrl = process.env.NODE_ENV === 'production' 
-        ? '/api/auth/reset-password'
-        : 'http://localhost:5000/api/auth/reset-password';
-        
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          token,
-          email,
-          password: formData.password
-        })
-      });
-
-      const data = await response.json();
+      const { authService } = await import('../services/apiService');
+      const data = await authService.resetPassword(token, email, formData.password);
 
       if (data.success) {
         setSuccess('Password reset successful! Redirecting to login...');
@@ -85,7 +69,7 @@ const ResetPassword = () => {
       }
     } catch (error) {
       console.error('Reset password error:', error);
-      setError('Network error. Please try again.');
+      setError(error.message || 'Failed to reset password');
     } finally {
       setLoading(false);
     }

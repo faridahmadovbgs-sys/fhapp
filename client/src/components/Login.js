@@ -59,34 +59,7 @@ const Login = ({ onLogin }) => {
       }
     } catch (error) {
       console.error('Auth error:', error);
-      
-      // Fallback authentication for demo purposes
-      console.log('API failed, using fallback authentication...');
-      
-      const fallbackData = {
-        success: true,
-        message: isSignUp ? 'Registration successful (demo mode)' : 'Login successful (demo mode)',
-        user: {
-          id: 'demo-user-' + Date.now(),
-          email: formData.email,
-          name: formData.name || formData.email.split('@')[0]
-        },
-        token: 'demo-token-' + Date.now()
-      };
-      
-      // Show success message
-      if (isSignUp) {
-        setSuccess('Account created successfully! (Demo Mode) Logging you in...');
-      }
-      
-      // Store token in localStorage
-      localStorage.setItem('token', fallbackData.token);
-      localStorage.setItem('user', JSON.stringify(fallbackData.user));
-      
-      // Brief delay to show success message
-      setTimeout(() => {
-        onLogin(fallbackData.user);
-      }, isSignUp ? 1500 : 0);
+      setError(error.message || 'Authentication failed');
     } finally {
       setLoading(false);
     }
@@ -107,42 +80,22 @@ const Login = ({ onLogin }) => {
     setSuccess('');
 
     try {
-      // Use production API or local development
-      const apiUrl = process.env.NODE_ENV === 'production' 
-        ? '/api/auth/forgot-password'
-        : 'http://localhost:5000/api/auth/forgot-password';
-        
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: resetEmail })
-      });
-
-      const data = await response.json();
+      const { authService } = await import('../services/apiService');
+      const data = await authService.forgotPassword(resetEmail);
 
       if (data.success) {
-        setSuccess('Password reset instructions have been sent to your email!');
-        
-        // If we get a resetUrl in the response (demo mode), show it to the user
         if (data.resetUrl) {
           setSuccess(`Password reset instructions sent! For testing, use this link: ${data.resetUrl}`);
+        } else {
+          setSuccess('Password reset instructions have been sent to your email!');
         }
-        
         setResetEmail('');
       } else {
         setError(data.message || 'Failed to send reset email');
       }
     } catch (error) {
       console.error('Password reset error:', error);
-      
-      // Fallback for forgot password
-      const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      const resetUrl = `${window.location.origin}/reset-password?token=${resetToken}&email=${resetEmail}`;
-      
-      setSuccess(`Password reset instructions sent! (Demo Mode) For testing, use this link: ${resetUrl}`);
-      setResetEmail('');
+      setError(error.message || 'Failed to send reset email');
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 
-  (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000');
+// GitHub Pages deployment - use local storage only
+const API_BASE_URL = null; // Disable API calls for GitHub Pages
 
 const apiService = axios.create({
   baseURL: API_BASE_URL,
@@ -43,37 +43,97 @@ apiService.interceptors.response.use(
   }
 );
 
-// Authentication methods
+// GitHub Pages Authentication - Local Storage Only
 export const authService = {
-  // Login user
+  // Login user (local storage simulation)
   login: async (email, password) => {
-    const response = await apiService.post('/api/auth/login', {
-      email,
-      password
-    });
-    return response.data;
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    if (!email || !password) {
+      throw new Error('Email and password are required');
+    }
+
+    return {
+      success: true,
+      message: 'Login successful',
+      user: {
+        id: 'github-user-' + Date.now(),
+        email,
+        name: email.split('@')[0]
+      },
+      token: 'github-token-' + Date.now()
+    };
   },
 
-  // Register user
+  // Register user (local storage simulation) 
   register: async (email, password, name) => {
-    const response = await apiService.post('/api/auth/register', {
-      email,
-      password,
-      name
-    });
-    return response.data;
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    if (!email || !password) {
+      throw new Error('Email and password are required');
+    }
+
+    if (password.length < 6) {
+      throw new Error('Password must be at least 6 characters long');
+    }
+
+    return {
+      success: true,
+      message: 'Registration successful',
+      user: {
+        id: 'github-user-' + Date.now(),
+        email,
+        name: name || email.split('@')[0]
+      },
+      token: 'github-token-' + Date.now()
+    };
   },
 
-  // Get current user
+  // Get current user (from local storage)
   getCurrentUser: async () => {
-    const response = await apiService.get('/api/auth/me');
-    return response.data;
+    const user = localStorage.getItem('user');
+    if (user) {
+      return {
+        success: true,
+        user: JSON.parse(user)
+      };
+    }
+    throw new Error('No user found');
   },
 
-  // Create demo user
-  createDemoUser: async () => {
-    const response = await apiService.post('/api/auth/create-demo-user');
-    return response.data;
+  // Forgot password (local simulation)
+  forgotPassword: async (email) => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const resetUrl = `${window.location.origin}/reset-password?token=${resetToken}&email=${email}`;
+    
+    return {
+      success: true,
+      message: 'Password reset instructions sent to your email',
+      resetUrl,
+      note: 'Copy and paste this URL in your browser to reset password'
+    };
+  },
+
+  // Reset password (local simulation)
+  resetPassword: async (token, email, password) => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    if (!token || !email || !password) {
+      throw new Error('Token, email, and new password are required');
+    }
+
+    if (password.length < 6) {
+      throw new Error('Password must be at least 6 characters long');
+    }
+
+    return {
+      success: true,
+      message: 'Password has been reset successfully'
+    };
   },
 
   // Check if token is valid
