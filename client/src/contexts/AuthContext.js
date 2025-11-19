@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import firebaseAuthService from '../services/firebaseAuthService';
 
 // Create the AuthContext
 const AuthContext = createContext();
@@ -17,54 +18,65 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if user is logged in on app start
+  // Check if user is logged in on app start and listen to auth changes
   useEffect(() => {
-    const initializeAuth = () => {
-      try {
-        const token = localStorage.getItem('token');
-        const userData = localStorage.getItem('user');
-
-        if (token && userData) {
-          const parsedUser = JSON.parse(userData);
-          setUser(parsedUser);
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-        // Clear invalid data
-        localStorage.removeItem('token');
+    const unsubscribe = firebaseAuthService.onAuthStateChange((firebaseUser) => {
+      if (firebaseUser) {
+        const userData = {
+          id: firebaseUser.uid,
+          email: firebaseUser.email,
+          name: firebaseUser.displayName,
+          emailVerified: firebaseUser.emailVerified
+        };
+        setUser(userData);
+        // Store in localStorage for persistence across page reloads
+        localStorage.setItem('user', JSON.stringify(userData));
+      } else {
+        setUser(null);
         localStorage.removeItem('user');
-      } finally {
-        setLoading(false);
+        localStorage.removeItem('token');
       }
-    };
+      setLoading(false);
+    });
 
-    initializeAuth();
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
-  // Login function
-  const login = (userData) => {
-    setUser(userData);
+  // Login function - Firebase handles this automatically via onAuthStateChange
+  const login = async (email, password) => {
+    return await firebaseAuthService.login(email, password);
+  };
+
+  // Register function
+  const register = async (email, password, name) => {
+    return await firebaseAuthService.register(email, password, name);
   };
 
   // Logout function
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
+  const logout = async () => {
+    return await firebaseAuthService.logout();
+  };
+
+  // Forgot password function
+  const forgotPassword = async (email) => {
+    return await firebaseAuthService.forgotPassword(email);
   };
 
   // Check if user is authenticated
   const isAuthenticated = !!user;
 
   // Get authentication token
-  const getToken = () => {
-    return localStorage.getItem('token');
+  const getToken = async () => {
+    return await firebaseAuthService.getToken();
   };
 
   const value = {
     user,
     login,
+    register,
     logout,
+    forgotPassword,
     isAuthenticated,
     getToken,
     loading

@@ -31,29 +31,23 @@ const Login = ({ onLogin }) => {
     setSuccess('');
 
     try {
-      const { authService } = await import('../services/apiService');
+      const firebaseAuthService = await import('../services/firebaseAuthService');
       let data;
 
       if (isSignUp) {
-        data = await authService.register(formData.email, formData.password, formData.name);
+        data = await firebaseAuthService.default.register(formData.email, formData.password, formData.name);
+        setSuccess('Account created successfully! Check your email for verification.');
       } else {
-        data = await authService.login(formData.email, formData.password);
+        data = await firebaseAuthService.default.login(formData.email, formData.password);
+        setSuccess('Login successful! Redirecting...');
       }
 
       if (data.success) {
-        // Show success message for registration
-        if (isSignUp) {
-          setSuccess('Account created successfully! Logging you in...');
-        }
-        
-        // Store token in localStorage
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        
-        // Brief delay to show success message for registration
+        // Firebase AuthContext will handle user state automatically
+        // Just show success and redirect
         setTimeout(() => {
           onLogin(data.user);
-        }, isSignUp ? 1500 : 0);
+        }, isSignUp ? 2000 : 1000);
       } else {
         setError(data.message || 'Authentication failed');
       }
@@ -80,47 +74,23 @@ const Login = ({ onLogin }) => {
     setSuccess('');
 
     try {
-      const { authService } = await import('../services/apiService');
-      const data = await authService.forgotPassword(resetEmail);
+      const firebaseAuthService = await import('../services/firebaseAuthService');
+      const data = await firebaseAuthService.default.forgotPassword(resetEmail);
 
       if (data.success) {
-        if (data.isDemoMode && data.resetUrl) {
-          // For demo mode, show a nicer message with clickable link
-          setSuccess(
-            <>
-              <div style={{ marginBottom: '10px' }}>
-                ✅ Password reset link generated successfully!
-              </div>
-              <div style={{ marginBottom: '10px', fontSize: '0.9em', color: '#666' }}>
-                🎯 <strong>Demo Mode:</strong> Click the link below to reset your password
-              </div>
-              <div style={{ 
-                background: '#f0f8ff', 
-                padding: '10px', 
-                borderRadius: '5px', 
-                border: '1px solid #007bff',
-                marginBottom: '10px'
-              }}>
-                <a 
-                  href={data.resetUrl} 
-                  style={{ 
-                    color: '#007bff', 
-                    textDecoration: 'none',
-                    fontWeight: 'bold'
-                  }}
-                  onClick={() => window.location.href = data.resetUrl}
-                >
-                  🔗 Reset Password Now
-                </a>
-              </div>
-              <div style={{ fontSize: '0.8em', color: '#888' }}>
-                💡 In production, this would be sent to your email
-              </div>
-            </>
-          );
-        } else {
-          setSuccess('Password reset instructions have been sent to your email!');
-        }
+        setSuccess(
+          <>
+            <div style={{ marginBottom: '10px' }}>
+              ✅ Password reset email sent successfully!
+            </div>
+            <div style={{ marginBottom: '10px', fontSize: '0.9em', color: '#666' }}>
+              📧 Check your email inbox (and spam folder) for reset instructions
+            </div>
+            <div style={{ fontSize: '0.8em', color: '#888' }}>
+              🔥 Powered by Firebase Authentication - Real email service!
+            </div>
+          </>
+        );
         setResetEmail('');
       } else {
         setError(data.message || 'Failed to send reset email');
