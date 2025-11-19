@@ -39,6 +39,14 @@
   color: #333;
 }
 
+.login-header h1.app-name {
+  font-size: 3.2rem;
+  font-weight: 900;
+  margin: 0 0 15px 0;
+  color: #333;
+  letter-spacing: -0.5px;
+}
+
 .login-header h2 {
   font-size: 1.5rem;
   margin: 0 0 8px 0;
