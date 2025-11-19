@@ -6,6 +6,7 @@ import Login from './components/Login';
 import ResetPassword from './components/ResetPassword';
 import Home from './pages/Home';
 import About from './pages/About';
+import RegisteredUsers from './pages/RegisteredUsers';
 import apiService from './services/apiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -40,6 +41,7 @@ function MainApp() {
           <Routes>
             <Route path="/" element={<Home data={data} />} />
             <Route path="/about" element={<About />} />
+            <Route path="/registered-users" element={<RegisteredUsers />} />
           </Routes>
         )}
       </main>
