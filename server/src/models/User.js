@@ -32,6 +32,14 @@ const userSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  resetPasswordToken: {
+    type: String,
+    default: null
+  },
+  resetPasswordExpires: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true
@@ -60,6 +68,31 @@ userSchema.methods.matchPassword = async function(enteredPassword) {
 // Static method to find user by email
 userSchema.statics.findByEmail = function(email) {
   return this.findOne({ email: email.toLowerCase() });
+};
+
+// Generate password reset token
+userSchema.methods.generatePasswordResetToken = function() {
+  const crypto = require('crypto');
+  
+  // Generate token
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  
+  // Hash and set reset password token
+  this.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+  
+  // Set expire time (10 minutes)
+  this.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+  
+  return resetToken;
+};
+
+// Check if reset token is valid and not expired
+userSchema.methods.isResetTokenValid = function(token) {
+  const crypto = require('crypto');
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  
+  return this.resetPasswordToken === hashedToken && 
+         this.resetPasswordExpires > Date.now();
 };
 
 const User = mongoose.model('User', userSchema);

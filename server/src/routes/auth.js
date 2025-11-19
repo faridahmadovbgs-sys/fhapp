@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import { body, validationResult } from 'express-validator';
 import User from '../models/User.js';
 import demoAuthService from '../services/demoAuth.js';
+import emailService from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -245,6 +246,153 @@ router.get('/demo-users', (req, res) => {
       success: false,
       message: 'Error getting demo users',
       error: error.message
+    });
+  }
+});
+
+// Forgot password - Send reset email
+router.post('/forgot-password', [
+  body('email').isEmail().normalizeEmail().withMessage('Valid email is required')
+], async (req, res) => {
+  try {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address',
+        errors: errors.array()
+      });
+    }
+
+    const { email } = req.body;
+
+    // Check if database is connected
+    if (mongoose.connection.readyState !== 1) {
+      // Demo mode - simulate sending reset email
+      console.log(`\n📧 DEMO: Password reset requested for ${email}`);
+      console.log('Reset URL: http://localhost:3000/reset-password?token=demo-reset-token&email=' + email);
+      
+      return res.json({
+        success: true,
+        message: 'If an account with this email exists, you will receive reset instructions.',
+        demo: true
+      });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email });
+    
+    // Always return success message for security (don't reveal if email exists)
+    if (!user) {
+      return res.json({
+        success: true,
+        message: 'If an account with this email exists, you will receive reset instructions.'
+      });
+    }
+
+    // Generate reset token
+    const resetToken = user.generatePasswordResetToken();
+    await user.save();
+
+    // Send reset email
+    const emailResult = await emailService.sendPasswordResetEmail(
+      user.email, 
+      resetToken, 
+      user.name
+    );
+
+    if (emailResult.success) {
+      res.json({
+        success: true,
+        message: 'Password reset instructions have been sent to your email.',
+        ...(process.env.NODE_ENV === 'development' && { resetUrl: emailResult.resetUrl })
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send reset email. Please try again.'
+      });
+    }
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error occurred while processing request'
+    });
+  }
+});
+
+// Reset password with token
+router.post('/reset-password', [
+  body('token').notEmpty().withMessage('Reset token is required'),
+  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+], async (req, res) => {
+  try {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation errors',
+        errors: errors.array()
+      });
+    }
+
+    const { token, email, password } = req.body;
+
+    // Check if database is connected
+    if (mongoose.connection.readyState !== 1) {
+      // Demo mode - simulate password reset
+      if (token === 'demo-reset-token') {
+        return res.json({
+          success: true,
+          message: 'Password has been reset successfully! (Demo mode)',
+          demo: true
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or expired reset token'
+        });
+      }
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token'
+      });
+    }
+
+    // Check if token is valid
+    if (!user.isResetTokenValid(token)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token'
+      });
+    }
+
+    // Update password
+    user.password = password;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Password has been reset successfully! You can now log in with your new password.'
+    });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error occurred while resetting password'
     });
   }
 });

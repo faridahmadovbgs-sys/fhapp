@@ -11,6 +11,8 @@ const Login = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
 
   const handleChange = (e) => {
     setFormData({
@@ -71,7 +73,46 @@ const Login = ({ onLogin }) => {
     setIsSignUp(!isSignUp);
     setError('');
     setSuccess('');
+    setIsForgotPassword(false);
     setFormData({ name: '', email: '', password: '' });
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: resetEmail })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSuccess('Password reset instructions have been sent to your email!');
+        setResetEmail('');
+      } else {
+        setError(data.message || 'Failed to send reset email');
+      }
+    } catch (error) {
+      console.error('Password reset error:', error);
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleForgotPassword = () => {
+    setIsForgotPassword(!isForgotPassword);
+    setError('');
+    setSuccess('');
+    setResetEmail('');
   };
 
   return (
@@ -79,12 +120,65 @@ const Login = ({ onLogin }) => {
       <div className="login-card">
         <div className="login-header">
           <h1>🚀 FH App</h1>
-          <h2>{isSignUp ? 'Create Account' : 'Welcome Back'}</h2>
-          <p>{isSignUp ? 'Join our full-stack application' : 'Sign in to continue'}</p>
+          <h2>
+            {isForgotPassword ? 'Reset Password' : isSignUp ? 'Create Account' : 'Welcome Back'}
+          </h2>
+          <p>
+            {isForgotPassword 
+              ? 'Enter your email to receive reset instructions'
+              : isSignUp 
+                ? 'Join our full-stack application' 
+                : 'Sign in to continue'
+            }
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="login-form">
-          {isSignUp && (
+        {isForgotPassword ? (
+          <form onSubmit={handleForgotPassword} className="login-form">
+            <div className="form-group">
+              <label htmlFor="resetEmail">Email Address</label>
+              <input
+                type="email"
+                id="resetEmail"
+                name="resetEmail"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                required
+                placeholder="Enter your email address"
+                disabled={loading}
+              />
+            </div>
+
+            {error && (
+              <div className="error-message">
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="success-message">
+                {success}
+              </div>
+            )}
+
+            <button 
+              type="submit" 
+              className="login-button"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="spinner"></span>
+                  Sending Reset Link...
+                </>
+              ) : (
+                'Send Reset Link'
+              )}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="login-form">
+            {isSignUp && (
             <div className="form-group">
               <label htmlFor="name">Full Name</label>
               <input
@@ -154,20 +248,49 @@ const Login = ({ onLogin }) => {
               isSignUp ? 'Create Account' : 'Sign In'
             )}
           </button>
-        </form>
+          </form>
+        )}
 
         <div className="login-footer">
-          <p>
-            {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
-            <button 
-              type="button" 
-              className="toggle-button"
-              onClick={toggleMode}
-              disabled={loading}
-            >
-              {isSignUp ? 'Sign In' : 'Sign Up'}
-            </button>
-          </p>
+          {isForgotPassword ? (
+            <p>
+              Remember your password?{' '}
+              <button 
+                type="button" 
+                className="toggle-button"
+                onClick={toggleForgotPassword}
+                disabled={loading}
+              >
+                Back to Sign In
+              </button>
+            </p>
+          ) : (
+            <>
+              <p>
+                {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
+                <button 
+                  type="button" 
+                  className="toggle-button"
+                  onClick={toggleMode}
+                  disabled={loading}
+                >
+                  {isSignUp ? 'Sign In' : 'Sign Up'}
+                </button>
+              </p>
+              {!isSignUp && (
+                <p>
+                  <button 
+                    type="button" 
+                    className="forgot-password-button"
+                    onClick={toggleForgotPassword}
+                    disabled={loading}
+                  >
+                    Forgot your password?
+                  </button>
+                </p>
+              )}
+            </>
+          )}
         </div>
 
         <div className="demo-info">

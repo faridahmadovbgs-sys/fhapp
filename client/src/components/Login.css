@@ -193,6 +193,26 @@
   cursor: not-allowed;
 }
 
+.forgot-password-button {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: 10px;
+  transition: color 0.3s ease;
+}
+
+.forgot-password-button:hover:not(:disabled) {
+  color: #667eea;
+}
+
+.forgot-password-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .demo-info {
   background: #f8f9fa;
   border-radius: 12px;

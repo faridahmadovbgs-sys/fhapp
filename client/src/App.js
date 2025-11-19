@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import Header from './components/Header';
 import Login from './components/Login';
+import ResetPassword from './components/ResetPassword';
 import Home from './pages/Home';
 import About from './pages/About';
 import apiService from './services/apiService';
@@ -30,21 +31,19 @@ function MainApp() {
   }, [isAuthenticated]);
 
   return (
-    <Router>
-      <div className="App">
-        <Header user={user} />
-        <main className="container">
-          {loading ? (
-            <div className="loading">Connecting to server...</div>
-          ) : (
-            <Routes>
-              <Route path="/" element={<Home data={data} />} />
-              <Route path="/about" element={<About />} />
-            </Routes>
-          )}
-        </main>
-      </div>
-    </Router>
+    <div className="App">
+      <Header user={user} />
+      <main className="container">
+        {loading ? (
+          <div className="loading">Connecting to server...</div>
+        ) : (
+          <Routes>
+            <Route path="/" element={<Home data={data} />} />
+            <Route path="/about" element={<About />} />
+          </Routes>
+        )}
+      </main>
+    </div>
   );
 }
 
@@ -52,7 +51,9 @@ function MainApp() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <Router>
+        <AppContent />
+      </Router>
     </AuthProvider>
   );
 }
@@ -69,11 +70,20 @@ function AppContent() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <Login onLogin={login} />;
-  }
-
-  return <MainApp />;
+  return (
+    <Routes>
+      <Route 
+        path="/reset-password" 
+        element={<ResetPassword />} 
+      />
+      <Route 
+        path="/*" 
+        element={
+          isAuthenticated ? <MainApp /> : <Login onLogin={login} />
+        } 
+      />
+    </Routes>
+  );
 }
 
 export default App;
