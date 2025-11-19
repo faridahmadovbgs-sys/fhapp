@@ -4,6 +4,7 @@ import './Login.css';
 const Login = ({ onLogin }) => {
   const [formData, setFormData] = useState({
     name: '',
+    entity: '',
     email: '',
     password: ''
   });
@@ -65,7 +66,7 @@ const Login = ({ onLogin }) => {
     setError('');
     setSuccess('');
     setIsForgotPassword(false);
-    setFormData({ name: '', email: '', password: '' });
+    setFormData({ name: '', entity: '', email: '', password: '' });
   };
 
   const handleForgotPassword = async (e) => {
@@ -183,7 +184,23 @@ const Login = ({ onLogin }) => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder="Enter your full name (optional)"
+                required
+                placeholder="Enter your full name"
+                disabled={loading}
+              />
+            </div>
+          )}
+
+          {isSignUp && (
+            <div className="form-group">
+              <label htmlFor="entity">Entity (Business or Trust)</label>
+              <input
+                type="text"
+                id="entity"
+                name="entity"
+                value={formData.entity}
+                onChange={handleChange}
+                placeholder="Enter business or trust name (optional)"
                 disabled={loading}
               />
             </div>
