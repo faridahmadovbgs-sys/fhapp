@@ -62,7 +62,7 @@ function App() {
 
 // Content component that handles login vs main app
 function AppContent() {
-  const { isAuthenticated, login, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
     return (

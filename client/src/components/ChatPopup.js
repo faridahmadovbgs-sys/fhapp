@@ -74,7 +74,7 @@ const ChatPopup = () => {
     );
 
     return () => unsubscribe();
-  }, [db, user, isOpen]);
+  }, [user, isOpen]);
 
   // Send message
   const sendMessage = async (e) => {
