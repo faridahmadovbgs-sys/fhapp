@@ -84,7 +84,12 @@ const Login = ({ onLogin }) => {
     setSuccess('');
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/forgot-password', {
+      // Use production API or local development
+      const apiUrl = process.env.NODE_ENV === 'production' 
+        ? '/api/auth/forgot-password'
+        : 'http://localhost:5000/api/auth/forgot-password';
+        
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -96,6 +101,12 @@ const Login = ({ onLogin }) => {
 
       if (data.success) {
         setSuccess('Password reset instructions have been sent to your email!');
+        
+        // If we get a resetUrl in the response (demo mode), show it to the user
+        if (data.resetUrl) {
+          setSuccess(`Password reset instructions sent! For testing, use this link: ${data.resetUrl}`);
+        }
+        
         setResetEmail('');
       } else {
         setError(data.message || 'Failed to send reset email');

@@ -54,7 +54,12 @@ const ResetPassword = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/reset-password', {
+      // Use production API or local development
+      const apiUrl = process.env.NODE_ENV === 'production' 
+        ? '/api/auth/reset-password'
+        : 'http://localhost:5000/api/auth/reset-password';
+        
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
