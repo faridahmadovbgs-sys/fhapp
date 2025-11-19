@@ -289,25 +289,25 @@ const Login = ({ onLogin }) => {
         </div>
 
         <div className="demo-info">
-          <h3>{isSignUp ? 'Sign Up Information' : 'Demo Information'}</h3>
+          <h3>{isSignUp ? 'Sign Up Information' : 'Authentication'}</h3>
           {isSignUp ? (
             <div>
               <p>Create your account:</p>
               <ul>
-                <li>Use any valid email address</li>
+                <li>Use your real email address</li>
                 <li>Password must be at least 6 characters</li>
                 <li>Name is optional (auto-generated if empty)</li>
-                <li>Account is created instantly</li>
+                <li>🔥 Powered by Firebase Authentication</li>
               </ul>
             </div>
           ) : (
             <div>
-              <p>This is a demo application. You can:</p>
+              <p>Secure Authentication System:</p>
               <ul>
-                <li>Sign in with demo credentials below</li>
-                <li>Or create a new account using "Sign Up"</li>
-                <li><strong>Demo:</strong> demo@example.com / demo123</li>
-                <li><strong>Test:</strong> test@example.com / test123</li>
+                <li>✅ Real user accounts with Firebase</li>
+                <li>🔐 Secure password encryption</li>
+                <li>📧 Password recovery via email</li>
+                <li>🚀 Production-ready security</li>
               </ul>
             </div>
           )}
