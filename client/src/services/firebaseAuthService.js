@@ -6,13 +6,14 @@ import {
   updateProfile,
   onAuthStateChanged
 } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
 
 export const firebaseAuthService = {
   // Register new user
-  register: async (email, password, name) => {
+  register: async (email, password, name, entity = '') => {
     // Check if Firebase is configured
-    if (!auth) {
+    if (!auth || !db) {
       throw new Error('🔥 Firebase not configured yet! Please follow the FIREBASE_SETUP.md guide to set up authentication.');
     }
     
@@ -26,13 +27,28 @@ export const firebaseAuthService = {
         });
       }
 
+      // Store additional user data in Firestore
+      const userData = {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        fullName: name || '',
+        entity: entity || '',
+        emailVerified: userCredential.user.emailVerified,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+
+      // Save to Firestore database
+      await setDoc(doc(db, 'users', userCredential.user.uid), userData);
+
       return {
         success: true,
-        message: 'Registration successful! Please check your email for verification.',
+        message: 'Registration successful! User profile created in database.',
         user: {
           id: userCredential.user.uid,
           email: userCredential.user.email,
           name: userCredential.user.displayName || name,
+          entity: entity,
           emailVerified: userCredential.user.emailVerified
         },
         token: await userCredential.user.getIdToken()
@@ -178,6 +194,31 @@ export const firebaseAuthService = {
         }
       });
     });
+  },
+
+  // Get user profile from database
+  getUserProfile: async (uid) => {
+    if (!db) {
+      throw new Error('🔥 Firebase not configured yet!');
+    }
+    
+    try {
+      const userDoc = await getDoc(doc(db, 'users', uid));
+      if (userDoc.exists()) {
+        return {
+          success: true,
+          user: userDoc.data()
+        };
+      } else {
+        return {
+          success: false,
+          message: 'User profile not found in database'
+        };
+      }
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+      throw new Error('Failed to retrieve user profile');
+    }
   },
 
   // Listen to auth state changes

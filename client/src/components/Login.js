@@ -37,7 +37,7 @@ const Login = ({ onLogin }) => {
       let data;
 
       if (isSignUp) {
-        data = await firebaseAuthService.default.register(formData.email, formData.password, formData.name);
+        data = await firebaseAuthService.default.register(formData.email, formData.password, formData.name, formData.entity);
         setSuccess('Account created successfully! Check your email for verification.');
       } else {
         data = await firebaseAuthService.default.login(formData.email, formData.password);

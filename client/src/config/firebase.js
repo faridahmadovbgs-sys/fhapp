@@ -1,6 +1,7 @@
 // Firebase configuration
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 // Your web app's Firebase config
 const firebaseConfig = {
@@ -22,20 +23,23 @@ if (!isFirebaseConfigured) {
 }
 
 // Initialize Firebase
-let app, auth;
+let app, auth, db;
 
 try {
   if (isFirebaseConfigured) {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
+    db = getFirestore(app);
   } else {
-    // Provide null auth for demo mode
+    // Provide null auth and db for demo mode
     auth = null;
+    db = null;
   }
 } catch (error) {
   console.error('Firebase initialization error:', error);
   auth = null;
+  db = null;
 }
 
-export { auth };
+export { auth, db };
 export default app;
