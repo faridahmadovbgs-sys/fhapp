@@ -17,23 +17,48 @@
   "routes": [
     {
       "src": "/api/health",
-      "dest": "/api/health.js"
+      "dest": "/api/health.js",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+      }
     },
     {
       "src": "/api/auth/login",
-      "dest": "/api/auth/login.js"
+      "dest": "/api/auth/login.js",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+      }
     },
     {
       "src": "/api/auth/register",
-      "dest": "/api/auth/register.js"
+      "dest": "/api/auth/register.js",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+      }
     },
     {
       "src": "/api/auth/forgot-password",
-      "dest": "/api/auth/forgot-password.js"
+      "dest": "/api/auth/forgot-password.js",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+      }
     },
     {
       "src": "/api/auth/reset-password",
-      "dest": "/api/auth/reset-password.js"
+      "dest": "/api/auth/reset-password.js",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+      }
     },
     {
       "src": "/static/(.*)",
