@@ -55,7 +55,8 @@ const ChatPopup = () => {
           const data = doc.data();
           messagesData.push({
             id: doc.id,
-            ...data
+            ...data,
+            reactions: data.reactions || {} // Ensure reactions field exists
           });
 
           // Count unread messages (messages from others after popup was last opened)
@@ -69,6 +70,12 @@ const ChatPopup = () => {
           setUnreadCount(newUnreadCount);
         }
         setLoading(false);
+        
+        // Debug logging for reactions
+        const messagesWithReactions = messagesData.filter(msg => msg.reactions && Object.keys(msg.reactions).length > 0);
+        if (messagesWithReactions.length > 0) {
+          console.log('Messages with reactions:', messagesWithReactions.length);
+        }
       },
       (error) => {
         console.error('Error fetching messages:', error);
@@ -96,7 +103,8 @@ const ChatPopup = () => {
         userEmail: user.email,
         userName: user.name || user.email.split('@')[0],
         timestamp: serverTimestamp(),
-        reactions: {}
+        reactions: {},
+        createdAt: serverTimestamp()
       });
 
       setNewMessage('');
@@ -113,40 +121,49 @@ const ChatPopup = () => {
 
     try {
       const messageRef = doc(db, 'messages', messageId);
+      
+      // Use a transaction-like approach to handle concurrent updates
       const messageDoc = await getDoc(messageRef);
       
       if (messageDoc.exists()) {
-        const currentReactions = messageDoc.data().reactions || {};
+        const messageData = messageDoc.data();
+        const currentReactions = messageData.reactions || {};
         const emojiReactions = currentReactions[emoji] || [];
         
         // Check if user already reacted with this emoji
         const userIndex = emojiReactions.findIndex(reaction => reaction.userId === user.id);
         
+        let updatedEmojiReactions;
         if (userIndex === -1) {
           // Add reaction
-          emojiReactions.push({
+          updatedEmojiReactions = [...emojiReactions, {
             userId: user.id,
             userName: user.name || user.email.split('@')[0]
-          });
+          }];
         } else {
           // Remove reaction (toggle)
-          emojiReactions.splice(userIndex, 1);
+          updatedEmojiReactions = emojiReactions.filter(reaction => reaction.userId !== user.id);
         }
 
         // Update reactions object
         const updatedReactions = { ...currentReactions };
-        if (emojiReactions.length === 0) {
+        if (updatedEmojiReactions.length === 0) {
           delete updatedReactions[emoji];
         } else {
-          updatedReactions[emoji] = emojiReactions;
+          updatedReactions[emoji] = updatedEmojiReactions;
         }
 
-        // Update the message in Firestore
-        await updateDoc(messageRef, { reactions: updatedReactions });
+        // Update the message in Firestore - this will trigger real-time listeners
+        await updateDoc(messageRef, { 
+          reactions: updatedReactions,
+          updatedAt: serverTimestamp() // Add timestamp for debugging
+        });
+        
+        console.log('Reaction updated successfully for message:', messageId, 'emoji:', emoji);
       }
     } catch (error) {
       console.error('Error adding reaction:', error);
-      setError('Failed to add reaction');
+      setError('Failed to add reaction: ' + error.message);
     }
   };
 
@@ -272,16 +289,21 @@ const ChatPopup = () => {
                     {/* Message Reactions */}
                     {message.reactions && Object.keys(message.reactions).length > 0 && (
                       <div className="message-reactions">
-                        {Object.entries(message.reactions).map(([emoji, reactions]) => (
-                          <button
-                            key={emoji}
-                            className={`reaction-badge ${reactions.some(r => r.userId === user.id) ? 'user-reacted' : ''}`}
-                            onClick={() => addReaction(message.id, emoji)}
-                            title={reactions.map(r => r.userName).join(', ')}
-                          >
-                            {emoji} {reactions.length}
-                          </button>
-                        ))}
+                        {Object.entries(message.reactions).map(([emoji, reactions]) => {
+                          const reactionArray = Array.isArray(reactions) ? reactions : [];
+                          if (reactionArray.length === 0) return null;
+                          
+                          return (
+                            <button
+                              key={emoji}
+                              className={`reaction-badge ${reactionArray.some(r => r.userId === user.id) ? 'user-reacted' : ''}`}
+                              onClick={() => addReaction(message.id, emoji)}
+                              title={reactionArray.map(r => r.userName || r.userId).join(', ')}
+                            >
+                              {emoji} {reactionArray.length}
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
 
