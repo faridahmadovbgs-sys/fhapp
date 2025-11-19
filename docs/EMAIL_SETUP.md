@@ -6,7 +6,7 @@
 
 ### How to Test Right Now:
 
-1. **Go to your deployed app**: https://fhapp-client-dkhfe2oio-farids-projects-0239e101.vercel.app
+1. **Go to your deployed app**: https://fhapp-client-b8v4td2ix-farids-projects-0239e101.vercel.app
 2. **Click "Forgot your password?"**
 3. **Enter any email address**
 4. **Look for the reset link in the success message**
