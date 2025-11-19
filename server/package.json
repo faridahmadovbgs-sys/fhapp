@@ -1,5 +1,5 @@
 {
-  "name": "fhapp-server",
+  "name": "integrant-server",
   "version": "1.0.0",
   "description": "Backend API server for full-stack web application",
   "main": "src/app.js",

@@ -1,7 +1,7 @@
 {
-  "name": "fhapp-workspace",
+  "name": "integrant-workspace",
   "version": "1.0.0",
-  "description": "Full-stack web application with React frontend and Node.js backend",
+  "description": "Integrant - Full-stack web application with React frontend and Node.js backend",
   "scripts": {
     "install:client": "cd client && npm install",
     "install:server": "cd server && npm install", 

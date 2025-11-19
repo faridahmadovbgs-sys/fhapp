@@ -1,4 +1,4 @@
-# FH App - Full-Stack Web Application
+# Integrant - Full Stack Web Application
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-v16+-green.svg)

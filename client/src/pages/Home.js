@@ -4,7 +4,7 @@ const Home = ({ data }) => {
   return (
     <div>
       <div className="hero">
-        <h1>Welcome to FH App</h1>
+        <h1>Welcome to Integrant</h1>
         <p>A modern full-stack web application</p>
       </div>
       

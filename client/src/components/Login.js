@@ -114,7 +114,7 @@ const Login = ({ onLogin }) => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <h1>🚀 FH App</h1>
+          <h1>🚀 Integrant</h1>
           <h2>
             {isForgotPassword ? 'Reset Password' : isSignUp ? 'Create Account' : 'Welcome Back'}
           </h2>

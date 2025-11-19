@@ -83,7 +83,7 @@ const ResetPassword = () => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <h1>🚀 FH App</h1>
+          <h1>🚀 Integrant</h1>
           <h2>Reset Your Password</h2>
           <p>Enter your new password below</p>
         </div>
