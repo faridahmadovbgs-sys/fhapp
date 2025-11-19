@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FH App Test Page</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        h1 { color: #fff; margin-bottom: 20px; }
+        p { font-size: 18px; margin: 20px 0; }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .btn:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 FH App - React Application</h1>
+        <p>✅ GitHub Pages deployment is working!</p>
+        <p>This confirms that our React app should be loading correctly.</p>
+        <p><strong>Your friend can access this app at:</strong></p>
+        <p><code>https://faridahmadovbgs-sys.github.io/fhapp/</code></p>
+        <a href="./index.html" class="btn">🔑 Go to Login Page</a>
+        <br><br>
+        <p><small>If you see this page, GitHub Pages is working correctly!</small></p>
+    </div>
+    
+    <script>
+        // Auto-redirect to React app after 3 seconds
+        setTimeout(function() {
+            window.location.href = './index.html';
+        }, 3000);
+        
+        console.log('FH App test page loaded successfully!');
+        console.log('React app files are available at: ./static/js/main.0d48d616.js');
+    </script>
+</body>
+</html>
