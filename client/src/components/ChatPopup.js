@@ -6,7 +6,10 @@ import {
   query, 
   orderBy, 
   limit, 
-  serverTimestamp 
+  serverTimestamp,
+  doc,
+  getDoc,
+  updateDoc
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -19,6 +22,7 @@ const ChatPopup = () => {
   const [error, setError] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const { user } = useAuth();
   const messagesEndRef = useRef(null);
 
@@ -83,20 +87,101 @@ const ChatPopup = () => {
     if (!newMessage.trim() || !user || !db) return;
 
     try {
+      // Process emoji shortcuts before sending
+      const processedMessage = processEmojiShortcuts(newMessage.trim());
+      
       await addDoc(collection(db, 'messages'), {
-        text: newMessage.trim(),
+        text: processedMessage,
         userId: user.id,
         userEmail: user.email,
         userName: user.name || user.email.split('@')[0],
-        timestamp: serverTimestamp()
+        timestamp: serverTimestamp(),
+        reactions: {}
       });
 
       setNewMessage('');
+      setShowEmojiPicker(false);
     } catch (error) {
       console.error('Error sending message:', error);
       setError('Failed to send message');
     }
   };
+
+  // Add reaction to a message
+  const addReaction = async (messageId, emoji) => {
+    if (!user || !db) return;
+
+    try {
+      const messageRef = doc(db, 'messages', messageId);
+      const messageDoc = await getDoc(messageRef);
+      
+      if (messageDoc.exists()) {
+        const currentReactions = messageDoc.data().reactions || {};
+        const emojiReactions = currentReactions[emoji] || [];
+        
+        // Check if user already reacted with this emoji
+        const userIndex = emojiReactions.findIndex(reaction => reaction.userId === user.id);
+        
+        if (userIndex === -1) {
+          // Add reaction
+          emojiReactions.push({
+            userId: user.id,
+            userName: user.name || user.email.split('@')[0]
+          });
+        } else {
+          // Remove reaction (toggle)
+          emojiReactions.splice(userIndex, 1);
+        }
+
+        // Update reactions object
+        const updatedReactions = { ...currentReactions };
+        if (emojiReactions.length === 0) {
+          delete updatedReactions[emoji];
+        } else {
+          updatedReactions[emoji] = emojiReactions;
+        }
+
+        // Update the message in Firestore
+        await updateDoc(messageRef, { reactions: updatedReactions });
+      }
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+      setError('Failed to add reaction');
+    }
+  };
+
+  // Process emoji shortcuts (like :smile: -> 😊)
+  const processEmojiShortcuts = (text) => {
+    const emojiMap = {
+      ':smile:': '😊', ':laugh:': '😂', ':love:': '😍', ':heart:': '❤️',
+      ':thumbs_up:': '👍', ':thumbs_down:': '👎', ':clap:': '👏', ':fire:': '🔥',
+      ':star:': '⭐', ':check:': '✅', ':x:': '❌', ':warning:': '⚠️',
+      ':idea:': '💡', ':rocket:': '🚀', ':party:': '🎉', ':coffee:': '☕',
+      ':pizza:': '🍕', ':beer:': '🍺', ':wine:': '🍷', ':cake:': '🎂',
+      ':sun:': '☀️', ':moon:': '🌙', ':rain:': '🌧️', ':snow:': '❄️',
+      ':cat:': '🐱', ':dog:': '🐶', ':unicorn:': '🦄', ':rainbow:': '🌈'
+    };
+
+    let processed = text;
+    Object.entries(emojiMap).forEach(([shortcut, emoji]) => {
+      processed = processed.replace(new RegExp(shortcut.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), emoji);
+    });
+    return processed;
+  };
+
+  // Add emoji to message
+  const addEmoji = (emoji) => {
+    setNewMessage(prev => prev + emoji);
+    setShowEmojiPicker(false);
+  };
+
+  // Popular emojis for quick access
+  const popularEmojis = [
+    '😊', '😂', '😍', '👍', '👎', '❤️', '🔥', '⭐',
+    '✅', '❌', '🎉', '💡', '🚀', '👏', '☕', '🍕',
+    '😎', '🤔', '😢', '😮', '😴', '🤗', '🙌', '💪',
+    '🌟', '💯', '🎯', '📱', '💻', '📸', '🎵', '🌈'
+  ];
 
   // Toggle popup
   const togglePopup = () => {
@@ -183,6 +268,36 @@ const ChatPopup = () => {
                       </div>
                       <div className="message-text">{message.text}</div>
                     </div>
+
+                    {/* Message Reactions */}
+                    {message.reactions && Object.keys(message.reactions).length > 0 && (
+                      <div className="message-reactions">
+                        {Object.entries(message.reactions).map(([emoji, reactions]) => (
+                          <button
+                            key={emoji}
+                            className={`reaction-badge ${reactions.some(r => r.userId === user.id) ? 'user-reacted' : ''}`}
+                            onClick={() => addReaction(message.id, emoji)}
+                            title={reactions.map(r => r.userName).join(', ')}
+                          >
+                            {emoji} {reactions.length}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Quick Reaction Buttons (show on hover) */}
+                    <div className="quick-reactions">
+                      {['👍', '❤️', '😂', '😮', '😢', '😡'].map((emoji) => (
+                        <button
+                          key={emoji}
+                          className="quick-reaction-btn"
+                          onClick={() => addReaction(message.id, emoji)}
+                          title={`React with ${emoji}`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -191,13 +306,52 @@ const ChatPopup = () => {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Emoji Picker */}
+        {showEmojiPicker && (
+          <div className="emoji-picker">
+            <div className="emoji-picker-header">
+              <span>Pick an emoji</span>
+              <button 
+                type="button" 
+                className="close-emoji-picker" 
+                onClick={() => setShowEmojiPicker(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="emoji-grid">
+              {popularEmojis.map((emoji, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  className="emoji-button"
+                  onClick={() => addEmoji(emoji)}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+            <div className="emoji-shortcuts-info">
+              <p>💡 Quick shortcuts: :smile: :heart: :thumbs_up: :fire: :rocket: :party:</p>
+            </div>
+          </div>
+        )}
+
         {/* Message Input */}
         <form className="chat-popup-input" onSubmit={sendMessage}>
+          <button
+            type="button"
+            className="emoji-toggle-button"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            title="Add emoji"
+          >
+            😊
+          </button>
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
+            placeholder="Type a message or :emoji:..."
             maxLength={500}
             disabled={loading}
             className="message-input"
@@ -209,6 +363,7 @@ const ChatPopup = () => {
         
         <div className="input-info">
           <span>{newMessage.length}/500 characters</span>
+          <span>Use :smile: :heart: :fire: for emojis</span>
         </div>
       </div>
     </>
