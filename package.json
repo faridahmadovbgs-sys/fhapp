@@ -4,15 +4,17 @@
   "description": "Full-stack web application with React frontend and Node.js backend",
   "scripts": {
     "install:client": "cd client && npm install",
-    "install:server": "cd server && npm install",
+    "install:server": "cd server && npm install", 
     "install:all": "npm run install:client && npm run install:server",
     "dev:client": "cd client && npm start",
     "dev:server": "cd server && npm run dev",
     "start:client": "cd client && npm start",
     "start:server": "cd server && npm start",
+    "build": "cd client && npm run build",
     "build:client": "cd client && npm run build",
     "test:client": "cd client && npm test",
-    "test:server": "cd server && npm test"
+    "test:server": "cd server && npm test",
+    "vercel-build": "cd client && npm install && npm run build"
   },
   "workspaces": [
     "client",

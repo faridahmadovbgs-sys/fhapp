@@ -154,3 +154,4 @@ uploads/
 *.pkg
 *.deb
 *.rpm
+.vercel
