@@ -1,4 +1,5 @@
 import React from 'react';
+import ChatPopup from '../components/ChatPopup';
 
 const Home = ({ data }) => {
   return (
@@ -30,6 +31,9 @@ const Home = ({ data }) => {
           <p>NoSQL database integration with Mongoose ODM for flexible data modeling and operations.</p>
         </div>
       </div>
+      
+      {/* Chat Popup */}
+      <ChatPopup />
     </div>
   );
 };

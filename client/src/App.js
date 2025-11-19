@@ -81,7 +81,7 @@ function AppContent() {
       <Route 
         path="/*" 
         element={
-          isAuthenticated ? <MainApp /> : <Login onLogin={login} />
+          isAuthenticated ? <MainApp /> : <Login />
         } 
       />
     </Routes>

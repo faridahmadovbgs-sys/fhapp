@@ -18,12 +18,32 @@ export const firebaseAuthService = {
     }
     
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // Ensure parameters are proper strings
+      const emailStr = String(email).trim();
+      const passwordStr = String(password).trim();
+      const nameStr = String(name || '').trim();
+      const entityStr = String(entity || '').trim();
+      
+      if (!emailStr || !passwordStr) {
+        throw new Error('Email and password are required');
+      }
+      
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(emailStr)) {
+        throw new Error('Please enter a valid email address');
+      }
+      
+      if (passwordStr.length < 6) {
+        throw new Error('Password must be at least 6 characters long');
+      }
+      
+      const userCredential = await createUserWithEmailAndPassword(auth, emailStr, passwordStr);
       
       // Update user profile with name
-      if (name) {
+      if (nameStr) {
         await updateProfile(userCredential.user, {
-          displayName: name
+          displayName: nameStr
         });
       }
 
@@ -31,8 +51,8 @@ export const firebaseAuthService = {
       const userData = {
         uid: userCredential.user.uid,
         email: userCredential.user.email,
-        fullName: name || '',
-        entity: entity || '',
+        fullName: nameStr,
+        entity: entityStr,
         emailVerified: userCredential.user.emailVerified,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -47,8 +67,8 @@ export const firebaseAuthService = {
         user: {
           id: userCredential.user.uid,
           email: userCredential.user.email,
-          name: userCredential.user.displayName || name,
-          entity: entity,
+          name: userCredential.user.displayName || nameStr,
+          entity: entityStr,
           emailVerified: userCredential.user.emailVerified
         },
         token: await userCredential.user.getIdToken()
@@ -83,7 +103,21 @@ export const firebaseAuthService = {
     }
     
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Ensure email and password are strings
+      const emailStr = String(email).trim();
+      const passwordStr = String(password).trim();
+      
+      if (!emailStr || !passwordStr) {
+        throw new Error('Email and password are required');
+      }
+      
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(emailStr)) {
+        throw new Error('Please enter a valid email address');
+      }
+      
+      const userCredential = await signInWithEmailAndPassword(auth, emailStr, passwordStr);
       
       return {
         success: true,

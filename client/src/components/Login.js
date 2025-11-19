@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './Login.css';
 
-const Login = ({ onLogin }) => {
+const Login = () => {
   const [formData, setFormData] = useState({
     name: '',
     entity: '',
@@ -33,6 +33,25 @@ const Login = ({ onLogin }) => {
     setSuccess('');
 
     try {
+      // Client-side validation
+      if (!formData.email || !formData.email.trim()) {
+        setError('Please enter your email address');
+        setLoading(false);
+        return;
+      }
+      
+      if (!formData.password || !formData.password.trim()) {
+        setError('Please enter your password');
+        setLoading(false);
+        return;
+      }
+      
+      if (isSignUp && (!formData.name || !formData.name.trim())) {
+        setError('Please enter your full name');
+        setLoading(false);
+        return;
+      }
+      
       const firebaseAuthService = await import('../services/firebaseAuthService');
       let data;
 
@@ -45,11 +64,9 @@ const Login = ({ onLogin }) => {
       }
 
       if (data.success) {
-        // Firebase AuthContext will handle user state automatically
-        // Just show success and redirect
-        setTimeout(() => {
-          onLogin(data.user);
-        }, isSignUp ? 2000 : 1000);
+        // Firebase AuthContext will handle user state automatically via onAuthStateChanged
+        // No need to call onLogin - just show success message
+        // The auth state change will automatically redirect to the main app
       } else {
         setError(data.message || 'Authentication failed');
       }
