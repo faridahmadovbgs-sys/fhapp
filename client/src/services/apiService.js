@@ -48,28 +48,51 @@ export const authService = {
   // Login user (local storage simulation)
   login: async (email, password) => {
     // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 800));
     
     if (!email || !password) {
       throw new Error('Email and password are required');
     }
 
+    // Get stored users
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    
+    // Find user by email
+    const user = users.find(u => u.email === email);
+    
+    if (!user) {
+      throw new Error('Invalid email or password');
+    }
+    
+    // Validate password
+    if (user.password !== password) {
+      throw new Error('Invalid email or password');
+    }
+
+    // Generate JWT-like token
+    const token = btoa(JSON.stringify({
+      userId: user.id,
+      email: user.email,
+      iat: Date.now(),
+      exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+    }));
+
     return {
       success: true,
       message: 'Login successful',
       user: {
-        id: 'github-user-' + Date.now(),
-        email,
-        name: email.split('@')[0]
+        id: user.id,
+        email: user.email,
+        name: user.name
       },
-      token: 'github-token-' + Date.now()
+      token
     };
   },
 
   // Register user (local storage simulation) 
   register: async (email, password, name) => {
     // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 800));
     
     if (!email || !password) {
       throw new Error('Email and password are required');
@@ -79,15 +102,44 @@ export const authService = {
       throw new Error('Password must be at least 6 characters long');
     }
 
+    // Check if user already exists
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const existingUser = users.find(u => u.email === email);
+    
+    if (existingUser) {
+      throw new Error('User with this email already exists');
+    }
+
+    // Create new user
+    const newUser = {
+      id: 'user-' + Date.now() + '-' + Math.random().toString(36).substring(7),
+      email,
+      password, // In a real app, this would be hashed
+      name: name || email.split('@')[0],
+      createdAt: new Date().toISOString()
+    };
+
+    // Store user in localStorage
+    users.push(newUser);
+    localStorage.setItem('users', JSON.stringify(users));
+
+    // Generate token
+    const token = btoa(JSON.stringify({
+      userId: newUser.id,
+      email: newUser.email,
+      iat: Date.now(),
+      exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+    }));
+
     return {
       success: true,
       message: 'Registration successful',
       user: {
-        id: 'github-user-' + Date.now(),
-        email,
-        name: name || email.split('@')[0]
+        id: newUser.id,
+        email: newUser.email,
+        name: newUser.name
       },
-      token: 'github-token-' + Date.now()
+      token
     };
   },
 
@@ -173,9 +225,9 @@ export const authService = {
     if (!token) return false;
 
     try {
-      // Basic token format check (you might want to add expiration check)
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const currentTime = Date.now() / 1000;
+      // Decode the token and check expiration
+      const payload = JSON.parse(atob(token));
+      const currentTime = Date.now();
       
       return payload.exp > currentTime;
     } catch (error) {
