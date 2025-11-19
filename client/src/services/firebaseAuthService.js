@@ -11,6 +11,11 @@ import { auth } from '../config/firebase';
 export const firebaseAuthService = {
   // Register new user
   register: async (email, password, name) => {
+    // Check if Firebase is configured
+    if (!auth) {
+      throw new Error('🔥 Firebase not configured yet! Please follow the FIREBASE_SETUP.md guide to set up authentication.');
+    }
+    
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
@@ -56,6 +61,11 @@ export const firebaseAuthService = {
 
   // Login user
   login: async (email, password) => {
+    // Check if Firebase is configured
+    if (!auth) {
+      throw new Error('🔥 Firebase not configured yet! Please follow the FIREBASE_SETUP.md guide to set up authentication.');
+    }
+    
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
@@ -110,6 +120,11 @@ export const firebaseAuthService = {
 
   // Send password reset email
   forgotPassword: async (email) => {
+    // Check if Firebase is configured
+    if (!auth) {
+      throw new Error('🔥 Firebase not configured yet! Please follow the FIREBASE_SETUP.md guide to set up authentication.');
+    }
+    
     try {
       await sendPasswordResetEmail(auth, email);
       
