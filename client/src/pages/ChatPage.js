@@ -329,7 +329,6 @@ const ChatPage = () => {
         });
       }
 
-      setShowEmojiPicker(false);
       setReactionTarget(null);
     } catch (error) {
       console.error('Error adding reaction:', error);
