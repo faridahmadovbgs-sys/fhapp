@@ -183,8 +183,8 @@ const MemberRegistration = () => {
 
   if (loading) {
     return (
-      <div className="auth-container">
-        <div className="auth-box">
+      <div className="login-container">
+        <div className="login-card">
           <div className="loading-state">
             <div className="spinner"></div>
             <p>Validating invitation...</p>
@@ -196,8 +196,8 @@ const MemberRegistration = () => {
 
   if (error && !invitation) {
     return (
-      <div className="auth-container">
-        <div className="auth-box">
+      <div className="login-container">
+        <div className="login-card">
           <div className="error-state">
             <h2>Invalid Invitation</h2>
             <p>{error}</p>
@@ -217,11 +217,12 @@ const MemberRegistration = () => {
   }
 
   return (
-    <div className="auth-container">
-      <div className="auth-box">
-        <div className="auth-header">
+    <div className="login-container">
+      <div className="login-card">
+        <div className="login-header">
+          <h1 className="app-name">Integrant</h1>
           <h2>Join {invitation?.organizationName}</h2>
-          <p>You've been invited to join the team</p>
+          <p>Create your account to get started</p>
         </div>
 
         {invitation?.message && (
@@ -243,7 +244,7 @@ const MemberRegistration = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
             <label htmlFor="email">Email Address *</label>
             <input
@@ -330,7 +331,7 @@ const MemberRegistration = () => {
           </button>
         </form>
 
-        <div className="auth-footer">
+        <div className="login-footer">
           <p>
             Already have an account? 
             <a href="/login" className="toggle-link"> Sign In</a>
@@ -339,76 +340,139 @@ const MemberRegistration = () => {
       </div>
 
       <style jsx>{`
-        .invitation-details {
-          background: #f8f9fa;
-          padding: 15px;
-          border-radius: 8px;
-          margin: 15px 0;
-        }
-        
-        .invitation-details p {
-          margin: 5px 0;
-          color: #495057;
-        }
-        
-        .invitation-message {
-          background: #e7f3ff;
-          padding: 15px;
-          border-radius: 8px;
-          border-left: 4px solid #007bff;
-          margin: 15px 0;
-        }
-        
-        .invitation-message h4 {
-          margin: 0 0 8px 0;
-          color: #0056b3;
-        }
-        
-        .invitation-message p {
-          margin: 0;
-          font-style: italic;
-          color: #495057;
-        }
-        
-        .disabled-input {
-          background: #f8f9fa !important;
-          cursor: not-allowed;
-        }
-        
-        .error-state {
-          text-align: center;
-          padding: 40px 20px;
-        }
-        
-        .error-state h2 {
-          color: #dc3545;
-          margin-bottom: 15px;
-        }
-        
-        .error-actions {
-          margin-top: 30px;
-        }
-        
-        .loading-state {
-          text-align: center;
-          padding: 60px 20px;
-        }
-        
-        .spinner {
-          border: 4px solid #f3f3f3;
-          border-top: 4px solid #007bff;
-          border-radius: 50%;
-          width: 40px;
-          height: 40px;
-          animation: spin 1s linear infinite;
-          margin: 0 auto 20px auto;
-        }
-        
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
+          .auth-header {
+            text-align: center;
+            margin-bottom: 2rem;
+          }
+          
+          .auth-header h2 {
+            color: #333;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+          }
+          
+          .auth-header p {
+            color: #666;
+            font-size: 0.95rem;
+            margin: 0.5rem 0;
+          }
+          
+          .invitation-details {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            text-align: center;
+          }
+          
+          .invitation-details p {
+            margin: 0.5rem 0;
+            font-size: 0.95rem;
+          }
+          
+          .invitation-details strong {
+            color: #fff;
+            font-weight: 600;
+          }
+          
+          .invitation-message {
+            background: #e7f3ff;
+            border-left: 4px solid #007bff;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1.5rem 0;
+          }
+          
+          .invitation-message h4 {
+            color: #0056b3;
+            margin: 0 0 0.5rem 0;
+            font-size: 0.95rem;
+          }
+          
+          .invitation-message p {
+            color: #495057;
+            margin: 0;
+            font-style: italic;
+            font-size: 0.9rem;
+          }
+          
+          .error-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+          }
+          
+          .error-state h2 {
+            color: #dc3545;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+          }
+          
+          .error-state p {
+            color: #666;
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+          }
+          
+          .error-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: center;
+          }
+          
+          .error-actions button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            width: 100%;
+            max-width: 300px;
+          }
+          
+          .error-actions button:hover {
+            background: #0056b3;
+          }
+          
+          .error-actions p {
+            margin: 1rem 0 0 0;
+          }
+          
+          .toggle-link {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 600;
+            margin-left: 0.25rem;
+          }
+          
+          .toggle-link:hover {
+            text-decoration: underline;
+          }
+          
+          .loading-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+          }
+          
+          .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem auto;
+          }
+          
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
     </div>
   );
 };
