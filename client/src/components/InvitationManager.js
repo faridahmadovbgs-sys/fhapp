@@ -137,24 +137,7 @@ const InvitationManager = () => {
     }
   };
 
-  const resendInvitation = async (invite) => {
-    try {
-      const newToken = generateInviteToken();
-      await updateDoc(doc(db, 'invitations', invite.id), {
-        token: newToken,
-        createdAt: new Date(),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-      });
 
-      const inviteLink = `${window.location.origin}/register/member?token=${newToken}`;
-      console.log('New invitation link:', inviteLink);
-      setStatus(`✅ New invitation sent to ${invite.email}`);
-      fetchInvitations();
-    } catch (error) {
-      console.error('Error resending invitation:', error);
-      setStatus('❌ Error resending invitation');
-    }
-  };
 
   if (!canManageInvitations) {
     return (
@@ -167,33 +150,38 @@ const InvitationManager = () => {
 
   return (
     <div className="invitation-manager">
-      <h2>Team Invitations</h2>
-      <p>Invite team members to join your organization</p>
+      <div className="invitation-header">
+        <div>
+          <h2>Team Invitations</h2>
+          <p>Invite team members to join your organization</p>
+        </div>
+        
+        {/* Organization Selector */}
+        {organizations.length > 1 && (
+          <div className="org-selector-section">
+            <label htmlFor="org-select">Organization:</label>
+            <select
+              id="org-select"
+              value={selectedOrg?.id || ''}
+              onChange={(e) => {
+                const org = organizations.find(o => o.id === e.target.value);
+                setSelectedOrg(org);
+                setInviteForm(prev => ({ ...prev, organizationId: org?.id || '' }));
+                fetchInvitations();
+              }}
+              className="org-select"
+            >
+              {organizations.map(org => (
+                <option key={org.id} value={org.id}>{org.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
 
       {status && (
         <div className={`status-message ${status.includes('✅') ? 'success' : 'error'}`}>
           {status}
-        </div>
-      )}
-
-      {/* Organization Selector */}
-      {organizations.length > 0 && (
-        <div className="org-selector-section">
-          <label htmlFor="org-select"><strong>Select Organization:</strong></label>
-          <select
-            id="org-select"
-            value={selectedOrg?.id || ''}
-            onChange={(e) => {
-              const org = organizations.find(o => o.id === e.target.value);
-              setSelectedOrg(org);
-              setInviteForm(prev => ({ ...prev, organizationId: org?.id || '' }));
-            }}
-            style={{ padding: '10px', marginLeft: '10px', borderRadius: '4px', border: '1px solid #ddd' }}
-          >
-            {organizations.map(org => (
-              <option key={org.id} value={org.id}>{org.name}</option>
-            ))}
-          </select>
         </div>
       )}
 
@@ -274,24 +262,16 @@ const InvitationManager = () => {
                 
                 <div className="invite-actions">
                   {invite.status === 'pending' && (
-                    <>
-                      <button 
-                        onClick={() => resendInvitation(invite)}
-                        className="action-button resend"
-                      >
-                        Resend
-                      </button>
-                      <button 
-                        onClick={() => {
-                          const inviteLink = `${window.location.origin}/register/member?token=${invite.token}`;
-                          navigator.clipboard.writeText(inviteLink);
-                          setStatus('✅ Invite link copied to clipboard');
-                        }}
-                        className="action-button copy"
-                      >
-                        Copy Link
-                      </button>
-                    </>
+                    <button 
+                      onClick={() => {
+                        const inviteLink = `${window.location.origin}/register/member?token=${invite.token}`;
+                        navigator.clipboard.writeText(inviteLink);
+                        setStatus('✅ Invite link copied to clipboard');
+                      }}
+                      className="action-button copy"
+                    >
+                      Copy Link
+                    </button>
                   )}
                   <button 
                     onClick={() => revokeInvitation(invite.id)}
@@ -308,15 +288,65 @@ const InvitationManager = () => {
 
       <style jsx>{`
         .invitation-manager {
-          max-width: 800px;
+          max-width: 900px;
           margin: 0 auto;
           padding: 20px;
         }
         
-        .status-message {
-          padding: 10px;
+        .invitation-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+          padding-bottom: 15px;
+          border-bottom: 2px solid #e1dfdd;
+        }
+        
+        .org-selector-section {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: #f3f2f1;
+          padding: 10px 16px;
+          border-radius: 8px;
+          border: 1px solid #e1dfdd;
+        }
+        
+        .org-selector-section label {
+          font-weight: 600;
+          font-size: 14px;
+          color: #252423;
+          white-space: nowrap;
+        }
+        
+        .org-select {
+          padding: 8px 12px;
+          border: 1px solid #c7c5c4;
           border-radius: 4px;
+          font-size: 14px;
+          font-weight: 500;
+          color: #252423;
+          background: white;
+          cursor: pointer;
+          min-width: 200px;
+          transition: all 0.2s ease;
+        }
+        
+        .org-select:hover {
+          border-color: #6264a7;
+        }
+        
+        .org-select:focus {
+          outline: none;
+          border-color: #6264a7;
+          box-shadow: 0 0 0 3px rgba(98, 100, 167, 0.1);
+        }
+        
+        .status-message {
+          padding: 12px 16px;
+          border-radius: 6px;
           margin: 15px 0;
+          font-weight: 500;
         }
         
         .status-message.success {
@@ -434,14 +464,13 @@ const InvitationManager = () => {
           font-size: 12px;
         }
         
-        .action-button.resend {
-          background: #17a2b8;
+        .action-button.copy {
+          background: #6264a7;
           color: white;
         }
         
-        .action-button.copy {
-          background: #6f42c1;
-          color: white;
+        .action-button.copy:hover {
+          background: #5558a0;
         }
         
         .action-button.revoke {
