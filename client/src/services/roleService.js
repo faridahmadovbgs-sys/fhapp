@@ -24,16 +24,16 @@ export const getUserRoleFromDatabase = async (userId) => {
 };
 
 // Set user role directly in database
-export const setUserRoleInDatabase = async (userId, email, role = 'admin') => {
+export const setUserRoleInDatabase = async (userId, email, role = 'admin', metadata = {}) => {
   try {
-    console.log('🔍 Setting user role:', { userId, email, role, dbExists: !!db });
-    
+    console.log('🔍 Setting user role:', { userId, email, role, metadata, dbExists: !!db });
+
     if (!db) {
       const errorMsg = 'Firebase Firestore database not available. Check Firebase configuration and network connection.';
       console.error('❌ Database check failed:', errorMsg);
       throw new Error(errorMsg);
     }
-    
+
     if (!userId) {
       const errorMsg = 'User ID is required to set role in database';
       console.error('❌ UserId check failed:', errorMsg);
@@ -41,14 +41,15 @@ export const setUserRoleInDatabase = async (userId, email, role = 'admin') => {
     }
 
     console.log('✅ Database and userId available, creating user document...');
-    
+
     const userDocRef = doc(db, 'users', userId);
     const userData = {
       uid: userId,
       email: email,
       role: role,
       updatedAt: new Date(),
-      createdAt: new Date()
+      createdAt: new Date(),
+      ...metadata
     };
 
     await setDoc(userDocRef, userData, { merge: true });

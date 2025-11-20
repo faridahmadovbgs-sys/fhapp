@@ -144,23 +144,22 @@ const AccountOwnerRegistration = () => {
         throw new Error('Registration succeeded but user ID not found. Please try logging in.');
       }
       
-      // Set account owner role in database
-      await setUserRoleInDatabase(
-        userId, 
-        formData.email, 
-        'account_owner'
-      );
-
-      // Store additional account owner info
-      const additionalData = {
+      // Set account owner role in database and store organization metadata
+      const metadata = {
         organizationName: formData.organizationName,
         isAccountOwner: true,
         accountCreatedAt: new Date(),
         subscriptionStatus: 'trial'
       };
 
-      // You could expand this to store organization info in a separate collection
-      console.log('Account owner registered:', additionalData);
+      await setUserRoleInDatabase(
+        userId,
+        formData.email,
+        'account_owner',
+        metadata
+      );
+
+      console.log('Account owner registered:', metadata);
 
       setSuccess('✅ Account owner registration successful! Your account has been created with full administrative privileges. You can now access the admin panel and invite team members.');
       
