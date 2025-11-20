@@ -214,7 +214,8 @@ const ChatPage = () => {
         createdAt: serverTimestamp(),
         senderId: currentUser.id,
         senderName: currentUser.name || currentUser.email.split('@')[0]
-      });NewMessage('');
+      });
+      setNewMessage('');
     } catch (error) {
       console.error('Error sending group message:', error);
       alert('Failed to send message');
@@ -262,8 +263,7 @@ const ChatPage = () => {
         createdAt: serverTimestamp(),
         senderId: currentUser.id,
         senderName: currentUser.name || currentUser.email.split('@')[0],
-        receiverId: selectedUser.uid,
-        userProfilePic: currentUserProfile?.profilePictureUrl || null
+        receiverId: selectedUser.uid
       });
       setNewMessage('');
     } catch (error) {
