@@ -50,11 +50,12 @@ const InvitationManager = () => {
 
     try {
       setLoading(true);
-      console.log('📋 Loading invitation data for user:', user.id, 'org:', selectedOrg.id);
+      console.log('📋 Loading invitation data for user:', user.id, 'org:', selectedOrg.id, 'orgName:', selectedOrg.name);
       
       // Load invitation link for the selected organization
       let invitationResult = await getAccountOwnerInvitationLink(user.id, selectedOrg.id);
       console.log('📊 Invitation result:', invitationResult);
+      console.log('📊 Invitation link token:', invitationResult?.link?.split('token=')[1]);
       
       // If no invitation exists, create one
       if (!invitationResult) {
@@ -81,10 +82,10 @@ const InvitationManager = () => {
         setInvitation(invitationResult);
       }
 
-      // Load invited users
-      const usersResult = await getInvitedUsers(user.id);
+      // Load invited users for the selected organization
+      const usersResult = await getInvitedUsers(user.id, selectedOrg.id);
       if (usersResult.success) {
-        console.log(`✅ Found ${usersResult.count} invited users`);
+        console.log(`✅ Found ${usersResult.count} invited users for org:`, selectedOrg.name);
         setInvitedUsers(usersResult.users);
       }
 

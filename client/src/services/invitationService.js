@@ -174,8 +174,8 @@ export const recordInvitationUsage = async (invitationId, newUserId) => {
   }
 };
 
-// Get all users invited by account owner
-export const getInvitedUsers = async (accountOwnerId) => {
+// Get all users invited by account owner for specific organization
+export const getInvitedUsers = async (accountOwnerId, organizationId) => {
   try {
     if (!db) {
       throw new Error('Firebase Firestore not available');
@@ -183,7 +183,8 @@ export const getInvitedUsers = async (accountOwnerId) => {
 
     const q = query(
       collection(db, 'users'),
-      where('ownerUserId', '==', accountOwnerId)
+      where('ownerUserId', '==', accountOwnerId),
+      where('organizationId', '==', organizationId)
     );
 
     const querySnapshot = await getDocs(q);

@@ -74,9 +74,6 @@ const ChatPage = () => {
 
         // Fetch user details for each member
         for (const memberId of memberIds) {
-          // Skip current user in the list
-          if (memberId === currentUser.id) continue;
-
           const usersQuery = query(
             collection(db, 'users'),
             where('uid', '==', memberId)
