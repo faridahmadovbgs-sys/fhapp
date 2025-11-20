@@ -177,10 +177,10 @@ const MemberRegistration = () => {
 
       setSuccess('Registration successful! Welcome to the team.');
       
-      // Redirect to dashboard
+      // Redirect to homepage
       setTimeout(() => {
-        navigate('/');
-      }, 2000);
+        window.location.href = '/';
+      }, 1500);
 
     } catch (error) {
       console.error('Registration error:', error);

@@ -178,8 +178,10 @@ ${invitationResult.link}
 
 Share this link with team members so they can join your organization. You can view and manage this link in your admin panel.`);
       
-      // Don't auto-redirect, let the user navigate manually to avoid timing issues
-      // The success message will show them they can now access everything
+      // Redirect to homepage after successful registration
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 2000);
 
     } catch (error) {
       console.error('❌ Account Owner registration error:', error);
