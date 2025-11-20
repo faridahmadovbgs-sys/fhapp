@@ -18,27 +18,38 @@ const InvitationManager = () => {
   }, [user]);
 
   const loadInvitationData = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.warn('⚠️ No user ID available');
+      return;
+    }
 
     try {
       setLoading(true);
+      console.log('📋 Loading invitation data for user:', user.id);
       
       // Load invitation link
       const invitationResult = await getAccountOwnerInvitationLink(user.id);
+      console.log('📊 Invitation result:', invitationResult);
+      
       if (invitationResult) {
+        console.log('✅ Invitation found');
         setInvitation(invitationResult);
+      } else {
+        console.warn('⚠️ No invitation found for this user');
+        setInvitation(null);
       }
 
       // Load invited users
       const usersResult = await getInvitedUsers(user.id);
       if (usersResult.success) {
+        console.log(`✅ Found ${usersResult.count} invited users`);
         setInvitedUsers(usersResult.users);
       }
 
       setError('');
     } catch (error) {
-      console.error('Error loading invitation data:', error);
-      setError('Failed to load invitation data');
+      console.error('❌ Error loading invitation data:', error);
+      setError('Failed to load invitation data: ' + error.message);
     } finally {
       setLoading(false);
     }

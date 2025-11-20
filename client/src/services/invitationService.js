@@ -4,12 +4,16 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, 
 // Generate a unique invitation link for account owner
 export const createInvitationLink = async (userId, email, organizationName) => {
   try {
+    console.log('🔗 Creating invitation link for:', { userId, email, organizationName });
+    
     if (!db) {
       throw new Error('Firebase Firestore not available');
     }
 
     // Generate unique token (simple UUID-like)
     const token = `${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    console.log('📝 Generated token:', token);
 
     // Create invitation document
     const invitationRef = await addDoc(collection(db, 'invitations'), {
@@ -24,16 +28,19 @@ export const createInvitationLink = async (userId, email, organizationName) => {
       description: `Join ${organizationName}`
     });
 
-    console.log('✅ Invitation link created:', token);
+    console.log('✅ Invitation document created with ID:', invitationRef.id);
+
+    const link = `${window.location.origin}/register/member?token=${token}`;
+    console.log('🔗 Full invitation link:', link);
 
     return {
       success: true,
       token: token,
       invitationId: invitationRef.id,
-      link: `${window.location.origin}/register/member?token=${token}`
+      link: link
     };
   } catch (error) {
-    console.error('Error creating invitation link:', error);
+    console.error('❌ Error creating invitation link:', error);
     throw error;
   }
 };
@@ -45,20 +52,42 @@ export const getAccountOwnerInvitationLink = async (userId) => {
       throw new Error('Firebase Firestore not available');
     }
 
-    const q = query(
+    console.log('🔍 Looking for invitation for userId:', userId);
+
+    // First try to get active invitation
+    let q = query(
       collection(db, 'invitations'),
       where('accountOwnerId', '==', userId),
       where('status', '==', 'active')
     );
 
-    const querySnapshot = await getDocs(q);
+    let querySnapshot = await getDocs(q);
+    console.log('Active invitations found:', querySnapshot.docs.length);
+
+    // If no active, try to get the most recent one (could be 'active' or 'pending')
+    if (querySnapshot.empty) {
+      console.log('No active invitations, trying all statuses...');
+      q = query(
+        collection(db, 'invitations'),
+        where('accountOwnerId', '==', userId)
+      );
+      querySnapshot = await getDocs(q);
+      console.log('All invitations for this owner:', querySnapshot.docs.length);
+    }
 
     if (querySnapshot.empty) {
+      console.warn('⚠️ No invitations found for userId:', userId);
       return null;
     }
 
     const inviteDoc = querySnapshot.docs[0];
     const inviteData = { id: inviteDoc.id, ...inviteDoc.data() };
+
+    console.log('✅ Found invitation:', {
+      token: inviteData.token?.substring(0, 20) + '...',
+      status: inviteData.status,
+      organizationName: inviteData.organizationName
+    });
 
     return {
       success: true,
