@@ -207,7 +207,11 @@ const InvitationManager = () => {
                         <div className="user-email">{invitedUser.email}</div>
                         {invitedUser.invitedAt && (
                           <div className="invited-date">
-                            Joined: {new Date(invitedUser.invitedAt).toLocaleDateString()}
+                            Joined: {invitedUser.invitedAt.seconds 
+                              ? new Date(invitedUser.invitedAt.seconds * 1000).toLocaleDateString()
+                              : invitedUser.invitedAt instanceof Date 
+                                ? invitedUser.invitedAt.toLocaleDateString()
+                                : new Date(invitedUser.invitedAt).toLocaleDateString()}
                           </div>
                         )}
                       </div>
