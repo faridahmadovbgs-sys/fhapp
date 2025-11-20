@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import invitationsRouter from './routes/invitations.js';
 
 // Load environment variables
 dotenv.config();
@@ -58,6 +59,9 @@ app.get('/api/users', (req, res) => {
     note: 'User permissions are managed through Firebase Firestore'
   });
 });
+
+// Invitations API routes
+app.use('/api/invitations', invitationsRouter);
 
 // Error handling middleware
 app.use((error, req, res, next) => {

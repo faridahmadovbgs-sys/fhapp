@@ -9,6 +9,7 @@ import Home from './pages/Home';
 import About from './pages/About';
 import RegisteredUsers from './pages/RegisteredUsers';
 import AdminPanel from './pages/AdminPanel';
+import ChatPage from './pages/ChatPage';
 import Unauthorized from './pages/Unauthorized';
 import DemoPermissions from './pages/DemoPermissions';
 import AccountOwnerRegistration from './components/AccountOwnerRegistration';
@@ -63,6 +64,12 @@ function MainApp() {
                 <PermissionProtectedRoute requiredPage="admin">
                   <AdminPanel />
                 </PermissionProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/chat" 
+              element={
+                <ChatPage />
               } 
             />
             <Route path="/unauthorized" element={<Unauthorized />} />

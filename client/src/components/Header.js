@@ -17,6 +17,7 @@ const Header = ({ user }) => {
           <ul>
             <li><Link to="/">Home</Link></li>
             <li><Link to="/about">About</Link></li>
+            <li><Link to="/chat">💬 Chat</Link></li>
             <li><Link to="/demo-permissions">Permissions Demo</Link></li>
             <PermissionGuard requiredPage="users">
               <li><Link to="/registered-users">Users</Link></li>

@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/apiService';
 import firebaseUserManagementService from '../services/firebaseUserManagementService';
 import InvitationManager from '../components/InvitationManager';
-import Chat from './Chat';
 import '../components/AdminPanel.css';
 
 const AdminPanel = () => {
@@ -764,12 +763,6 @@ const AdminPanel = () => {
               Team Invitations
             </button>
           )}
-          <button
-            className={`tab ${activeTab === 'chat' ? 'active' : ''}`}
-            onClick={() => setActiveTab('chat')}
-          >
-            💬 Team Chat
-          </button>
         </div>
       </div>
 
@@ -781,7 +774,6 @@ const AdminPanel = () => {
         {activeTab === 'users' && renderUsersList()}
         {activeTab === 'roles' && renderRolePermissions()}
         {activeTab === 'invitations' && <InvitationManager />}
-        {activeTab === 'chat' && <Chat isEmbedded={true} />}
         {selectedUser && renderUserPermissionEditor()}
       </div>
     </div>

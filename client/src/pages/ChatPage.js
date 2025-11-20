@@ -1,21 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import ChatPopup from '../components/ChatPopup';
-import { usePermissions } from '../hooks/usePermissions';
-import { useAuth } from '../contexts/AuthContext';
 import { 
   collection, 
   addDoc, 
-  query,
+  query, 
   orderBy, 
   onSnapshot, 
   serverTimestamp,
   limit 
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import './Home.css';
+import { useAuth } from '../contexts/AuthContext';
+import './ChatPage.css';
 
-const Home = ({ data }) => {
-  const { isAdmin, userRole } = usePermissions();
+const ChatPage = () => {
   const { user: currentUser } = useAuth();
   const [chatTab, setChatTab] = useState('public'); // 'public' or 'private'
   const [publicMessages, setPublicMessages] = useState([]);
@@ -176,80 +173,66 @@ const Home = ({ data }) => {
     }
   };
 
+  const formatDate = (timestamp) => {
+    if (!timestamp) return '';
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    } catch {
+      return '';
+    }
+  };
+
   return (
-    <div>
-      <div className="hero">
-        <h1>Welcome to Integrant</h1>
-        <p>A modern full-stack web application with role-based access control</p>
-        <div style={{ marginTop: '10px', padding: '10px', background: '#e9ecef', borderRadius: '5px' }}>
-          <strong>Your Current Role: </strong>
-          <span style={{ 
-            color: isAdmin() ? '#28a745' : userRole === 'moderator' ? '#ffc107' : '#007bff',
-            fontWeight: 'bold'
-          }}>
-            {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
-            {isAdmin() && ' 👑'}
-          </span>
-        </div>
+    <div className="chat-page">
+      <div className="chat-page-header">
+        <h1>💬 Team Communication</h1>
+        <p>Connect with your team through public chat and direct messages</p>
       </div>
 
-      {data && (
-        <div className="status">
-          <h3>Server Status</h3>
-          <p>✅ Connected to backend API</p>
-          <p>Message: {data.message || 'Server is running'}</p>
-        </div>
-      )}
-
-      <div className="features">
-        <div className="feature">
-          <h3>React Frontend</h3>
-          <p>Modern React.js application with routing, components, and hooks for a responsive user interface.</p>
-        </div>
-        <div className="feature">
-          <h3>Node.js Backend</h3>
-          <p>Express.js server with RESTful API endpoints, middleware, and proper error handling.</p>
-        </div>
-        <div className="feature">
-          <h3>MongoDB Database</h3>
-          <p>NoSQL database integration with Mongoose ODM for flexible data modeling and operations.</p>
-        </div>
-      </div>
-
-      {/* Integrated Chat Panel */}
-      <div className="chat-panel-main">
-        <div className="chat-panel-header">
-          <h2>💬 Team Communication</h2>
-          <div className="chat-tabs">
-            <button 
-              className={`chat-tab-btn ${chatTab === 'public' ? 'active' : ''}`}
-              onClick={() => setChatTab('public')}
-            >
-              🌐 Public Chat
-            </button>
-            <button 
-              className={`chat-tab-btn ${chatTab === 'private' ? 'active' : ''}`}
-              onClick={() => setChatTab('private')}
-            >
-              🔒 Direct Messages
-            </button>
-          </div>
+      <div className="chat-page-container">
+        <div className="chat-tabs-main">
+          <button 
+            className={`chat-tab-main ${chatTab === 'public' ? 'active' : ''}`}
+            onClick={() => setChatTab('public')}
+          >
+            🌐 Public Chat
+          </button>
+          <button 
+            className={`chat-tab-main ${chatTab === 'private' ? 'active' : ''}`}
+            onClick={() => setChatTab('private')}
+          >
+            🔒 Direct Messages
+          </button>
         </div>
 
-        <div className="chat-panel-content">
+        <div className="chat-content">
           {chatTab === 'public' ? (
             <div className="chat-public">
-              <div className="chat-messages-main">
+              <div className="chat-header">Public Team Chat</div>
+              <div className="chat-messages">
                 {publicMessages.length === 0 ? (
                   <div className="no-messages">Start the conversation!</div>
                 ) : (
-                  publicMessages.map((msg) => (
-                    <div key={msg.id} className={`message-item ${msg.userId === currentUser?.id ? 'own' : 'other'}`}>
-                      <div className="message-author">{msg.userName}</div>
-                      <div className="message-bubble">{msg.text}</div>
-                      <div className="message-time">{formatTime(msg.createdAt)}</div>
-                    </div>
-                  ))
+                  publicMessages.map((msg, index) => {
+                    const showDate = index === 0 || 
+                      formatDate(msg.createdAt) !== formatDate(publicMessages[index - 1].createdAt);
+                    
+                    return (
+                      <div key={msg.id}>
+                        {showDate && (
+                          <div className="message-date-divider">
+                            {formatDate(msg.createdAt)}
+                          </div>
+                        )}
+                        <div className={`message-item ${msg.userId === currentUser?.id ? 'own' : 'other'}`}>
+                          <div className="message-author">{msg.userName}</div>
+                          <div className="message-bubble">{msg.text}</div>
+                          <div className="message-time">{formatTime(msg.createdAt)}</div>
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
                 <div ref={messagesEndRef} />
               </div>
@@ -270,10 +253,10 @@ const Home = ({ data }) => {
             </div>
           ) : (
             <div className="chat-private">
-              <div className="users-sidebar">
+              <div className="users-list">
                 <div className="users-header">Team Members</div>
                 {users.length === 0 ? (
-                  <div className="no-users">No users available</div>
+                  <div className="no-users">No team members available</div>
                 ) : (
                   users.map((user) => (
                     <div
@@ -282,28 +265,50 @@ const Home = ({ data }) => {
                       onClick={() => setSelectedUser(user)}
                     >
                       <div className="user-avatar">{user.name.charAt(0).toUpperCase()}</div>
-                      <div className="user-name">{user.name}</div>
+                      <div className="user-info">
+                        <div className="user-name">{user.name}</div>
+                        <div className="user-email">{user.email}</div>
+                      </div>
                     </div>
                   ))
                 )}
               </div>
 
-              <div className="chat-private-content">
+              <div className="chat-private-panel">
                 {selectedUser ? (
                   <>
-                    <div className="private-chat-header">
-                      💬 Chat with <strong>{selectedUser.name}</strong>
+                    <div className="private-header">
+                      <div className="private-user-info">
+                        <div className="private-avatar">{selectedUser.name.charAt(0).toUpperCase()}</div>
+                        <div>
+                          <div className="private-user-name">{selectedUser.name}</div>
+                          <div className="private-user-email">{selectedUser.email}</div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="chat-messages-main">
+
+                    <div className="chat-messages">
                       {privateMessages.length === 0 ? (
                         <div className="no-messages">No messages yet. Start the conversation!</div>
                       ) : (
-                        privateMessages.map((msg) => (
-                          <div key={msg.id} className={`message-item ${msg.senderId === currentUser?.id ? 'own' : 'other'}`}>
-                            <div className="message-bubble">{msg.text}</div>
-                            <div className="message-time">{formatTime(msg.createdAt)}</div>
-                          </div>
-                        ))
+                        privateMessages.map((msg, index) => {
+                          const showDate = index === 0 || 
+                            formatDate(msg.createdAt) !== formatDate(privateMessages[index - 1].createdAt);
+                          
+                          return (
+                            <div key={msg.id}>
+                              {showDate && (
+                                <div className="message-date-divider">
+                                  {formatDate(msg.createdAt)}
+                                </div>
+                              )}
+                              <div className={`message-item ${msg.senderId === currentUser?.id ? 'own' : 'other'}`}>
+                                <div className="message-bubble">{msg.text}</div>
+                                <div className="message-time">{formatTime(msg.createdAt)}</div>
+                              </div>
+                            </div>
+                          );
+                        })
                       )}
                       <div ref={messagesEndRef} />
                     </div>
@@ -324,7 +329,7 @@ const Home = ({ data }) => {
                   </>
                 ) : (
                   <div className="select-user">
-                    <p>Select a user to start chatting</p>
+                    <p>👈 Select a team member to start chatting</p>
                   </div>
                 )}
               </div>
@@ -332,11 +337,8 @@ const Home = ({ data }) => {
           )}
         </div>
       </div>
-      
-      {/* Chat Popup */}
-      <ChatPopup />
     </div>
   );
 };
 
-export default Home;
+export default ChatPage;
