@@ -34,26 +34,7 @@ const ChatPage = () => {
   const [groupName, setGroupName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [reactionTarget, setReactionTarget] = useState(null);
-  const [currentUserProfile, setCurrentUserProfile] = useState(null);
   const messagesEndRef = useRef(null);
-
-  // Fetch current user's profile
-  useEffect(() => {
-    const fetchCurrentUserProfile = async () => {
-      if (!currentUser || !db) return;
-
-      try {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.id));
-        if (userDoc.exists()) {
-          setCurrentUserProfile(userDoc.data());
-        }
-      } catch (error) {
-        console.error('Error fetching current user profile:', error);
-      }
-    };
-
-    fetchCurrentUserProfile();
-  }, [currentUser]);
 
   // Fetch all users
   useEffect(() => {
@@ -70,8 +51,7 @@ const ChatPage = () => {
             id: doc.id,
             uid: userData.uid,
             email: userData.email,
-            name: userData.email?.split('@')[0] || 'User',
-            profilePictureUrl: userData.profilePictureUrl || null
+            name: userData.email?.split('@')[0] || 'User'
           });
         }
       });
@@ -212,8 +192,7 @@ const ChatPage = () => {
         createdAt: serverTimestamp(),
         userId: currentUser.id,
         userName: currentUser.name || currentUser.email.split('@')[0],
-        userEmail: currentUser.email,
-        userProfilePic: currentUserProfile?.profilePictureUrl || null
+        userEmail: currentUser.email
       });
       setNewMessage('');
     } catch (error) {
@@ -234,10 +213,8 @@ const ChatPage = () => {
         text: newMessage.trim(),
         createdAt: serverTimestamp(),
         senderId: currentUser.id,
-        senderName: currentUser.name || currentUser.email.split('@')[0],
-        userProfilePic: currentUserProfile?.profilePictureUrl || null
-      });
-      setNewMessage('');
+        senderName: currentUser.name || currentUser.email.split('@')[0]
+      });NewMessage('');
     } catch (error) {
       console.error('Error sending group message:', error);
       alert('Failed to send message');
@@ -361,23 +338,6 @@ const ChatPage = () => {
     }
   };
 
-  const renderUserAvatar = (profilePictureUrl, userName) => {
-    if (profilePictureUrl) {
-      return (
-        <img 
-          src={profilePictureUrl} 
-          alt={userName} 
-          className="user-avatar-img"
-          onError={(e) => {
-            e.target.style.display = 'none';
-            e.target.nextElementSibling.style.display = 'flex';
-          }}
-        />
-      );
-    }
-    return null;
-  };
-
   const renderUserInitial = (userName) => {
     return (
       <div className="user-avatar-initial">
@@ -453,7 +413,6 @@ const ChatPage = () => {
                             >
                               <div className="message-content-with-avatar">
                                 <div className="message-avatar">
-                                  {renderUserAvatar(msg.userProfilePic, msg.userName)}
                                   {renderUserInitial(msg.userName)}
                                 </div>
                                 <div className="message-content">
@@ -523,7 +482,6 @@ const ChatPage = () => {
                           onClick={() => setSelectedUser(user)}
                         >
                           <div className="user-avatar">
-                            {renderUserAvatar(user.profilePictureUrl, user.name)}
                             {renderUserInitial(user.name)}
                           </div>
                           <div className="user-info">
@@ -541,7 +499,6 @@ const ChatPage = () => {
                         <div className="private-header">
                           <div className="private-user-info">
                             <div className="private-avatar">
-                              {renderUserAvatar(selectedUser.profilePictureUrl, selectedUser.name)}
                               {renderUserInitial(selectedUser.name)}
                             </div>
                             <div>
@@ -572,7 +529,6 @@ const ChatPage = () => {
                                   >
                                     <div className="message-content-with-avatar">
                                       <div className="message-avatar">
-                                        {renderUserAvatar(msg.userProfilePic, msg.senderName)}
                                         {renderUserInitial(msg.senderName)}
                                       </div>
                                       <div className="message-content">
@@ -742,7 +698,6 @@ const ChatPage = () => {
                             >
                               <div className="message-content-with-avatar">
                                 <div className="message-avatar">
-                                  {renderUserAvatar(msg.userProfilePic, msg.senderName)}
                                   {renderUserInitial(msg.senderName)}
                                 </div>
                                 <div className="message-content">

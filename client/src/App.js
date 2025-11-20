@@ -10,7 +10,6 @@ import About from './pages/About';
 import RegisteredUsers from './pages/RegisteredUsers';
 import AdminPanel from './pages/AdminPanel';
 import ChatPage from './pages/ChatPage';
-import UserProfile from './pages/UserProfile';
 import Unauthorized from './pages/Unauthorized';
 import DemoPermissions from './pages/DemoPermissions';
 import AccountOwnerRegistration from './components/AccountOwnerRegistration';
@@ -71,12 +70,6 @@ function MainApp() {
               path="/chat" 
               element={
                 <ChatPage />
-              } 
-            />
-            <Route 
-              path="/profile" 
-              element={
-                <UserProfile />
               } 
             />
             <Route path="/unauthorized" element={<Unauthorized />} />

@@ -31,7 +31,6 @@ const Header = ({ user }) => {
         {user && (
           <div className="user-info">
             <span className="welcome-text">Welcome, {user.name || user.email}!</span>
-            <Link to="/profile" className="profile-link">👤 Profile</Link>
             <button onClick={handleLogout} className="logout-button">
               Logout
             </button>

@@ -52,17 +52,6 @@ nav a:hover {
   font-size: 0.9rem;
 }
 
-.profile-link {
-  color: #61dafb;
-  text-decoration: none;
-  font-weight: 600;
-  transition: color 0.3s;
-}
-
-.profile-link:hover {
-  color: #fff;
-}
-
 .logout-button {
   background: transparent;
   border: 1px solid #61dafb;
