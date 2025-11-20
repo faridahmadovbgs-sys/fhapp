@@ -1,5 +1,5 @@
 import { db } from '../config/firebase';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
 
 // Generate a unique invitation link for account owner
 export const createInvitationLink = async (userId, email, organizationName) => {
@@ -170,6 +170,3 @@ export const getInvitedUsers = async (accountOwnerId) => {
     throw error;
   }
 };
-
-// Import getDoc function
-import { getDoc } from 'firebase/firestore';
