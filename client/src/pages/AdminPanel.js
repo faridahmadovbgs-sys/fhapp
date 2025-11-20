@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/apiService';
 import firebaseUserManagementService from '../services/firebaseUserManagementService';
 import InvitationManager from '../components/InvitationManager';
+import Chat from './Chat';
 import '../components/AdminPanel.css';
 
 const AdminPanel = () => {
@@ -32,47 +33,12 @@ const AdminPanel = () => {
 
   // Fetch all users
   useEffect(() => {
-    if (activeTab === 'users') {
-      fetchUsers();
-    } else if (activeTab === 'firebase-users') {
-      fetchFirebaseUsers();
-    }
-  }, [activeTab]);
-
-  // Check if user has admin access
-  if (!hasPagePermission('admin') || !hasActionPermission('manage_roles')) {
-    return (
-      <div className="admin-panel">
-        <div className="access-denied">
-          <h2>Access Denied</h2>
-          <p>You don't have permission to access the admin panel.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const response = await apiService.get('/api/users');
-      setUsers(response.data);
-      setError('');
-    } catch (err) {
-      setError('Failed to fetch users');
-      console.error('Error fetching users:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchFirebaseUsers = async () => {
-    try {
-      setFirebaseLoading(true);
-      // Get Firebase users through our API (which will use Firebase Admin SDK)
-      const response = await apiService.get('/api/users/firebase-users');
-      
-      // If API fails, create a mock list with current user and some sample data
-      if (!response.data) {
+    const fetchUsersData = async () => {
+      try {
+        setLoading(true);
+        const response = await apiService.get('/api/users');
+        // Backend returns { success, message }, not an array
+        // Fallback to Firebase users list for now
         const mockUsers = [
           {
             id: currentUser?.id || 'current-user',
@@ -86,61 +52,124 @@ const AdminPanel = () => {
             permissions: rolePermissions.admin
           }
         ];
-        setFirebaseUsers(mockUsers);
-      } else {
-        setFirebaseUsers(response.data);
+        setUsers(Array.isArray(response.data) ? response.data : mockUsers);
+        setError('');
+      } catch (err) {
+        // Fallback: Use current user as admin for demonstration
+        const mockUsers = [
+          {
+            id: currentUser?.id || 'demo-admin',
+            email: currentUser?.email || 'admin@example.com',
+            name: currentUser?.name || 'Demo Admin',
+            emailVerified: true,
+            role: 'admin',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            lastSignIn: new Date().toISOString(),
+            permissions: rolePermissions.admin
+          }
+        ];
+        setUsers(mockUsers);
+        console.error('Error fetching users:', err);
+      } finally {
+        setLoading(false);
       }
-      
-      setError('');
-    } catch (err) {
-      // Fallback: Use current user as admin for demonstration
-      const mockUsers = [
-        {
-          id: currentUser?.id || 'demo-admin',
-          email: currentUser?.email || 'admin@example.com',
-          name: currentUser?.name || 'Demo Admin',
-          emailVerified: true,
-          role: 'admin',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          lastSignIn: new Date().toISOString(),
-          permissions: rolePermissions.admin
-        },
-        {
-          id: 'demo-user-1',
-          email: 'user1@example.com',
-          name: 'Demo User 1',
-          emailVerified: true,
-          role: 'user',
-          isActive: true,
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          lastSignIn: new Date(Date.now() - 3600000).toISOString(),
-          permissions: rolePermissions.user
-        },
-        {
-          id: 'demo-user-2',
-          email: 'moderator@example.com',
-          name: 'Demo Moderator',
-          emailVerified: true,
-          role: 'moderator',
-          isActive: true,
-          createdAt: new Date(Date.now() - 172800000).toISOString(),
-          lastSignIn: new Date(Date.now() - 7200000).toISOString(),
-          permissions: rolePermissions.moderator
+    };
+
+    const fetchFirebaseUsersData = async () => {
+      try {
+        setFirebaseLoading(true);
+        // Get Firebase users through our API (which will use Firebase Admin SDK)
+        const response = await apiService.get('/api/users/firebase-users');
+        
+        // If API fails, create a mock list with current user and some sample data
+        if (!response.data) {
+          const mockUsers = [
+            {
+              id: currentUser?.id || 'current-user',
+              email: currentUser?.email || 'admin@example.com',
+              name: currentUser?.name || 'Current Admin',
+              emailVerified: true,
+              role: 'admin',
+              isActive: true,
+              createdAt: new Date().toISOString(),
+              lastSignIn: new Date().toISOString(),
+              permissions: rolePermissions.admin
+            }
+          ];
+          setFirebaseUsers(mockUsers);
+        } else {
+          setFirebaseUsers(response.data);
         }
-      ];
-      setFirebaseUsers(mockUsers);
-      console.warn('Using demo users for Firebase user management');
-    } finally {
-      setFirebaseLoading(false);
+        
+        setError('');
+      } catch (err) {
+        // Fallback: Use current user as admin for demonstration
+        const mockUsers = [
+          {
+            id: currentUser?.id || 'demo-admin',
+            email: currentUser?.email || 'admin@example.com',
+            name: currentUser?.name || 'Demo Admin',
+            emailVerified: true,
+            role: 'admin',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            lastSignIn: new Date().toISOString(),
+            permissions: rolePermissions.admin
+          },
+          {
+            id: 'demo-user-1',
+            email: 'user1@example.com',
+            name: 'Demo User 1',
+            emailVerified: true,
+            role: 'user',
+            isActive: true,
+            createdAt: new Date(Date.now() - 86400000).toISOString(),
+            lastSignIn: new Date(Date.now() - 3600000).toISOString(),
+            permissions: rolePermissions.user
+          },
+          {
+            id: 'demo-user-2',
+            email: 'moderator@example.com',
+            name: 'Demo Moderator',
+            emailVerified: true,
+            role: 'moderator',
+            isActive: true,
+            createdAt: new Date(Date.now() - 172800000).toISOString(),
+            lastSignIn: new Date(Date.now() - 7200000).toISOString(),
+            permissions: rolePermissions.moderator
+          }
+        ];
+        setFirebaseUsers(mockUsers);
+        console.warn('Using demo users for Firebase user management');
+      } finally {
+        setFirebaseLoading(false);
+      }
+    };
+
+    if (activeTab === 'users') {
+      fetchUsersData();
+    } else if (activeTab === 'firebase-users') {
+      fetchFirebaseUsersData();
     }
-  };
+  }, [activeTab, currentUser, rolePermissions]);
+
+  // Check if user has admin access
+  if (!hasPagePermission('admin') || !hasActionPermission('manage_roles')) {
+    return (
+      <div className="admin-panel">
+        <div className="access-denied">
+          <h2>Access Denied</h2>
+          <p>You don't have permission to access the admin panel.</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleRoleChange = async (userId, newRole) => {
     try {
       await updateUserRole(userId, newRole);
       setSuccess(`User role updated to ${newRole}`);
-      fetchUsers(); // Refresh users list
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError('Failed to update user role');
@@ -166,7 +195,6 @@ const AdminPanel = () => {
 
       await updateUserPermissions(userId, newPermissions);
       setSuccess(`Permission '${permissionName}' ${value ? 'granted' : 'revoked'} for ${user.name}`);
-      fetchUsers(); // Refresh users list
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError('Failed to update permissions');
@@ -194,7 +222,6 @@ const AdminPanel = () => {
 
       await updateUserPermissions(userId, newPermissions);
       setSuccess(`All ${permissionType} permissions ${value ? 'granted' : 'revoked'} for ${user.name}`);
-      fetchUsers();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError('Failed to update permissions');
@@ -737,6 +764,12 @@ const AdminPanel = () => {
               Team Invitations
             </button>
           )}
+          <button
+            className={`tab ${activeTab === 'chat' ? 'active' : ''}`}
+            onClick={() => setActiveTab('chat')}
+          >
+            💬 Team Chat
+          </button>
         </div>
       </div>
 
@@ -748,6 +781,7 @@ const AdminPanel = () => {
         {activeTab === 'users' && renderUsersList()}
         {activeTab === 'roles' && renderRolePermissions()}
         {activeTab === 'invitations' && <InvitationManager />}
+        {activeTab === 'chat' && <Chat isEmbedded={true} />}
         {selectedUser && renderUserPermissionEditor()}
       </div>
     </div>

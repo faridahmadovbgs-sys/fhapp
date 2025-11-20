@@ -12,7 +12,7 @@ import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import './Chat.css';
 
-const Chat = () => {
+const Chat = ({ isEmbedded = false }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -152,9 +152,9 @@ const Chat = () => {
 
   if (loading) {
     return (
-      <div className="chat-container">
+      <div className={`chat-container ${isEmbedded ? 'chat-embedded' : ''}`}>
         <div className="chat-header">
-          <h1>💬 Live Chat</h1>
+          <h1>💬 Team Chat</h1>
           <div className="chat-status">Connecting...</div>
         </div>
         <div className="loading-chat">
@@ -167,9 +167,9 @@ const Chat = () => {
 
   if (!db) {
     return (
-      <div className="chat-container">
+      <div className={`chat-container ${isEmbedded ? 'chat-embedded' : ''}`}>
         <div className="chat-header">
-          <h1>💬 Live Chat</h1>
+          <h1>💬 Team Chat</h1>
           <div className="chat-status offline">Offline</div>
         </div>
         <div className="chat-error">
@@ -182,9 +182,9 @@ const Chat = () => {
   const messageGroups = groupMessagesByDate(messages);
 
   return (
-    <div className="chat-container">
+    <div className={`chat-container ${isEmbedded ? 'chat-embedded' : ''}`}>
       <div className="chat-header">
-        <h1>💬 Live Chat</h1>
+        <h1>💬 Team Chat</h1>
         <div className="chat-status online">
           {messages.length} messages • Online
         </div>
