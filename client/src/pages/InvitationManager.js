@@ -55,10 +55,12 @@ const InvitationManager = () => {
       // Load invitation link for the selected organization
       let invitationResult = await getAccountOwnerInvitationLink(user.id, selectedOrg.id);
       console.log('📊 Invitation result:', invitationResult);
+      console.log('📊 Selected Org ID:', selectedOrg.id);
+      console.log('📊 Invitation Org ID:', invitationResult?.organizationId);
       console.log('📊 Invitation link token:', invitationResult?.link?.split('token=')[1]);
       
-      // If no invitation exists, create one
-      if (!invitationResult) {
+      // If no invitation exists OR invitation doesn't match the organization, create one
+      if (!invitationResult || invitationResult.organizationId !== selectedOrg.id) {
         console.log('⚠️ No invitation found, creating new one...');
         try {
           const { createInvitationLink } = await import('../services/invitationService');

@@ -51,38 +51,28 @@ export const createInvitationLink = async (userId, email, organizationName, orga
   }
 };
 
-// Get account owner's active invitation link
-export const getAccountOwnerInvitationLink = async (userId) => {
+// Get account owner's invitation link for specific organization
+export const getAccountOwnerInvitationLink = async (userId, organizationId) => {
   try {
+    console.log('🔍 Fetching invitation for userId:', userId, 'organizationId:', organizationId);
+    
     if (!db) {
       throw new Error('Firebase Firestore not available');
     }
 
-    console.log('🔍 Looking for invitation for userId:', userId);
-
-    // First try to get active invitation
+    // Query invitations by userId, organizationId, and active status
     let q = query(
       collection(db, 'invitations'),
       where('accountOwnerId', '==', userId),
+      where('organizationId', '==', organizationId),
       where('status', '==', 'active')
     );
 
     let querySnapshot = await getDocs(q);
-    console.log('Active invitations found:', querySnapshot.docs.length);
-
-    // If no active, try to get the most recent one (could be 'active' or 'pending')
-    if (querySnapshot.empty) {
-      console.log('No active invitations, trying all statuses...');
-      q = query(
-        collection(db, 'invitations'),
-        where('accountOwnerId', '==', userId)
-      );
-      querySnapshot = await getDocs(q);
-      console.log('All invitations for this owner:', querySnapshot.docs.length);
-    }
+    console.log('📊 Active invitations found for this org:', querySnapshot.docs.length);
 
     if (querySnapshot.empty) {
-      console.warn('⚠️ No invitations found for userId:', userId);
+      console.warn('⚠️ No invitation found for userId:', userId, 'organizationId:', organizationId);
       return null;
     }
 
@@ -92,7 +82,8 @@ export const getAccountOwnerInvitationLink = async (userId) => {
     console.log('✅ Found invitation:', {
       token: inviteData.token?.substring(0, 20) + '...',
       status: inviteData.status,
-      organizationName: inviteData.organizationName
+      organizationName: inviteData.organizationName,
+      organizationId: inviteData.organizationId
     });
 
     return {
