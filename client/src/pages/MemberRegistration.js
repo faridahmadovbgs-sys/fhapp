@@ -17,6 +17,7 @@ const MemberRegistration = () => {
   const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
     password: '',
     confirmPassword: '',
     acceptTerms: false
@@ -36,17 +37,31 @@ const MemberRegistration = () => {
   const validateInvitation = async () => {
     try {
       setLoading(true);
+      console.log('🔍 Validating invitation with token:', token);
       
-      // Query invitations by token
-      const q = query(
+      // Query invitations by token - first try 'active', then any status
+      let q = query(
         collection(db, 'invitations'), 
         where('token', '==', token),
-        where('status', '==', 'pending')
+        where('status', '==', 'active')
       );
       
-      const querySnapshot = await getDocs(q);
+      let querySnapshot = await getDocs(q);
+      console.log('✅ Found active invitations:', querySnapshot.docs.length);
+      
+      // If not found, try without status filter
+      if (querySnapshot.empty) {
+        console.log('⚠️ No active invitations, searching all...');
+        q = query(
+          collection(db, 'invitations'), 
+          where('token', '==', token)
+        );
+        querySnapshot = await getDocs(q);
+        console.log('✅ Found invitations (any status):', querySnapshot.docs.length);
+      }
       
       if (querySnapshot.empty) {
+        console.error('❌ No invitation found with token:', token);
         setError('Invalid or expired invitation link');
         setLoading(false);
         return;
@@ -54,20 +69,30 @@ const MemberRegistration = () => {
 
       const inviteDoc = querySnapshot.docs[0];
       const inviteData = { id: inviteDoc.id, ...inviteDoc.data() };
+      console.log('📋 Invitation data:', {
+        token: inviteData.token?.substring(0, 20),
+        status: inviteData.status,
+        organizationName: inviteData.organizationName,
+        expiresAt: inviteData.expiresAt
+      });
       
       // Check if invitation has expired
-      const expiresAt = new Date(inviteData.expiresAt.seconds * 1000);
-      if (expiresAt < new Date()) {
-        setError('This invitation has expired. Please request a new invitation.');
-        setLoading(false);
-        return;
+      if (inviteData.expiresAt) {
+        const expiresAt = new Date(inviteData.expiresAt.seconds ? inviteData.expiresAt.seconds * 1000 : inviteData.expiresAt);
+        if (expiresAt < new Date()) {
+          console.warn('⏰ Invitation expired');
+          setError('This invitation has expired. Please request a new invitation.');
+          setLoading(false);
+          return;
+        }
       }
 
+      console.log('✅ Invitation valid');
       setInvitation(inviteData);
       
     } catch (error) {
-      console.error('Error validating invitation:', error);
-      setError('Error validating invitation');
+      console.error('❌ Error validating invitation:', error);
+      setError('Error validating invitation: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -84,6 +109,10 @@ const MemberRegistration = () => {
   const validateForm = () => {
     if (!formData.name.trim()) {
       setError('Full name is required');
+      return false;
+    }
+    if (!formData.email.trim()) {
+      setError('Email is required');
       return false;
     }
     if (formData.password.length < 6) {
@@ -110,14 +139,14 @@ const MemberRegistration = () => {
 
     setRegistering(true);
     try {
-      // Register the user with the invitation email
-      const userCredential = await register(invitation.email, formData.password, formData.name);
+      // Register the user with their entered email
+      const userCredential = await register(formData.email, formData.password, formData.name);
       
       // Set the role from the invitation and add ownerUserId
       await setUserRoleInDatabase(
         userCredential.user.uid, 
-        invitation.email, 
-        invitation.role,
+        formData.email, 
+        invitation.role || 'member',
         {
           ownerUserId: invitation.accountOwnerId,
           organizationName: invitation.organizationName,
@@ -192,11 +221,7 @@ const MemberRegistration = () => {
       <div className="auth-box">
         <div className="auth-header">
           <h2>Join {invitation?.organizationName}</h2>
-          <p>You've been invited to join as a <strong>{invitation?.role}</strong></p>
-          <div className="invitation-details">
-            <p>Invited by: <strong>{invitation?.invitedByName}</strong></p>
-            <p>Email: <strong>{invitation?.email}</strong></p>
-          </div>
+          <p>You've been invited to join the team</p>
         </div>
 
         {invitation?.message && (
@@ -220,15 +245,17 @@ const MemberRegistration = () => {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="email">Email Address</label>
+            <label htmlFor="email">Email Address *</label>
             <input
               type="email"
               id="email"
-              value={invitation?.email || ''}
-              disabled
-              className="disabled-input"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="Enter your email address"
+              required
+              disabled={registering}
             />
-            <small>This email was provided in your invitation</small>
           </div>
 
           <div className="form-group">
