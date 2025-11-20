@@ -3,6 +3,7 @@ import { useAuthorization } from '../contexts/AuthorizationContext';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/apiService';
 import InvitationManager from '../components/InvitationManager';
+import { getUserOrganizations, createOrganization } from '../services/organizationService';
 import '../components/AdminPanel.css';
 
 const AdminPanel = () => {
@@ -28,6 +29,9 @@ const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState('firebase-users');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  const [organizations, setOrganizations] = useState([]);
+  const [orgLoading, setOrgLoading] = useState(false);
+  const [newOrgName, setNewOrgName] = useState('');
 
   // Fetch all users
   useEffect(() => {
@@ -149,8 +153,50 @@ const AdminPanel = () => {
       fetchUsersData();
     } else if (activeTab === 'firebase-users') {
       fetchFirebaseUsersData();
+    } else if (activeTab === 'organizations') {
+      fetchOrganizations();
     }
   }, [activeTab, currentUser, rolePermissions]);
+
+  // Fetch user's organizations
+  const fetchOrganizations = async () => {
+    if (!currentUser) return;
+    
+    try {
+      setOrgLoading(true);
+      const result = await getUserOrganizations(currentUser.id);
+      setOrganizations(result.organizations);
+    } catch (err) {
+      console.error('Error fetching organizations:', err);
+      setError('Failed to load organizations');
+    } finally {
+      setOrgLoading(false);
+    }
+  };
+
+  // Create new organization
+  const handleCreateOrganization = async (e) => {
+    e.preventDefault();
+    if (!newOrgName.trim()) {
+      setError('Organization name is required');
+      return;
+    }
+
+    try {
+      setOrgLoading(true);
+      await createOrganization(currentUser.id, currentUser.email, newOrgName.trim());
+      setSuccess(`Organization "${newOrgName}" created successfully!`);
+      setNewOrgName('');
+      await fetchOrganizations();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error creating organization:', err);
+      setError('Failed to create organization');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setOrgLoading(false);
+    }
+  };
 
   // Check if user has admin access
   if (!hasPagePermission('admin') || !hasActionPermission('manage_roles')) {
@@ -731,6 +777,131 @@ const AdminPanel = () => {
     );
   };
 
+  const renderOrganizations = () => (
+    <div className="organizations-management">
+      <div className="list-header">
+        <h3>My Organizations</h3>
+        <p className="header-description">
+          Create and manage your organizations. Each organization can have its own teams and members.
+        </p>
+      </div>
+
+      {/* Create New Organization Form */}
+      <div className="create-org-section" style={{
+        background: '#f8f9fa',
+        padding: '20px',
+        borderRadius: '8px',
+        marginBottom: '20px'
+      }}>
+        <h4>Create New Organization</h4>
+        <form onSubmit={handleCreateOrganization} style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+          <input
+            type="text"
+            value={newOrgName}
+            onChange={(e) => setNewOrgName(e.target.value)}
+            placeholder="Enter organization name..."
+            disabled={orgLoading}
+            style={{
+              flex: 1,
+              padding: '10px',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              fontSize: '14px'
+            }}
+          />
+          <button
+            type="submit"
+            disabled={orgLoading || !newOrgName.trim()}
+            style={{
+              padding: '10px 24px',
+              background: '#6264a7',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: orgLoading ? 'not-allowed' : 'pointer',
+              fontSize: '14px',
+              fontWeight: '600'
+            }}
+          >
+            {orgLoading ? 'Creating...' : 'Create Organization'}
+          </button>
+        </form>
+      </div>
+
+      {/* Organizations List */}
+      {orgLoading && organizations.length === 0 ? (
+        <div className="loading">Loading organizations...</div>
+      ) : organizations.length === 0 ? (
+        <div style={{
+          padding: '40px',
+          textAlign: 'center',
+          background: '#f8f9fa',
+          borderRadius: '8px',
+          color: '#666'
+        }}>
+          <p>You haven't created any organizations yet.</p>
+          <p><small>Create your first organization above to get started!</small></p>
+        </div>
+      ) : (
+        <div className="organizations-list">
+          {organizations.map((org) => (
+            <div key={org.id} style={{
+              border: '1px solid #e1dfdd',
+              borderRadius: '8px',
+              padding: '20px',
+              marginBottom: '15px',
+              background: 'white'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                <div>
+                  <h4 style={{ margin: '0 0 10px 0', color: '#252423' }}>{org.name}</h4>
+                  <div style={{ fontSize: '14px', color: '#605e5c' }}>
+                    <p style={{ margin: '5px 0' }}>
+                      <strong>Organization ID:</strong> {org.id}
+                    </p>
+                    <p style={{ margin: '5px 0' }}>
+                      <strong>Members:</strong> {org.members?.length || 0}
+                    </p>
+                    <p style={{ margin: '5px 0' }}>
+                      <strong>Created:</strong> {org.createdAt?.toDate ? new Date(org.createdAt.toDate()).toLocaleDateString() : 'N/A'}
+                    </p>
+                    <p style={{ margin: '5px 0' }}>
+                      <strong>Status:</strong> <span style={{
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        background: org.status === 'active' ? '#d4edda' : '#f8d7da',
+                        color: org.status === 'active' ? '#155724' : '#721c24',
+                        fontSize: '12px'
+                      }}>{org.status || 'active'}</span>
+                    </p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => {
+                      setActiveTab('invitations');
+                    }}
+                    style={{
+                      padding: '8px 16px',
+                      background: '#6264a7',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '13px'
+                    }}
+                  >
+                    Invite Members
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="admin-panel">
       <div className="admin-header">
@@ -762,6 +933,12 @@ const AdminPanel = () => {
               Team Invitations
             </button>
           )}
+          <button
+            className={`tab ${activeTab === 'organizations' ? 'active' : ''}`}
+            onClick={() => setActiveTab('organizations')}
+          >
+            My Organizations
+          </button>
         </div>
       </div>
 
@@ -773,6 +950,7 @@ const AdminPanel = () => {
         {activeTab === 'users' && renderUsersList()}
         {activeTab === 'roles' && renderRolePermissions()}
         {activeTab === 'invitations' && <InvitationManager />}
+        {activeTab === 'organizations' && renderOrganizations()}
         {selectedUser && renderUserPermissionEditor()}
       </div>
     </div>

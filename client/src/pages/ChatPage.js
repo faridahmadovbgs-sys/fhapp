@@ -10,7 +10,8 @@ import {
   doc,
   getDoc,
   updateDoc,
-  where
+  where,
+  getDocs
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -61,32 +62,46 @@ const ChatPage = () => {
     fetchOrganizations();
   }, [currentUser]);
 
-  // Fetch organization members as users
+  // Fetch organization members as users (including account owner)
   useEffect(() => {
     if (!db || !currentUser || !selectedOrganization) return;
 
-    const usersQuery = query(
-      collection(db, 'users'),
-      where('organizationId', '==', selectedOrganization.id)
-    );
+    // Fetch all members of the organization
+    const fetchOrgMembers = async () => {
+      try {
+        const memberIds = selectedOrganization.members || [];
+        const usersList = [];
 
-    const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
-      const usersList = [];
-      snapshot.forEach((doc) => {
-        const userData = doc.data();
-        if (userData.uid !== currentUser.id) {
-          usersList.push({
-            id: doc.id,
-            uid: userData.uid,
-            email: userData.email,
-            name: userData.email?.split('@')[0] || 'User'
+        // Fetch user details for each member
+        for (const memberId of memberIds) {
+          // Skip current user in the list
+          if (memberId === currentUser.id) continue;
+
+          const usersQuery = query(
+            collection(db, 'users'),
+            where('uid', '==', memberId)
+          );
+
+          const snapshot = await getDocs(usersQuery);
+          snapshot.forEach((doc) => {
+            const userData = doc.data();
+            usersList.push({
+              id: doc.id,
+              uid: userData.uid,
+              email: userData.email,
+              name: userData.name || userData.email?.split('@')[0] || 'User',
+              role: userData.uid === selectedOrganization.ownerId ? 'Account Owner' : 'Member'
+            });
           });
         }
-      });
-      setUsers(usersList);
-    });
 
-    return () => unsubscribe();
+        setUsers(usersList);
+      } catch (error) {
+        console.error('Error fetching organization members:', error);
+      }
+    };
+
+    fetchOrgMembers();
   }, [currentUser, selectedOrganization]);
 
   // Fetch organization's groups

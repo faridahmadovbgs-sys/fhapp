@@ -3,16 +3,20 @@ import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { collection, addDoc, query, where, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { getUserOrganizations } from '../services/organizationService';
 
 const InvitationManager = () => {
   const { user } = useAuth();
   const { hasActionPermission } = usePermissions();
   const [invitations, setInvitations] = useState([]);
+  const [organizations, setOrganizations] = useState([]);
+  const [selectedOrg, setSelectedOrg] = useState(null);
   const [loading, setLoading] = useState(false);
   const [inviteForm, setInviteForm] = useState({
     email: '',
     role: 'user',
-    message: ''
+    message: '',
+    organizationId: ''
   });
   const [status, setStatus] = useState('');
 
@@ -20,18 +24,41 @@ const InvitationManager = () => {
   const canManageInvitations = hasActionPermission('manage_invitations');
 
   useEffect(() => {
-    if (canManageInvitations) {
-      fetchInvitations();
+    const loadData = async () => {
+      if (canManageInvitations && user) {
+        await fetchOrganizations();
+        if (selectedOrg) {
+          await fetchInvitations();
+        }
+      }
+    };
+    loadData();
+  }, [canManageInvitations, user, selectedOrg]);
+
+  const fetchOrganizations = async () => {
+    try {
+      const userId = user.uid || user.id;
+      const result = await getUserOrganizations(userId);
+      setOrganizations(result.organizations);
+      
+      // Auto-select first organization
+      if (result.organizations.length > 0 && !selectedOrg) {
+        setSelectedOrg(result.organizations[0]);
+        setInviteForm(prev => ({ ...prev, organizationId: result.organizations[0].id }));
+      }
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
     }
-  }, [canManageInvitations]);
+  };
 
   const fetchInvitations = async () => {
+    if (!selectedOrg) return;
+    
     try {
       setLoading(true);
-      const userId = user.uid || user.id;
       const q = query(
         collection(db, 'invitations'), 
-        where('invitedBy', '==', userId)
+        where('organizationId', '==', selectedOrg.id)
       );
       const querySnapshot = await getDocs(q);
       const inviteList = [];
@@ -58,6 +85,11 @@ const InvitationManager = () => {
       return;
     }
 
+    if (!selectedOrg) {
+      setStatus('❌ Please select an organization');
+      return;
+    }
+
     setLoading(true);
     try {
       const userId = user.uid || user.id;
@@ -69,7 +101,8 @@ const InvitationManager = () => {
         token: inviteToken,
         invitedBy: userId,
         invitedByName: user.name || user.email,
-        organizationName: user.organizationName || 'Your Organization',
+        organizationId: selectedOrg.id,
+        organizationName: selectedOrg.name,
         status: 'pending',
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
@@ -82,7 +115,7 @@ const InvitationManager = () => {
       console.log('Invitation sent! Link:', inviteLink);
       
       setStatus(`✅ Invitation sent to ${inviteForm.email}`);
-      setInviteForm({ email: '', role: 'user', message: '' });
+      setInviteForm({ email: '', role: 'user', message: '', organizationId: selectedOrg.id });
       fetchInvitations();
 
     } catch (error) {
@@ -143,9 +176,30 @@ const InvitationManager = () => {
         </div>
       )}
 
+      {/* Organization Selector */}
+      {organizations.length > 0 && (
+        <div className="org-selector-section">
+          <label htmlFor="org-select"><strong>Select Organization:</strong></label>
+          <select
+            id="org-select"
+            value={selectedOrg?.id || ''}
+            onChange={(e) => {
+              const org = organizations.find(o => o.id === e.target.value);
+              setSelectedOrg(org);
+              setInviteForm(prev => ({ ...prev, organizationId: org?.id || '' }));
+            }}
+            style={{ padding: '10px', marginLeft: '10px', borderRadius: '4px', border: '1px solid #ddd' }}
+          >
+            {organizations.map(org => (
+              <option key={org.id} value={org.id}>{org.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Invite Form */}
       <div className="invite-form-section">
-        <h3>Send New Invitation</h3>
+        <h3>Send New Invitation to {selectedOrg?.name}</h3>
         <form onSubmit={sendInvitation} className="invite-form">
           <div className="form-row">
             <div className="form-group">
