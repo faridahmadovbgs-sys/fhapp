@@ -53,7 +53,7 @@ const InvitationManager = () => {
       console.log('📋 Loading invitation data for user:', user.id, 'org:', selectedOrg.id);
       
       // Load invitation link for the selected organization
-      let invitationResult = await getAccountOwnerInvitationLink(user.id);
+      let invitationResult = await getAccountOwnerInvitationLink(user.id, selectedOrg.id);
       console.log('📊 Invitation result:', invitationResult);
       
       // If no invitation exists, create one
@@ -64,7 +64,8 @@ const InvitationManager = () => {
           invitationResult = await createInvitationLink(
             user.id, 
             user.email, 
-            selectedOrg.name
+            selectedOrg.name,
+            selectedOrg.id
           );
           console.log('✅ New invitation created:', invitationResult);
           setSuccess('✅ Invitation link created successfully!');
@@ -123,7 +124,11 @@ const InvitationManager = () => {
 
     try {
       setRegenerating(true);
-      const result = await regenerateInvitationLink(user.id, invitation?.organizationName || 'Team');
+      const result = await regenerateInvitationLink(
+        user.id, 
+        selectedOrg.name || 'Team',
+        selectedOrg.id
+      );
       setInvitation({
         ...result,
         link: result.link

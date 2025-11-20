@@ -112,7 +112,7 @@ export const getAccountOwnerInvitationLink = async (userId) => {
 };
 
 // Regenerate invitation link (deactivate old, create new)
-export const regenerateInvitationLink = async (userId, organizationName) => {
+export const regenerateInvitationLink = async (userId, organizationName, organizationId) => {
   try {
     if (!db) {
       throw new Error('Firebase Firestore not available');
@@ -122,6 +122,7 @@ export const regenerateInvitationLink = async (userId, organizationName) => {
     const q = query(
       collection(db, 'invitations'),
       where('accountOwnerId', '==', userId),
+      where('organizationId', '==', organizationId),
       where('status', '==', 'active')
     );
 
@@ -135,7 +136,7 @@ export const regenerateInvitationLink = async (userId, organizationName) => {
     }
 
     // Create new invitation
-    const newInvite = await createInvitationLink(userId, '', organizationName);
+    const newInvite = await createInvitationLink(userId, '', organizationName, organizationId);
     
     return newInvite;
   } catch (error) {
