@@ -351,10 +351,19 @@ Share this link with team members so they can join your organization. You can vi
 
           <button
             type="submit"
-            className="submit-button"
+            className="submit-button create-account-owner-button"
             disabled={loading || !firebaseReady}
           >
-            {loading ? 'Creating Account...' : 'Create Account Owner '}
+            {loading ? (
+              <>
+                <span className="spinner"></span>
+                Creating Account...
+              </>
+            ) : (
+              <>
+                🚀 Create Account Owner
+              </>
+            )}
           </button>
         </form>
 
