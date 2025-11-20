@@ -92,6 +92,7 @@ export const getAccountOwnerInvitationLink = async (userId, organizationId) => {
       token: inviteData.token,
       link: `${window.location.origin}/register/member?token=${inviteData.token}`,
       organizationName: inviteData.organizationName,
+      organizationId: inviteData.organizationId,
       createdAt: inviteData.createdAt,
       usedCount: inviteData.usedCount || 0,
       description: inviteData.description
