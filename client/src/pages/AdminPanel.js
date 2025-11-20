@@ -3,6 +3,7 @@ import { useAuthorization } from '../contexts/AuthorizationContext';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/apiService';
 import { getUserOrganizations, createOrganization } from '../services/organizationService';
+import OrganizationMembers from './OrganizationMembers';
 import '../components/AdminPanel.css';
 
 const AdminPanel = () => {
@@ -912,6 +913,12 @@ const AdminPanel = () => {
           >
             My Organizations
           </button>
+          <button
+            className={`tab ${activeTab === 'members' ? 'active' : ''}`}
+            onClick={() => setActiveTab('members')}
+          >
+            Organization Members
+          </button>
         </div>
       </div>
 
@@ -923,6 +930,7 @@ const AdminPanel = () => {
         {activeTab === 'users' && renderUsersList()}
         {activeTab === 'roles' && renderRolePermissions()}
         {activeTab === 'organizations' && renderOrganizations()}
+        {activeTab === 'members' && <OrganizationMembers />}
         {selectedUser && renderUserPermissionEditor()}
       </div>
     </div>
