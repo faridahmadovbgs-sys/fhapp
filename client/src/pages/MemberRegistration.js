@@ -312,7 +312,7 @@ const MemberRegistration = () => {
                 disabled={registering}
                 aria-label="Toggle password visibility"
               >
-                {showPassword ? '🙈' : '👁️'}
+                {showPassword ? '👁' : '👁'}
               </button>
             </div>
           </div>
@@ -337,7 +337,7 @@ const MemberRegistration = () => {
                 disabled={registering}
                 aria-label="Toggle confirm password visibility"
               >
-                {showConfirmPassword ? '🙈' : '👁️'}
+                {showConfirmPassword ? '👁' : '👁'}
               </button>
             </div>
           </div>

@@ -113,7 +113,7 @@ const ResetPassword = () => {
                   disabled={loading}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? '🙈' : '👁️'}
+                  {showPassword ? '👁' : '👁'}
                 </button>
               </div>
             </div>
@@ -139,7 +139,7 @@ const ResetPassword = () => {
                   disabled={loading}
                   aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                 >
-                  {showConfirmPassword ? '🙈' : '👁️'}
+                  {showConfirmPassword ? '👁' : '👁'}
                 </button>
               </div>
             </div>
