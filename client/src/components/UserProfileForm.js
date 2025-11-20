@@ -65,8 +65,22 @@ const UserProfileForm = () => {
   const handleUpload = async (e) => {
     e.preventDefault();
     
+    console.log('🚀 Upload started', { 
+      hasProfilePicture: !!profilePicture, 
+      hasCurrentUser: !!currentUser, 
+      hasStorage: !!storage, 
+      hasDb: !!db,
+      userId: currentUser?.id 
+    });
+
     if (!profilePicture || !currentUser || !storage || !db) {
       setMessage('Please select an image to upload');
+      console.warn('⚠️ Upload validation failed:', { 
+        hasProfilePicture: !!profilePicture, 
+        hasCurrentUser: !!currentUser, 
+        hasStorage: !!storage, 
+        hasDb: !!db 
+      });
       return;
     }
 
@@ -76,19 +90,25 @@ const UserProfileForm = () => {
       const timestamp = Date.now();
       const filename = `profile-${currentUser.id}-${timestamp}`;
       const storageRef = ref(storage, `profile-pictures/${filename}`);
+      console.log('📝 Storage ref created:', filename);
 
       // Upload to Firebase Storage
+      console.log('📤 Uploading file to Firebase Storage...');
       await uploadBytes(storageRef, profilePicture);
+      console.log('✅ File uploaded, getting download URL...');
       
       // Get download URL
       const downloadURL = await getDownloadURL(storageRef);
+      console.log('✅ Download URL obtained:', downloadURL);
 
       // Update user document in Firestore
+      console.log('📝 Updating Firestore user document...');
       const userRef = doc(db, 'users', currentUser.id);
       await updateDoc(userRef, {
         profilePictureUrl: downloadURL,
         updatedAt: serverTimestamp()
       });
+      console.log('✅ Firestore updated');
 
       // Update local state
       setCurrentProfilePic(downloadURL);
@@ -99,7 +119,22 @@ const UserProfileForm = () => {
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('Error uploading profile picture:', error);
-      setMessage('❌ Failed to upload profile picture: ' + error.message);
+      console.error('Error details:', { 
+        code: error.code, 
+        message: error.message,
+        name: error.name 
+      });
+      
+      let errorMessage = error.message;
+      if (error.message.includes('CORS') || error.message.includes('ERR_FAILED')) {
+        errorMessage = 'Upload failed due to Firebase Storage CORS configuration. See FIREBASE_STORAGE_CORS_FIX.md';
+      } else if (error.code === 'storage/unauthorized') {
+        errorMessage = 'Not authorized to upload. Check Firebase Storage Security Rules.';
+      } else if (error.code === 'storage/unauthenticated') {
+        errorMessage = 'Please log in first to upload a profile picture.';
+      }
+      
+      setMessage('❌ Failed to upload profile picture: ' + errorMessage);
     } finally {
       setLoading(false);
     }
