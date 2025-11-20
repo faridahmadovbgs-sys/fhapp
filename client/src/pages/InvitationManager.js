@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getAccountOwnerInvitationLink, regenerateInvitationLink, getInvitedUsers } from '../services/invitationService';
+import { getUserOrganizations } from '../services/organizationService';
 import './InvitationManager.css';
 
 const InvitationManager = () => {
@@ -12,22 +13,46 @@ const InvitationManager = () => {
   const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [organizations, setOrganizations] = useState([]);
+  const [selectedOrg, setSelectedOrg] = useState(null);
 
   useEffect(() => {
-    loadInvitationData();
+    const fetchOrganizations = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const result = await getUserOrganizations(user.id);
+        setOrganizations(result.organizations);
+        
+        // Auto-select first organization
+        if (result.organizations.length > 0 && !selectedOrg) {
+          setSelectedOrg(result.organizations[0]);
+        }
+      } catch (error) {
+        console.error('Error fetching organizations:', error);
+      }
+    };
+    
+    fetchOrganizations();
   }, [user]);
 
+  useEffect(() => {
+    if (selectedOrg) {
+      loadInvitationData();
+    }
+  }, [selectedOrg]);
+
   const loadInvitationData = async () => {
-    if (!user?.id) {
-      console.warn('⚠️ No user ID available');
+    if (!user?.id || !selectedOrg) {
+      console.warn('⚠️ No user ID or selected organization available');
       return;
     }
 
     try {
       setLoading(true);
-      console.log('📋 Loading invitation data for user:', user.id);
+      console.log('📋 Loading invitation data for user:', user.id, 'org:', selectedOrg.id);
       
-      // Load invitation link
+      // Load invitation link for the selected organization
       let invitationResult = await getAccountOwnerInvitationLink(user.id);
       console.log('📊 Invitation result:', invitationResult);
       
@@ -39,7 +64,7 @@ const InvitationManager = () => {
           invitationResult = await createInvitationLink(
             user.id, 
             user.email, 
-            'My Organization'
+            selectedOrg.name
           );
           console.log('✅ New invitation created:', invitationResult);
           setSuccess('✅ Invitation link created successfully!');
@@ -121,8 +146,32 @@ const InvitationManager = () => {
   return (
     <div className="invitation-manager">
       <div className="invitation-container">
-        <h2>📤 Invite Team Members</h2>
-        <p className="subtitle">Share your unique invitation link with team members to add them to your organization.</p>
+        <div className="invitation-header">
+          <div>
+            <h2>📤 Invite Team Members</h2>
+            <p className="subtitle">Share your unique invitation link with team members to add them to your organization.</p>
+          </div>
+          
+          {/* Organization Selector */}
+          {organizations.length > 0 && (
+            <div className="org-selector-section">
+              <label htmlFor="org-select">Organization:</label>
+              <select
+                id="org-select"
+                value={selectedOrg?.id || ''}
+                onChange={(e) => {
+                  const org = organizations.find(o => o.id === e.target.value);
+                  setSelectedOrg(org);
+                }}
+                className="org-select"
+              >
+                {organizations.map(org => (
+                  <option key={org.id} value={org.id}>{org.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
 
         {error && <div className="error-message">{error}</div>}
         {success && <div className="success-message">{success}</div>}

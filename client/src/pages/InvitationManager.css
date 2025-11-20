@@ -13,6 +13,55 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.invitation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e1dfdd;
+}
+
+.org-selector-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f3f2f1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #e1dfdd;
+}
+
+.org-selector-section label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #252423;
+  white-space: nowrap;
+}
+
+.org-select {
+  padding: 8px 12px;
+  border: 1px solid #c7c5c4;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #252423;
+  background: white;
+  cursor: pointer;
+  min-width: 200px;
+  transition: all 0.2s ease;
+}
+
+.org-select:hover {
+  border-color: #6264a7;
+}
+
+.org-select:focus {
+  outline: none;
+  border-color: #6264a7;
+  box-shadow: 0 0 0 3px rgba(98, 100, 167, 0.1);
+}
+
 .invitation-container h2 {
   color: #333;
   margin-bottom: 0.5rem;
