@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useAuthorization } from '../contexts/AuthorizationContext';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/apiService';
-import InvitationManager from '../components/InvitationManager';
 import { getUserOrganizations, createOrganization } from '../services/organizationService';
 import '../components/AdminPanel.css';
 
@@ -876,24 +875,6 @@ const AdminPanel = () => {
                     </p>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => {
-                      setActiveTab('invitations');
-                    }}
-                    style={{
-                      padding: '8px 16px',
-                      background: '#6264a7',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '13px'
-                    }}
-                  >
-                    Invite Members
-                  </button>
-                </div>
               </div>
             </div>
           ))}
@@ -925,14 +906,6 @@ const AdminPanel = () => {
           >
             Role Templates
           </button>
-          {hasActionPermission('manage_invitations') && (
-            <button
-              className={`tab ${activeTab === 'invitations' ? 'active' : ''}`}
-              onClick={() => setActiveTab('invitations')}
-            >
-              Team Invitations
-            </button>
-          )}
           <button
             className={`tab ${activeTab === 'organizations' ? 'active' : ''}`}
             onClick={() => setActiveTab('organizations')}
@@ -949,7 +922,6 @@ const AdminPanel = () => {
         {activeTab === 'firebase-users' && renderFirebaseUsersList()}
         {activeTab === 'users' && renderUsersList()}
         {activeTab === 'roles' && renderRolePermissions()}
-        {activeTab === 'invitations' && <InvitationManager />}
         {activeTab === 'organizations' && renderOrganizations()}
         {selectedUser && renderUserPermissionEditor()}
       </div>
