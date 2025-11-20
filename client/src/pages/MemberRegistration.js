@@ -161,10 +161,18 @@ const MemberRegistration = () => {
         {
           ownerUserId: invitation.accountOwnerId,
           organizationName: invitation.organizationName,
+          organizationId: invitation.organizationId,
           invitedBy: invitation.accountOwnerId,
           invitedAt: new Date()
         }
       );
+
+      // Add member to organization
+      if (invitation.organizationId) {
+        const { addMemberToOrganization } = await import('../services/organizationService');
+        await addMemberToOrganization(invitation.organizationId, userId);
+        console.log('✅ Member added to organization:', invitation.organizationId);
+      }
 
       // Record invitation usage
       const { recordInvitationUsage } = await import('../services/invitationService');

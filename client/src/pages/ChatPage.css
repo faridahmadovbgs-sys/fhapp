@@ -22,9 +22,56 @@
 }
 
 .chat-page-header p {
-  margin: 0;
+  margin: 0 0 15px 0;
   opacity: 0.95;
   font-size: 1em;
+}
+
+/* Organization Selector */
+.organization-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.organization-selector label {
+  font-weight: 600;
+  font-size: 0.95em;
+}
+
+.org-dropdown {
+  padding: 8px 15px;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.95);
+  color: #333;
+  font-size: 0.95em;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 200px;
+  transition: all 0.3s ease;
+}
+
+.org-dropdown:hover {
+  background: white;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.no-organization {
+  margin-top: 15px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.no-organization p {
+  margin: 0;
+  font-size: 0.9em;
 }
 
 /* Main Tabs - Smaller */

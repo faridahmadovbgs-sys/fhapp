@@ -9,16 +9,20 @@ import {
   limit,
   doc,
   getDoc,
-  updateDoc
+  updateDoc,
+  where
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { getUserMemberOrganizations } from '../services/organizationService';
 import './ChatPage.css';
 
 const EMOJI_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '😸'];
 
 const ChatPage = () => {
   const { user: currentUser } = useAuth();
+  const [organizations, setOrganizations] = useState([]);
+  const [selectedOrganization, setSelectedOrganization] = useState(null);
   const [mainTab, setMainTab] = useState('messages'); // 'messages' or 'groups'
   const [chatTab, setChatTab] = useState('public'); // 'public' or 'direct' (under messages)
   const [publicMessages, setPublicMessages] = useState([]);
@@ -36,11 +40,35 @@ const ChatPage = () => {
   const [reactionTarget, setReactionTarget] = useState(null);
   const messagesEndRef = useRef(null);
 
-  // Fetch all users
+  // Fetch user's organizations
   useEffect(() => {
-    if (!db || !currentUser) return;
+    if (!currentUser) return;
 
-    const usersQuery = query(collection(db, 'users'));
+    const fetchOrganizations = async () => {
+      try {
+        const result = await getUserMemberOrganizations(currentUser.id);
+        setOrganizations(result.organizations);
+        
+        // Auto-select first organization if available
+        if (result.organizations.length > 0 && !selectedOrganization) {
+          setSelectedOrganization(result.organizations[0]);
+        }
+      } catch (error) {
+        console.error('Error fetching organizations:', error);
+      }
+    };
+
+    fetchOrganizations();
+  }, [currentUser]);
+
+  // Fetch organization members as users
+  useEffect(() => {
+    if (!db || !currentUser || !selectedOrganization) return;
+
+    const usersQuery = query(
+      collection(db, 'users'),
+      where('organizationId', '==', selectedOrganization.id)
+    );
 
     const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
       const usersList = [];
@@ -59,13 +87,16 @@ const ChatPage = () => {
     });
 
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, selectedOrganization]);
 
-  // Fetch user's groups
+  // Fetch organization's groups
   useEffect(() => {
-    if (!db || !currentUser) return;
+    if (!db || !currentUser || !selectedOrganization) return;
 
-    const groupsQuery = query(collection(db, 'groups'));
+    const groupsQuery = query(
+      collection(db, 'groups'),
+      where('organizationId', '==', selectedOrganization.id)
+    );
 
     const unsubscribe = onSnapshot(groupsQuery, (snapshot) => {
       const groupsList = [];
@@ -83,14 +114,15 @@ const ChatPage = () => {
     });
 
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, selectedOrganization]);
 
-  // Fetch public messages
+  // Fetch organization public messages
   useEffect(() => {
-    if (!db) return;
+    if (!db || !selectedOrganization) return;
 
     const messagesQuery = query(
       collection(db, 'messages'),
+      where('organizationId', '==', selectedOrganization.id),
       orderBy('createdAt', 'asc'),
       limit(100)
     );
@@ -183,7 +215,7 @@ const ChatPage = () => {
 
   const sendPublicMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || sending || !currentUser || !db) return;
+    if (!newMessage.trim() || sending || !currentUser || !db || !selectedOrganization) return;
 
     setSending(true);
     try {
@@ -192,12 +224,13 @@ const ChatPage = () => {
         createdAt: serverTimestamp(),
         userId: currentUser.id,
         userName: currentUser.name || currentUser.email.split('@')[0],
-        userEmail: currentUser.email
+        userEmail: currentUser.email,
+        organizationId: selectedOrganization.id
       });
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
-      alert('Failed to send private message');
+      alert('Failed to send message');
     } finally {
       setSending(false);
     }
@@ -205,7 +238,7 @@ const ChatPage = () => {
 
   const sendGroupMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || sending || !currentUser || !selectedGroup || !db) return;
+    if (!newMessage.trim() || sending || !currentUser || !selectedGroup || !db || !selectedOrganization) return;
 
     setSending(true);
     try {
@@ -213,7 +246,8 @@ const ChatPage = () => {
         text: newMessage.trim(),
         createdAt: serverTimestamp(),
         senderId: currentUser.id,
-        senderName: currentUser.name || currentUser.email.split('@')[0]
+        senderName: currentUser.name || currentUser.email.split('@')[0],
+        organizationId: selectedOrganization.id
       });
       setNewMessage('');
     } catch (error) {
@@ -225,7 +259,7 @@ const ChatPage = () => {
   };
 
   const createGroup = async () => {
-    if (!groupName.trim() || selectedMembers.length === 0 || !db || !currentUser) {
+    if (!groupName.trim() || selectedMembers.length === 0 || !db || !currentUser || !selectedOrganization) {
       alert('Please enter a group name and select at least one member');
       return;
     }
@@ -238,7 +272,8 @@ const ChatPage = () => {
         members: groupMembers,
         createdBy: currentUser.id,
         createdAt: serverTimestamp(),
-        avatar: groupName.trim().charAt(0).toUpperCase()
+        avatar: groupName.trim().charAt(0).toUpperCase(),
+        organizationId: selectedOrganization.id
       });
 
       setGroupName('');
@@ -351,9 +386,38 @@ const ChatPage = () => {
       <div className="chat-page-header">
         <h1>💬 Team Communication</h1>
         <p>Connect with your team through public chat, direct messages, and groups</p>
+        
+        {/* Organization Selector */}
+        {organizations.length > 0 && (
+          <div className="organization-selector">
+            <label htmlFor="org-select">Organization:</label>
+            <select 
+              id="org-select"
+              value={selectedOrganization?.id || ''}
+              onChange={(e) => {
+                const org = organizations.find(o => o.id === e.target.value);
+                setSelectedOrganization(org);
+              }}
+              className="org-dropdown"
+            >
+              {organizations.map(org => (
+                <option key={org.id} value={org.id}>
+                  {org.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        
+        {!selectedOrganization && organizations.length === 0 && (
+          <div className="no-organization">
+            <p>You are not a member of any organization yet.</p>
+          </div>
+        )}
       </div>
 
-      <div className="chat-page-container">
+      {selectedOrganization && (
+        <div className="chat-page-container">
         {/* Main Tab Buttons - Smaller */}
         <div className="main-tabs">
           <button 
@@ -762,6 +826,7 @@ const ChatPage = () => {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };

@@ -2,9 +2,9 @@ import { db } from '../config/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
 
 // Generate a unique invitation link for account owner
-export const createInvitationLink = async (userId, email, organizationName) => {
+export const createInvitationLink = async (userId, email, organizationName, organizationId) => {
   try {
-    console.log('🔗 Creating invitation link for:', { userId, email, organizationName });
+    console.log('🔗 Creating invitation link for:', { userId, email, organizationName, organizationId });
     
     if (!db) {
       throw new Error('Firebase Firestore not available');
@@ -25,6 +25,7 @@ export const createInvitationLink = async (userId, email, organizationName) => {
       accountOwnerId: userId,
       accountOwnerEmail: email,
       organizationName: organizationName,
+      organizationId: organizationId,
       token: token,
       status: 'active',
       createdAt: serverTimestamp(),

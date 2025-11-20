@@ -164,11 +164,22 @@ const AccountOwnerRegistration = () => {
 
       console.log('Account owner registered:', metadata);
 
+      // Create organization
+      const { createOrganization } = await import('../services/organizationService');
+      const orgResult = await createOrganization(
+        userId,
+        formData.email,
+        formData.organizationName
+      );
+
+      console.log('✅ Organization created:', orgResult);
+
       // Create invitation link for account owner to share
       const invitationResult = await createInvitationLink(
         userId,
         formData.email,
-        formData.organizationName
+        formData.organizationName,
+        orgResult.organizationId
       );
 
       console.log('✅ Invitation link created:', invitationResult);
