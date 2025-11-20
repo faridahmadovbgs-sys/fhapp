@@ -5,6 +5,9 @@
   justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 20px;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 .login-card {
@@ -15,6 +18,7 @@
   width: 100%;
   max-width: 450px;
   animation: slideUp 0.5s ease-out;
+  overflow: hidden;
 }
 
 @keyframes slideUp {
@@ -84,6 +88,7 @@
   font-size: 1rem;
   transition: all 0.3s ease;
   background: #fafafa;
+  max-width: 100%;
 }
 
 .form-group input:focus {
@@ -470,10 +475,12 @@
   .login-card {
     padding: 30px 20px;
     max-width: 100%;
+    margin: 0 auto;
   }
   
   .login-header h1.app-name {
     font-size: 2.5rem;
+    word-break: break-word;
   }
   
   .login-header h2 {
@@ -486,6 +493,7 @@
   
   .form-group input {
     font-size: 16px; /* Prevents zoom on iOS */
+    padding: 12px;
   }
   
   .benefits-section {
@@ -496,28 +504,35 @@
   .checkbox-label {
     font-size: 0.85rem;
   }
+  
+  .checkbox-label a {
+    word-break: break-word;
+  }
 }
 
 @media (max-width: 480px) {
   .login-container {
     padding: 10px;
+    min-height: 100vh;
   }
   
   .login-card {
-    padding: 25px 15px;
+    padding: 20px 12px;
     border-radius: 15px;
+    max-width: 100%;
+    width: calc(100vw - 20px);
   }
   
   .login-header h1 {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
   
   .login-header h1.app-name {
-    font-size: 2.2rem;
+    font-size: 2rem;
   }
   
   .login-header h2 {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
   }
   
   .login-header p {
@@ -525,28 +540,41 @@
   }
   
   .form-group {
-    margin-bottom: 16px;
+    margin-bottom: 14px;
   }
   
   .form-group label {
     font-size: 0.85rem;
+    margin-bottom: 6px;
   }
   
   .form-group input {
-    padding: 12px;
+    padding: 10px;
     font-size: 16px; /* Prevents zoom on iOS */
+    border-radius: 10px;
+  }
+  
+  .password-input-wrapper input {
+    padding-right: 45px;
   }
   
   .password-toggle {
     font-size: 1.2rem;
-    right: 10px;
+    right: 8px;
+    padding: 4px 6px;
   }
   
   .login-button,
   .submit-button,
   .auth-button {
     padding: 12px;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    border-radius: 10px;
+  }
+  
+  .create-account-owner-button {
+    padding: 14px;
+    font-size: 1rem;
   }
   
   .benefits-section {
@@ -555,13 +583,23 @@
   }
   
   .checkbox-label {
-    font-size: 0.8rem;
-    gap: 8px;
+    font-size: 0.75rem;
+    gap: 6px;
   }
   
   .checkbox-label input[type="checkbox"] {
     width: 18px;
     height: 18px;
     min-width: 18px;
+    margin-left: 8px;
+  }
+  
+  .login-footer p,
+  .form-footer p {
+    font-size: 0.85rem;
+  }
+  
+  .toggle-button {
+    font-size: 0.85rem;
   }
 }
