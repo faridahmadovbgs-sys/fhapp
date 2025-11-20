@@ -10,10 +10,15 @@ export const createInvitationLink = async (userId, email, organizationName) => {
       throw new Error('Firebase Firestore not available');
     }
 
-    // Generate unique token (simple UUID-like)
-    const token = `${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate unique token - combine userId, timestamp, and multiple random values for strong uniqueness
+    const timestamp = Date.now();
+    const random1 = Math.random().toString(36).substr(2, 9);
+    const random2 = Math.random().toString(36).substr(2, 9);
+    const random3 = Math.random().toString(36).substr(2, 9);
+    const token = `${userId}-${timestamp}-${random1}-${random2}-${random3}`;
 
-    console.log('📝 Generated token:', token);
+    console.log('📝 Generated unique token:', token);
+    console.log('📝 Token components:', { userId, timestamp, random1, random2, random3 });
 
     // Create invitation document
     const invitationRef = await addDoc(collection(db, 'invitations'), {
