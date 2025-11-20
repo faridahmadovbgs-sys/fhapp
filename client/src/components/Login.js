@@ -11,7 +11,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isRegister, setIsRegister] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -46,7 +46,7 @@ const Login = () => {
         return;
       }
       
-      if (isSignUp && (!formData.name || !formData.name.trim())) {
+      if (isRegister && (!formData.name || !formData.name.trim())) {
         setError('Please enter your full name');
         setLoading(false);
         return;
@@ -55,7 +55,7 @@ const Login = () => {
       const firebaseAuthService = await import('../services/firebaseAuthService');
       let data;
 
-      if (isSignUp) {
+      if (isRegister) {
         data = await firebaseAuthService.default.register(formData.email, formData.password, formData.name, formData.entity);
         setSuccess('Account created successfully! Check your email for verification.');
       } else {
@@ -79,7 +79,7 @@ const Login = () => {
   };
 
   const toggleMode = () => {
-    setIsSignUp(!isSignUp);
+    setIsRegister(!isRegister);
     setError('');
     setSuccess('');
     setIsForgotPassword(false);
@@ -135,12 +135,12 @@ const Login = () => {
         <div className="login-header">
           <h1 className="app-name">Integrant</h1>
           <h2>
-            {isForgotPassword ? 'Reset Password' : isSignUp ? 'Create Account' : 'Welcome Back'}
+            {isForgotPassword ? 'Reset Password' : isRegister ? 'Register Account' : 'Welcome Back'}
           </h2>
           <p>
             {isForgotPassword 
               ? 'Enter your email to receive reset instructions'
-              : isSignUp 
+              : isRegister 
                 ? 'Join our full-stack application' 
                 : 'Sign in to continue'
             }
@@ -192,7 +192,7 @@ const Login = () => {
           </form>
         ) : (
           <form onSubmit={handleSubmit} className="login-form">
-            {isSignUp && (
+            {isRegister && (
             <div className="form-group">
               <label htmlFor="name">Full Name</label>
               <input
@@ -208,7 +208,7 @@ const Login = () => {
             </div>
           )}
 
-          {isSignUp && (
+          {isRegister && (
             <div className="form-group">
               <label htmlFor="entity">Entity (Business or Trust)</label>
               <input
@@ -283,10 +283,10 @@ const Login = () => {
             {loading ? (
               <>
                 <span className="spinner"></span>
-                {isSignUp ? 'Creating Account...' : 'Signing In...'}
+                {isRegister ? 'Registering...' : 'Signing In...'}
               </>
             ) : (
-              isSignUp ? 'Create Account' : 'Sign In'
+              isRegister ? 'Register' : 'Sign In'
             )}
           </button>
           </form>
@@ -308,17 +308,17 @@ const Login = () => {
           ) : (
             <>
               <p>
-                {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
+                {isRegister ? 'Already have an account? ' : "Don't have an account? "}
                 <button 
                   type="button" 
                   className="toggle-button"
                   onClick={toggleMode}
                   disabled={loading}
                 >
-                  {isSignUp ? 'Sign In' : 'Sign Up'}
+                  {isRegister ? 'Sign In' : 'Register'}
                 </button>
               </p>
-              {!isSignUp && (
+              {!isRegister && (
                 <p>
                   <button 
                     type="button" 
@@ -332,6 +332,13 @@ const Login = () => {
               )}
             </>
           )}
+          
+          <div className="register-options">
+            <p className="account-owner-link">
+              Want to create an organization? 
+              <a href="/register/owner" className="owner-link"> Register as Account Owner</a>
+            </p>
+          </div>
         </div>
 
 

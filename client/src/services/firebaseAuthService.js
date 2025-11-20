@@ -12,10 +12,21 @@ import { auth, db } from '../config/firebase';
 export const firebaseAuthService = {
   // Register new user
   register: async (email, password, name, entity = '') => {
-    // Check if Firebase is configured
+    // Check if Firebase is configured with detailed logging
+    console.log('🔍 Firebase service check:', {
+      authExists: !!auth,
+      dbExists: !!db,
+      authType: typeof auth,
+      dbType: typeof db
+    });
+    
     if (!auth || !db) {
-      throw new Error('🔥 Firebase not configured yet! Please follow the FIREBASE_SETUP.md guide to set up authentication.');
+      const errorMessage = `Firebase not available: auth=${!!auth}, db=${!!db}. This could be due to network connectivity issues or Firebase configuration problems.`;
+      console.error('❌ Firebase check failed:', errorMessage);
+      throw new Error(errorMessage);
     }
+    
+    console.log('✅ Firebase services available, proceeding with registration');
     
     try {
       // Ensure parameters are proper strings

@@ -27,16 +27,33 @@ let app, auth, db;
 
 try {
   if (isFirebaseConfigured) {
+    console.log('🔥 Initializing Firebase with config:', {
+      projectId: firebaseConfig.projectId,
+      authDomain: firebaseConfig.authDomain
+    });
+    
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    
+    console.log('✅ Firebase initialized successfully', {
+      app: !!app,
+      auth: !!auth,
+      db: !!db
+    });
   } else {
+    console.warn('⚠️ Firebase not configured - using demo mode');
     // Provide null auth and db for demo mode
     auth = null;
     db = null;
   }
 } catch (error) {
-  console.error('Firebase initialization error:', error);
+  console.error('❌ Firebase initialization error:', error);
+  console.error('Error details:', {
+    message: error.message,
+    code: error.code,
+    stack: error.stack
+  });
   auth = null;
   db = null;
 }

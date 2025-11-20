@@ -102,7 +102,7 @@ const RegisteredUsers = () => {
       {users.length === 0 ? (
         <div className="no-users">
           <h3>No users registered yet</h3>
-          <p>When users sign up, they'll appear here with their profile information.</p>
+          <p>When users register, they'll appear here with their profile information.</p>
         </div>
       ) : (
         <div className="users-grid">

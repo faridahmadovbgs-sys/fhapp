@@ -286,6 +286,33 @@
   margin-bottom: 4px;
 }
 
+/* Benefits section for Account Owner registration */
+.benefits-section {
+  margin-top: 30px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border-left: 4px solid #667eea;
+}
+
+.benefits-section h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.benefits-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.benefit-item {
+  color: #666;
+  font-size: 0.9rem;
+  padding: 5px 0;
+}
+
 /* Responsive design */
 @media (max-width: 480px) {
   .login-container {
@@ -302,5 +329,10 @@
   
   .login-header h2 {
     font-size: 1.25rem;
+  }
+  
+  .benefits-section {
+    margin-top: 20px;
+    padding: 15px;
   }
 }

@@ -4,13 +4,15 @@ import './App.css';
 import Header from './components/Header';
 import Login from './components/Login';
 import ResetPassword from './components/ResetPassword';
-import { ProtectedRoute, PermissionProtectedRoute } from './components/ProtectedRoute';
+import { PermissionProtectedRoute } from './components/ProtectedRoute';
 import Home from './pages/Home';
 import About from './pages/About';
 import RegisteredUsers from './pages/RegisteredUsers';
 import AdminPanel from './pages/AdminPanel';
 import Unauthorized from './pages/Unauthorized';
 import DemoPermissions from './pages/DemoPermissions';
+import AccountOwnerRegistration from './components/AccountOwnerRegistration';
+import MemberRegistration from './pages/MemberRegistration';
 import apiService from './services/apiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthorizationProvider } from './contexts/AuthorizationContext';
@@ -101,6 +103,18 @@ function AppContent() {
       <Route 
         path="/reset-password" 
         element={<ResetPassword />} 
+      />
+      <Route 
+        path="/register/owner" 
+        element={<AccountOwnerRegistration />} 
+      />
+      <Route 
+        path="/register/member" 
+        element={<MemberRegistration />} 
+      />
+      <Route 
+        path="/login" 
+        element={<Login />} 
       />
       <Route 
         path="/*" 

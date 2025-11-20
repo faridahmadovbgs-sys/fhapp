@@ -102,6 +102,33 @@ const rolePermissions = {
       view_analytics: true,
       system_settings: true
     }
+  },
+  account_owner: {
+    pages: {
+      home: true,
+      about: true,
+      profile: true,
+      admin: true,
+      users: true,
+      reports: true,
+      settings: true,
+      invitations: true,
+      billing: true
+    },
+    actions: {
+      create_user: true,
+      edit_user: true,
+      delete_user: true,
+      view_users: true,
+      manage_roles: true,
+      export_data: true,
+      view_analytics: true,
+      system_settings: true,
+      manage_invitations: true,
+      manage_billing: true,
+      delete_account: true,
+      transfer_ownership: true
+    }
   }
 };
 
@@ -127,10 +154,13 @@ export const AuthorizationProvider = ({ children }) => {
           }
           
           // Get role directly from Firebase database
+          console.log('🔍 Fetching role for user:', userId);
           const roleFromDB = await getUserRoleFromDatabase(userId);
+          console.log('✅ Role fetched from DB:', roleFromDB);
           
           setUserRole(roleFromDB);
           setPermissions(rolePermissions[roleFromDB] || rolePermissions.user);
+          console.log('✅ Permissions set for role:', roleFromDB, rolePermissions[roleFromDB]);
           
           // Store in localStorage for faster subsequent loads
           localStorage.setItem(`role_${userId}`, roleFromDB);

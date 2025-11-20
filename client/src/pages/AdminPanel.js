@@ -3,6 +3,7 @@ import { useAuthorization } from '../contexts/AuthorizationContext';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/apiService';
 import firebaseUserManagementService from '../services/firebaseUserManagementService';
+import InvitationManager from '../components/InvitationManager';
 import '../components/AdminPanel.css';
 
 const AdminPanel = () => {
@@ -728,6 +729,14 @@ const AdminPanel = () => {
           >
             Role Templates
           </button>
+          {hasActionPermission('manage_invitations') && (
+            <button
+              className={`tab ${activeTab === 'invitations' ? 'active' : ''}`}
+              onClick={() => setActiveTab('invitations')}
+            >
+              Team Invitations
+            </button>
+          )}
         </div>
       </div>
 
@@ -738,6 +747,7 @@ const AdminPanel = () => {
         {activeTab === 'firebase-users' && renderFirebaseUsersList()}
         {activeTab === 'users' && renderUsersList()}
         {activeTab === 'roles' && renderRolePermissions()}
+        {activeTab === 'invitations' && <InvitationManager />}
         {selectedUser && renderUserPermissionEditor()}
       </div>
     </div>
