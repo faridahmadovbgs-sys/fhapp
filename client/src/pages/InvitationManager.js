@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getAccountOwnerInvitationLink, regenerateInvitationLink, getInvitedUsers } from '../services/invitationService';
+import { getAccountOwnerInvitationLink, getInvitedUsers } from '../services/invitationService';
 import { getUserOrganizations } from '../services/organizationService';
 import './InvitationManager.css';
 
@@ -10,7 +10,6 @@ const InvitationManager = () => {
   const [invitedUsers, setInvitedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copying, setCopying] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [organizations, setOrganizations] = useState([]);
@@ -118,35 +117,6 @@ const InvitationManager = () => {
     }
   };
 
-  const handleRegenerateLink = async () => {
-    if (!user?.id) return;
-
-    if (!window.confirm('This will create a new invitation link. The old link will no longer work. Continue?')) {
-      return;
-    }
-
-    try {
-      setRegenerating(true);
-      const result = await regenerateInvitationLink(
-        user.id, 
-        selectedOrg.name || 'Team',
-        selectedOrg.id
-      );
-      setInvitation({
-        ...result,
-        link: result.link
-      });
-      setSuccess('✅ Invitation link regenerated successfully!');
-      setError('');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (error) {
-      console.error('Error regenerating link:', error);
-      setError('Failed to regenerate invitation link');
-    } finally {
-      setRegenerating(false);
-    }
-  };
-
   if (loading) {
     return <div className="invitation-manager"><p>Loading...</p></div>;
   }
@@ -218,15 +188,6 @@ const InvitationManager = () => {
                   Share this link with team members. They can use it to register and join your organization.
                 </p>
               </div>
-
-              <button 
-                onClick={handleRegenerateLink}
-                disabled={regenerating}
-                className="btn btn-secondary"
-              >
-                {regenerating ? 'Regenerating...' : 'Regenerate Link'}
-              </button>
-              <p className="regenerate-info">Use this if you want to invalidate the current link and create a new one.</p>
             </div>
 
             <div className="invited-users-section">
