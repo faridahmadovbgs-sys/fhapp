@@ -25,6 +25,9 @@ const Header = ({ user }) => {
             <PermissionGuard requiredPage="admin">
               <li><Link to="/admin">Admin Panel</Link></li>
             </PermissionGuard>
+            <PermissionGuard requiredPage="admin">
+              <li><Link to="/invitations">📤 Invite Team</Link></li>
+            </PermissionGuard>
           </ul>
         </nav>
         

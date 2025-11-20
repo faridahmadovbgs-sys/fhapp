@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { setUserRoleInDatabase } from '../services/roleService';
+import { createInvitationLink } from '../services/invitationService';
 import './Login.css';
 
 const AccountOwnerRegistration = () => {
@@ -161,7 +162,21 @@ const AccountOwnerRegistration = () => {
 
       console.log('Account owner registered:', metadata);
 
-      setSuccess('✅ Account owner registration successful! Your account has been created with full administrative privileges. You can now access the admin panel and invite team members.');
+      // Create invitation link for account owner to share
+      const invitationResult = await createInvitationLink(
+        userId,
+        formData.email,
+        formData.organizationName
+      );
+
+      console.log('✅ Invitation link created:', invitationResult);
+
+      setSuccess(`✅ Account owner registration successful! Your account has been created with full administrative privileges. 
+      
+🔗 Your unique invitation link:
+${invitationResult.link}
+
+Share this link with team members so they can join your organization. You can view and manage this link in your admin panel.`);
       
       // Don't auto-redirect, let the user navigate manually to avoid timing issues
       // The success message will show them they can now access everything

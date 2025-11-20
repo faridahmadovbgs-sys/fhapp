@@ -113,12 +113,22 @@ const MemberRegistration = () => {
       // Register the user with the invitation email
       const userCredential = await register(invitation.email, formData.password, formData.name);
       
-      // Set the role from the invitation
+      // Set the role from the invitation and add ownerUserId
       await setUserRoleInDatabase(
         userCredential.user.uid, 
         invitation.email, 
-        invitation.role
+        invitation.role,
+        {
+          ownerUserId: invitation.accountOwnerId,
+          organizationName: invitation.organizationName,
+          invitedBy: invitation.accountOwnerId,
+          invitedAt: new Date()
+        }
       );
+
+      // Record invitation usage
+      const { recordInvitationUsage } = await import('../services/invitationService');
+      await recordInvitationUsage(invitation.id, userCredential.user.uid);
 
       // Update invitation status to accepted
       await updateDoc(doc(db, 'invitations', invitation.id), {
