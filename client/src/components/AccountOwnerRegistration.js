@@ -335,6 +335,9 @@ Share this link with team members so they can join your organization. You can vi
 
           <div className="form-group">
             <label className="checkbox-label">
+              <span className="checkbox-text">
+                I accept the <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+              </span>
               <input
                 type="checkbox"
                 name="acceptTerms"
@@ -343,7 +346,6 @@ Share this link with team members so they can join your organization. You can vi
                 disabled={loading}
                 required
               />
-              I accept the <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
             </label>
           </div>
 

@@ -336,15 +336,17 @@ const MemberRegistration = () => {
 
           <div className="form-group">
             <label className="checkbox-label">
+              <span className="checkbox-text">
+                I accept the <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+              </span>
               <input
                 type="checkbox"
                 name="acceptTerms"
                 checked={formData.acceptTerms}
                 onChange={handleChange}
                 disabled={registering}
+                required
               />
-              <span className="checkmark"></span>
-              I accept the <a href="/terms" target="_blank">Terms of Service</a> and <a href="/privacy" target="_blank">Privacy Policy</a>
             </label>
           </div>
 

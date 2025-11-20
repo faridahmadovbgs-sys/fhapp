@@ -351,26 +351,144 @@
   padding: 5px 0;
 }
 
+/* Checkbox styling */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.5;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  cursor: pointer;
+  accent-color: #667eea;
+  order: 2;
+  margin: 0;
+}
+
+.checkbox-label .checkbox-text {
+  flex: 1;
+  order: 1;
+}
+
+.checkbox-label a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.checkbox-label a:hover {
+  text-decoration: underline;
+  color: #764ba2;
+}
+
 /* Responsive design */
+@media (max-width: 768px) {
+  .login-container {
+    padding: 15px;
+  }
+  
+  .login-card {
+    padding: 30px 20px;
+    max-width: 100%;
+  }
+  
+  .login-header h1.app-name {
+    font-size: 2.5rem;
+  }
+  
+  .login-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .login-header p {
+    font-size: 0.9rem;
+  }
+  
+  .form-group input {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .benefits-section {
+    margin-top: 20px;
+    padding: 15px;
+  }
+  
+  .checkbox-label {
+    font-size: 0.85rem;
+  }
+}
+
 @media (max-width: 480px) {
   .login-container {
     padding: 10px;
   }
   
   .login-card {
-    padding: 30px 25px;
+    padding: 25px 15px;
+    border-radius: 15px;
   }
   
   .login-header h1 {
     font-size: 2rem;
   }
   
+  .login-header h1.app-name {
+    font-size: 2.2rem;
+  }
+  
   .login-header h2 {
-    font-size: 1.25rem;
+    font-size: 1.2rem;
+  }
+  
+  .login-header p {
+    font-size: 0.85rem;
+  }
+  
+  .form-group {
+    margin-bottom: 16px;
+  }
+  
+  .form-group label {
+    font-size: 0.85rem;
+  }
+  
+  .form-group input {
+    padding: 12px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .password-toggle {
+    font-size: 1.2rem;
+    right: 10px;
+  }
+  
+  .login-button,
+  .submit-button,
+  .auth-button {
+    padding: 12px;
+    font-size: 0.95rem;
   }
   
   .benefits-section {
-    margin-top: 20px;
-    padding: 15px;
+    margin-top: 15px;
+    padding: 12px;
+  }
+  
+  .checkbox-label {
+    font-size: 0.8rem;
+    gap: 8px;
+  }
+  
+  .checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
   }
 }
