@@ -139,7 +139,7 @@ const ChatPage = () => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [selectedOrganization]);
 
   // Fetch private messages with selected user
   useEffect(() => {
@@ -480,9 +480,11 @@ const ChatPage = () => {
                                   {renderUserInitial(msg.userName)}
                                 </div>
                                 <div className="message-content">
-                                  <div className="message-author">{msg.userName}</div>
+                                  <div className="message-header">
+                                    <div className="message-author">{msg.userName}</div>
+                                    <div className="message-time">{formatTime(msg.createdAt)}</div>
+                                  </div>
                                   <div className="message-bubble">{msg.text}</div>
-                                  <div className="message-time">{formatTime(msg.createdAt)}</div>
                                 </div>
                               </div>
                               
@@ -596,8 +598,11 @@ const ChatPage = () => {
                                         {renderUserInitial(msg.senderName)}
                                       </div>
                                       <div className="message-content">
+                                        <div className="message-header">
+                                          <div className="message-author">{msg.senderName}</div>
+                                          <div className="message-time">{formatTime(msg.createdAt)}</div>
+                                        </div>
                                         <div className="message-bubble">{msg.text}</div>
-                                        <div className="message-time">{formatTime(msg.createdAt)}</div>
                                       </div>
                                     </div>
 
@@ -765,9 +770,11 @@ const ChatPage = () => {
                                   {renderUserInitial(msg.senderName)}
                                 </div>
                                 <div className="message-content">
-                                  <div className="message-author">{msg.senderName}</div>
+                                  <div className="message-header">
+                                    <div className="message-author">{msg.senderName}</div>
+                                    <div className="message-time">{formatTime(msg.createdAt)}</div>
+                                  </div>
                                   <div className="message-bubble">{msg.text}</div>
-                                  <div className="message-time">{formatTime(msg.createdAt)}</div>
                                 </div>
                               </div>
 
