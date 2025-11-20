@@ -6,7 +6,9 @@ import {
   orderBy, 
   onSnapshot, 
   serverTimestamp,
-  limit 
+  limit,
+  doc,
+  getDoc
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,28 +16,32 @@ import './ChatPage.css';
 
 const ChatPage = () => {
   const { user: currentUser } = useAuth();
-  const [chatTab, setChatTab] = useState('public'); // 'public' or 'private'
+  const [mainTab, setMainTab] = useState('messages'); // 'messages' or 'groups'
+  const [chatTab, setChatTab] = useState('public'); // 'public' or 'direct' (under messages)
   const [publicMessages, setPublicMessages] = useState([]);
   const [privateMessages, setPrivateMessages] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [groupMessages, setGroupMessages] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [users, setUsers] = useState([]);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [selectedMembers, setSelectedMembers] = useState([]);
   const messagesEndRef = useRef(null);
 
-  // Fetch all users for private chat selection
+  // Fetch all users
   useEffect(() => {
     if (!db || !currentUser) return;
 
-    const usersQuery = query(
-      collection(db, 'users')
-    );
+    const usersQuery = query(collection(db, 'users'));
 
     const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
       const usersList = [];
       snapshot.forEach((doc) => {
         const userData = doc.data();
-        // Don't show self in user list
         if (userData.uid !== currentUser.id) {
           usersList.push({
             id: doc.id,
@@ -46,6 +52,30 @@ const ChatPage = () => {
         }
       });
       setUsers(usersList);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  // Fetch user's groups
+  useEffect(() => {
+    if (!db || !currentUser) return;
+
+    const groupsQuery = query(collection(db, 'groups'));
+
+    const unsubscribe = onSnapshot(groupsQuery, (snapshot) => {
+      const groupsList = [];
+      snapshot.forEach((doc) => {
+        const groupData = doc.data();
+        // Show groups where current user is a member
+        if (groupData.members && groupData.members.includes(currentUser.id)) {
+          groupsList.push({
+            id: doc.id,
+            ...groupData
+          });
+        }
+      });
+      setGroups(groupsList);
     });
 
     return () => unsubscribe();
@@ -108,10 +138,40 @@ const ChatPage = () => {
     return () => unsubscribe();
   }, [selectedUser, currentUser]);
 
+  // Fetch group messages
+  useEffect(() => {
+    if (!db || !selectedGroup) {
+      setGroupMessages([]);
+      return;
+    }
+
+    const groupMessagesQuery = query(
+      collection(db, `groups/${selectedGroup.id}/messages`),
+      orderBy('createdAt', 'asc'),
+      limit(100)
+    );
+
+    const unsubscribe = onSnapshot(groupMessagesQuery, (snapshot) => {
+      const messagesData = [];
+      snapshot.forEach((doc) => {
+        messagesData.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      setGroupMessages(messagesData);
+    }, (error) => {
+      console.log('No group messages yet');
+      setGroupMessages([]);
+    });
+
+    return () => unsubscribe();
+  }, [selectedGroup]);
+
   // Auto scroll to bottom
   useEffect(() => {
     scrollToBottom();
-  }, [publicMessages, privateMessages]);
+  }, [publicMessages, privateMessages, groupMessages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -133,9 +193,56 @@ const ChatPage = () => {
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
+      alert('Failed to send private message');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const sendGroupMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim() || sending || !currentUser || !selectedGroup || !db) return;
+
+    setSending(true);
+    try {
+      await addDoc(collection(db, `groups/${selectedGroup.id}/messages`), {
+        text: newMessage.trim(),
+        createdAt: serverTimestamp(),
+        senderId: currentUser.id,
+        senderName: currentUser.name || currentUser.email.split('@')[0]
+      });
+      setNewMessage('');
+    } catch (error) {
+      console.error('Error sending group message:', error);
       alert('Failed to send message');
     } finally {
       setSending(false);
+    }
+  };
+
+  const createGroup = async () => {
+    if (!groupName.trim() || selectedMembers.length === 0 || !db || !currentUser) {
+      alert('Please enter a group name and select at least one member');
+      return;
+    }
+
+    try {
+      const groupMembers = [currentUser.id, ...selectedMembers.map(m => m.uid)];
+      
+      await addDoc(collection(db, 'groups'), {
+        name: groupName.trim(),
+        members: groupMembers,
+        createdBy: currentUser.id,
+        createdAt: serverTimestamp(),
+        avatar: groupName.trim().charAt(0).toUpperCase()
+      });
+
+      setGroupName('');
+      setSelectedMembers([]);
+      setShowCreateGroup(false);
+    } catch (error) {
+      console.error('Error creating group:', error);
+      alert('Failed to create group');
     }
   };
 
@@ -187,155 +294,308 @@ const ChatPage = () => {
     <div className="chat-page">
       <div className="chat-page-header">
         <h1>💬 Team Communication</h1>
-        <p>Connect with your team through public chat and direct messages</p>
+        <p>Connect with your team through public chat, direct messages, and groups</p>
       </div>
 
       <div className="chat-page-container">
-        <div className="chat-tabs-main">
+        {/* Main Tab Buttons - Smaller */}
+        <div className="main-tabs">
           <button 
-            className={`chat-tab-main ${chatTab === 'public' ? 'active' : ''}`}
-            onClick={() => setChatTab('public')}
+            className={`main-tab ${mainTab === 'messages' ? 'active' : ''}`}
+            onClick={() => setMainTab('messages')}
           >
-            🌐 Public Chat
+            Messages
           </button>
           <button 
-            className={`chat-tab-main ${chatTab === 'private' ? 'active' : ''}`}
-            onClick={() => setChatTab('private')}
+            className={`main-tab ${mainTab === 'groups' ? 'active' : ''}`}
+            onClick={() => setMainTab('groups')}
           >
-            🔒 Direct Messages
+            Groups ({groups.length})
           </button>
         </div>
 
-        <div className="chat-content">
-          {chatTab === 'public' ? (
-            <div className="chat-public">
-              <div className="chat-header">Public Team Chat</div>
-              <div className="chat-messages">
-                {publicMessages.length === 0 ? (
-                  <div className="no-messages">Start the conversation!</div>
-                ) : (
-                  publicMessages.map((msg, index) => {
-                    const showDate = index === 0 || 
-                      formatDate(msg.createdAt) !== formatDate(publicMessages[index - 1].createdAt);
-                    
-                    return (
-                      <div key={msg.id}>
-                        {showDate && (
-                          <div className="message-date-divider">
-                            {formatDate(msg.createdAt)}
-                          </div>
-                        )}
-                        <div className={`message-item ${msg.userId === currentUser?.id ? 'own' : 'other'}`}>
-                          <div className="message-author">{msg.userName}</div>
-                          <div className="message-bubble">{msg.text}</div>
-                          <div className="message-time">{formatTime(msg.createdAt)}</div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              <form onSubmit={sendPublicMessage} className="chat-form">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  disabled={sending}
-                  className="chat-input"
-                />
-                <button type="submit" disabled={sending || !newMessage.trim()} className="chat-send-btn">
-                  {sending ? '...' : '➤'}
-                </button>
-              </form>
+        {mainTab === 'messages' ? (
+          <>
+            {/* Chat Sub Tabs - Smaller */}
+            <div className="chat-tabs-main">
+              <button 
+                className={`chat-tab-main ${chatTab === 'public' ? 'active' : ''}`}
+                onClick={() => setChatTab('public')}
+              >
+                Public
+              </button>
+              <button 
+                className={`chat-tab-main ${chatTab === 'direct' ? 'active' : ''}`}
+                onClick={() => setChatTab('direct')}
+              >
+                Direct
+              </button>
             </div>
-          ) : (
-            <div className="chat-private">
-              <div className="users-list">
-                <div className="users-header">Team Members</div>
-                {users.length === 0 ? (
-                  <div className="no-users">No team members available</div>
+
+            <div className="chat-content">
+              {chatTab === 'public' ? (
+                <div className="chat-public">
+                  <div className="chat-header">Public Team Chat</div>
+                  <div className="chat-messages">
+                    {publicMessages.length === 0 ? (
+                      <div className="no-messages">Start the conversation!</div>
+                    ) : (
+                      publicMessages.map((msg, index) => {
+                        const showDate = index === 0 || 
+                          formatDate(msg.createdAt) !== formatDate(publicMessages[index - 1].createdAt);
+                        
+                        return (
+                          <div key={msg.id}>
+                            {showDate && (
+                              <div className="message-date-divider">
+                                {formatDate(msg.createdAt)}
+                              </div>
+                            )}
+                            <div className={`message-item ${msg.userId === currentUser?.id ? 'own' : 'other'}`}>
+                              <div className="message-author">{msg.userName}</div>
+                              <div className="message-bubble">{msg.text}</div>
+                              <div className="message-time">{formatTime(msg.createdAt)}</div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+
+                  <form onSubmit={sendPublicMessage} className="chat-form">
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Type a message..."
+                      disabled={sending}
+                      className="chat-input"
+                    />
+                    <button type="submit" disabled={sending || !newMessage.trim()} className="chat-send-btn">
+                      {sending ? '...' : '➤'}
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <div className="chat-private">
+                  <div className="users-list">
+                    <div className="users-header">Team Members</div>
+                    {users.length === 0 ? (
+                      <div className="no-users">No team members available</div>
+                    ) : (
+                      users.map((user) => (
+                        <div
+                          key={user.id}
+                          className={`user-item ${selectedUser?.id === user.id ? 'selected' : ''}`}
+                          onClick={() => setSelectedUser(user)}
+                        >
+                          <div className="user-avatar">{user.name.charAt(0).toUpperCase()}</div>
+                          <div className="user-info">
+                            <div className="user-name">{user.name}</div>
+                            <div className="user-email">{user.email}</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="chat-private-panel">
+                    {selectedUser ? (
+                      <>
+                        <div className="private-header">
+                          <div className="private-user-info">
+                            <div className="private-avatar">{selectedUser.name.charAt(0).toUpperCase()}</div>
+                            <div>
+                              <div className="private-user-name">{selectedUser.name}</div>
+                              <div className="private-user-email">{selectedUser.email}</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="chat-messages">
+                          {privateMessages.length === 0 ? (
+                            <div className="no-messages">No messages yet. Start the conversation!</div>
+                          ) : (
+                            privateMessages.map((msg, index) => {
+                              const showDate = index === 0 || 
+                                formatDate(msg.createdAt) !== formatDate(privateMessages[index - 1].createdAt);
+                              
+                              return (
+                                <div key={msg.id}>
+                                  {showDate && (
+                                    <div className="message-date-divider">
+                                      {formatDate(msg.createdAt)}
+                                    </div>
+                                  )}
+                                  <div className={`message-item ${msg.senderId === currentUser?.id ? 'own' : 'other'}`}>
+                                    <div className="message-bubble">{msg.text}</div>
+                                    <div className="message-time">{formatTime(msg.createdAt)}</div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                          <div ref={messagesEndRef} />
+                        </div>
+
+                        <form onSubmit={sendPrivateMessage} className="chat-form">
+                          <input
+                            type="text"
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            placeholder="Type a message..."
+                            disabled={sending}
+                            className="chat-input"
+                          />
+                          <button type="submit" disabled={sending || !newMessage.trim()} className="chat-send-btn">
+                            {sending ? '...' : '➤'}
+                          </button>
+                        </form>
+                      </>
+                    ) : (
+                      <div className="select-user">
+                        <p>👈 Select a team member to start chatting</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          // Groups Tab
+          <div className="groups-container">
+            <div className="groups-sidebar">
+              <button className="create-group-btn" onClick={() => setShowCreateGroup(!showCreateGroup)}>
+                ➕ New Group
+              </button>
+              
+              {showCreateGroup && (
+                <div className="create-group-form">
+                  <input
+                    type="text"
+                    placeholder="Group name..."
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    className="group-input"
+                  />
+                  <div className="members-select">
+                    <p className="select-label">Select members:</p>
+                    <div className="members-list">
+                      {users.map((user) => (
+                        <label key={user.id} className="member-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={selectedMembers.some(m => m.id === user.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedMembers([...selectedMembers, user]);
+                              } else {
+                                setSelectedMembers(selectedMembers.filter(m => m.id !== user.id));
+                              }
+                            }}
+                          />
+                          <span>{user.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="form-buttons">
+                    <button className="btn-primary" onClick={createGroup}>Create</button>
+                    <button className="btn-secondary" onClick={() => {
+                      setShowCreateGroup(false);
+                      setGroupName('');
+                      setSelectedMembers([]);
+                    }}>Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              <div className="groups-list">
+                <div className="groups-header">Your Groups</div>
+                {groups.length === 0 ? (
+                  <div className="no-groups">No groups yet</div>
                 ) : (
-                  users.map((user) => (
+                  groups.map((group) => (
                     <div
-                      key={user.id}
-                      className={`user-item ${selectedUser?.id === user.id ? 'selected' : ''}`}
-                      onClick={() => setSelectedUser(user)}
+                      key={group.id}
+                      className={`group-item ${selectedGroup?.id === group.id ? 'selected' : ''}`}
+                      onClick={() => setSelectedGroup(group)}
                     >
-                      <div className="user-avatar">{user.name.charAt(0).toUpperCase()}</div>
-                      <div className="user-info">
-                        <div className="user-name">{user.name}</div>
-                        <div className="user-email">{user.email}</div>
+                      <div className="group-avatar">{group.avatar}</div>
+                      <div className="group-info">
+                        <div className="group-name">{group.name}</div>
+                        <div className="group-members">{group.members.length} members</div>
                       </div>
                     </div>
                   ))
                 )}
               </div>
+            </div>
 
-              <div className="chat-private-panel">
-                {selectedUser ? (
-                  <>
-                    <div className="private-header">
-                      <div className="private-user-info">
-                        <div className="private-avatar">{selectedUser.name.charAt(0).toUpperCase()}</div>
-                        <div>
-                          <div className="private-user-name">{selectedUser.name}</div>
-                          <div className="private-user-email">{selectedUser.email}</div>
-                        </div>
+            <div className="group-chat-panel">
+              {selectedGroup ? (
+                <>
+                  <div className="group-header">
+                    <div className="group-header-info">
+                      <div className="group-avatar-lg">{selectedGroup.avatar}</div>
+                      <div>
+                        <div className="group-header-name">{selectedGroup.name}</div>
+                        <div className="group-header-members">{selectedGroup.members.length} members</div>
                       </div>
                     </div>
-
-                    <div className="chat-messages">
-                      {privateMessages.length === 0 ? (
-                        <div className="no-messages">No messages yet. Start the conversation!</div>
-                      ) : (
-                        privateMessages.map((msg, index) => {
-                          const showDate = index === 0 || 
-                            formatDate(msg.createdAt) !== formatDate(privateMessages[index - 1].createdAt);
-                          
-                          return (
-                            <div key={msg.id}>
-                              {showDate && (
-                                <div className="message-date-divider">
-                                  {formatDate(msg.createdAt)}
-                                </div>
-                              )}
-                              <div className={`message-item ${msg.senderId === currentUser?.id ? 'own' : 'other'}`}>
-                                <div className="message-bubble">{msg.text}</div>
-                                <div className="message-time">{formatTime(msg.createdAt)}</div>
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                      <div ref={messagesEndRef} />
-                    </div>
-
-                    <form onSubmit={sendPrivateMessage} className="chat-form">
-                      <input
-                        type="text"
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Type a message..."
-                        disabled={sending}
-                        className="chat-input"
-                      />
-                      <button type="submit" disabled={sending || !newMessage.trim()} className="chat-send-btn">
-                        {sending ? '...' : '➤'}
-                      </button>
-                    </form>
-                  </>
-                ) : (
-                  <div className="select-user">
-                    <p>👈 Select a team member to start chatting</p>
                   </div>
-                )}
-              </div>
+
+                  <div className="chat-messages">
+                    {groupMessages.length === 0 ? (
+                      <div className="no-messages">Be the first to message!</div>
+                    ) : (
+                      groupMessages.map((msg, index) => {
+                        const showDate = index === 0 || 
+                          formatDate(msg.createdAt) !== formatDate(groupMessages[index - 1].createdAt);
+                        
+                        return (
+                          <div key={msg.id}>
+                            {showDate && (
+                              <div className="message-date-divider">
+                                {formatDate(msg.createdAt)}
+                              </div>
+                            )}
+                            <div className={`message-item ${msg.senderId === currentUser?.id ? 'own' : 'other'}`}>
+                              <div className="message-author">{msg.senderName}</div>
+                              <div className="message-bubble">{msg.text}</div>
+                              <div className="message-time">{formatTime(msg.createdAt)}</div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+
+                  <form onSubmit={sendGroupMessage} className="chat-form">
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Type a message..."
+                      disabled={sending}
+                      className="chat-input"
+                    />
+                    <button type="submit" disabled={sending || !newMessage.trim()} className="chat-send-btn">
+                      {sending ? '...' : '➤'}
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <div className="select-group">
+                  <p>👈 Select a group to start chatting</p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
