@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { getUserRoleFromDatabase } from '../services/roleService';
 import apiService from '../services/apiService';
 
 // Create the AuthorizationContext
@@ -116,48 +117,31 @@ export const AuthorizationProvider = ({ children }) => {
     const fetchUserPermissions = async () => {
       if (isAuthenticated && user) {
         try {
-          // Check if user was promoted to admin locally
-          const localAdminStatus = localStorage.getItem(`admin_${user.id}`);
-          const localUserRole = localStorage.getItem(`role_${user.id}`);
+          // Handle both uid and id properties
+          const userId = user.uid || user.id;
           
-          if (localAdminStatus === 'true' || localUserRole) {
-            // Use locally stored admin status
-            const role = localUserRole || 'admin';
-            setUserRole(role);
-            setPermissions(rolePermissions[role] || rolePermissions.admin);
-            console.log(`Using local admin privileges for user: ${user.email}`);
-            setLoading(false);
+          if (!userId) {
+            setUserRole('user');
+            setPermissions(rolePermissions.user);
             return;
           }
-
-          // Try to fetch user permissions from server
-          const response = await apiService.get(`/api/users/${user.id}/permissions`);
-          if (response.data && response.data.permissions) {
-            setPermissions(response.data.permissions);
-            setUserRole(response.data.role || 'user');
-          } else {
-            // Fallback to role-based permissions
-            const role = response.data?.role || 'user';
-            setUserRole(role);
-            setPermissions(rolePermissions[role] || rolePermissions.user);
-          }
-        } catch (error) {
-          // If API fails, check for local admin status first
-          const localAdminStatus = localStorage.getItem(`admin_${user.id}`);
-          const localUserRole = localStorage.getItem(`role_${user.id}`);
           
-          if (localAdminStatus === 'true' || localUserRole) {
-            const role = localUserRole || 'admin';
-            setUserRole(role);
-            setPermissions(rolePermissions[role] || rolePermissions.admin);
-            console.log(`Using local admin privileges (API failed) for user: ${user.email}`);
-          } else {
-            // Default fallback
-            console.warn('Failed to fetch user permissions, using default:', error);
-            const role = user.role || 'user';
-            setUserRole(role);
-            setPermissions(rolePermissions[role] || rolePermissions.user);
+          // Get role directly from Firebase database
+          const roleFromDB = await getUserRoleFromDatabase(userId);
+          
+          setUserRole(roleFromDB);
+          setPermissions(rolePermissions[roleFromDB] || rolePermissions.user);
+          
+          // Store in localStorage for faster subsequent loads
+          localStorage.setItem(`role_${userId}`, roleFromDB);
+          if (roleFromDB === 'admin') {
+            localStorage.setItem(`admin_${userId}`, 'true');
           }
+          
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+          setUserRole('user');
+          setPermissions(rolePermissions.user);
         }
       } else {
         // Reset permissions for unauthenticated users
