@@ -9,8 +9,7 @@ import {
   limit,
   doc,
   getDoc,
-  updateDoc,
-  arrayUnion
+  updateDoc
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,7 +33,6 @@ const ChatPage = () => {
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState([]);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [reactionTarget, setReactionTarget] = useState(null);
   const [currentUserProfile, setCurrentUserProfile] = useState(null);
   const messagesEndRef = useRef(null);

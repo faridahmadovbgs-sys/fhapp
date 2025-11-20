@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useAuthorization } from '../contexts/AuthorizationContext';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/apiService';
-import firebaseUserManagementService from '../services/firebaseUserManagementService';
 import InvitationManager from '../components/InvitationManager';
 import '../components/AdminPanel.css';
 
