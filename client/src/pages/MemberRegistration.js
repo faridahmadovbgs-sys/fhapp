@@ -140,11 +140,20 @@ const MemberRegistration = () => {
     setRegistering(true);
     try {
       // Register the user with their entered email
-      const userCredential = await register(formData.email, formData.password, formData.name);
+      const result = await register(formData.email, formData.password, formData.name);
+      
+      // Extract user ID from result (can be id or uid depending on service)
+      const userId = result.user?.id || result.user?.uid;
+      
+      if (!userId) {
+        throw new Error('Failed to get user ID after registration');
+      }
+      
+      console.log('✅ User registered with ID:', userId);
       
       // Set the role from the invitation and add ownerUserId
       await setUserRoleInDatabase(
-        userCredential.user.uid, 
+        userId, 
         formData.email, 
         invitation.role || 'member',
         {
@@ -157,13 +166,13 @@ const MemberRegistration = () => {
 
       // Record invitation usage
       const { recordInvitationUsage } = await import('../services/invitationService');
-      await recordInvitationUsage(invitation.id, userCredential.user.uid);
+      await recordInvitationUsage(invitation.id, userId);
 
       // Update invitation status to accepted
       await updateDoc(doc(db, 'invitations', invitation.id), {
         status: 'accepted',
         acceptedAt: new Date(),
-        acceptedBy: userCredential.user.uid
+        acceptedBy: userId
       });
 
       setSuccess('Registration successful! Welcome to the team.');
