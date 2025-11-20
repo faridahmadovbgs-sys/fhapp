@@ -418,44 +418,166 @@ const ChatPage = () => {
 
       {selectedOrganization && (
         <div className="chat-page-container">
-        {/* Main Tab Buttons - Smaller */}
-        <div className="main-tabs">
-          <button 
-            className={`main-tab ${mainTab === 'messages' ? 'active' : ''}`}
-            onClick={() => setMainTab('messages')}
-          >
-            Messages
-          </button>
-          <button 
-            className={`main-tab ${mainTab === 'groups' ? 'active' : ''}`}
-            onClick={() => setMainTab('groups')}
-          >
-            Groups ({groups.length})
-          </button>
-        </div>
+          {/* Left Sidebar */}
+          <div className="chat-nav-sidebar">
+            <div className="sidebar-header">
+              <input 
+                type="text" 
+                placeholder="Search" 
+                className="sidebar-search"
+              />
+            </div>
 
-        {mainTab === 'messages' ? (
-          <>
-            {/* Chat Sub Tabs - Smaller */}
-            <div className="chat-tabs-main">
+            {/* Sidebar Tabs */}
+            <div className="sidebar-tabs">
               <button 
-                className={`chat-tab-main ${chatTab === 'public' ? 'active' : ''}`}
-                onClick={() => setChatTab('public')}
+                className={`sidebar-tab ${mainTab === 'messages' ? 'active' : ''}`}
+                onClick={() => setMainTab('messages')}
               >
-                Public
+                Chat
               </button>
               <button 
-                className={`chat-tab-main ${chatTab === 'direct' ? 'active' : ''}`}
-                onClick={() => setChatTab('direct')}
+                className={`sidebar-tab ${mainTab === 'groups' ? 'active' : ''}`}
+                onClick={() => setMainTab('groups')}
               >
-                Direct
+                Teams
               </button>
             </div>
 
-            <div className="chat-content">
-              {chatTab === 'public' ? (
-                <div className="chat-public">
-                  <div className="chat-header">Public Team Chat</div>
+            {/* Sidebar Content */}
+            <div className="sidebar-content">
+              {mainTab === 'messages' ? (
+                <>
+                  <div className="sidebar-section">
+                    <div className="sidebar-section-title">Channels</div>
+                    <div 
+                      className={`chat-list-item ${chatTab === 'public' ? 'active' : ''}`}
+                      onClick={() => setChatTab('public')}
+                    >
+                      <div className="chat-item-avatar">#</div>
+                      <div className="chat-item-info">
+                        <div className="chat-item-name">General</div>
+                        <div className="chat-item-preview">Team chat</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="sidebar-section">
+                    <div className="sidebar-section-title">Direct Messages</div>
+                    {users.length === 0 ? (
+                      <div style={{padding: '8px 16px', fontSize: '0.75rem', color: '#605e5c'}}>
+                        No team members
+                      </div>
+                    ) : (
+                      users.map((user) => (
+                        <div
+                          key={user.id}
+                          className={`chat-list-item ${chatTab === 'direct' && selectedUser?.id === user.id ? 'active' : ''}`}
+                          onClick={() => {
+                            setChatTab('direct');
+                            setSelectedUser(user);
+                          }}
+                        >
+                          <div className="chat-item-avatar">
+                            {renderUserInitial(user.name)}
+                          </div>
+                          <div className="chat-item-info">
+                            <div className="chat-item-name">{user.name}</div>
+                            <div className="chat-item-preview">{user.email}</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="sidebar-section">
+                  <button className="create-group-btn" onClick={() => setShowCreateGroup(!showCreateGroup)}>
+                    + New Team
+                  </button>
+
+                  {showCreateGroup && (
+                    <div className="create-group-form">
+                      <h3>Create New Team</h3>
+                      <div className="form-group">
+                        <label>Team Name</label>
+                        <input
+                          type="text"
+                          value={groupName}
+                          onChange={(e) => setGroupName(e.target.value)}
+                          placeholder="Enter team name"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Add Members</label>
+                        <div className="members-list">
+                          {users.map((user) => (
+                            <label key={user.id} className="member-checkbox">
+                              <input
+                                type="checkbox"
+                                checked={selectedMembers.some(m => m.uid === user.uid)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedMembers([...selectedMembers, user]);
+                                  } else {
+                                    setSelectedMembers(selectedMembers.filter(m => m.uid !== user.uid));
+                                  }
+                                }}
+                              />
+                              {user.name}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="form-buttons">
+                        <button className="btn-primary" onClick={createGroup}>Create</button>
+                        <button className="btn-secondary" onClick={() => {
+                          setShowCreateGroup(false);
+                          setGroupName('');
+                          setSelectedMembers([]);
+                        }}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="sidebar-section-title">Your Teams</div>
+                  {groups.length === 0 ? (
+                    <div style={{padding: '8px 16px', fontSize: '0.75rem', color: '#605e5c'}}>
+                      No teams yet
+                    </div>
+                  ) : (
+                    groups.map((group) => (
+                      <div
+                        key={group.id}
+                        className={`chat-list-item ${selectedGroup?.id === group.id ? 'active' : ''}`}
+                        onClick={() => setSelectedGroup(group)}
+                      >
+                        <div className="chat-item-avatar">{group.avatar}</div>
+                        <div className="chat-item-info">
+                          <div className="chat-item-name">{group.name}</div>
+                          <div className="chat-item-preview">{group.members.length} members</div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Content Area */}
+          <div className="chat-content-wrapper">
+            {mainTab === 'messages' ? (
+              chatTab === 'public' ? (
+                <>
+                  <div className="chat-header">
+                    <div className="chat-item-avatar">#</div>
+                    <div>
+                      <div className="chat-header-title">General</div>
+                      <div className="chat-header-subtitle">Team-wide conversation</div>
+                    </div>
+                  </div>
+
                   <div className="chat-messages">
                     {publicMessages.length === 0 ? (
                       <div className="no-messages">Start the conversation!</div>
@@ -475,27 +597,25 @@ const ChatPage = () => {
                               onMouseEnter={() => setReactionTarget(msg.id)}
                               onMouseLeave={() => { if (reactionTarget === msg.id) setReactionTarget(null); }}
                             >
-                              <div className="message-content-with-avatar">
-                                <div className="message-avatar">
-                                  {renderUserInitial(msg.userName)}
-                                </div>
-                                <div className="message-content">
-                                  <div className="message-header">
-                                    <div className="message-author">{msg.userName}</div>
-                                    <div className="message-time">{formatTime(msg.createdAt)}</div>
-                                  </div>
-                                  <div className="message-bubble">{msg.text}</div>
-                                </div>
+                              <div className="message-avatar">
+                                {renderUserInitial(msg.userName)}
                               </div>
-                              
-                              {/* Reactions Display */}
-                              {msg.reactions && Object.keys(getReactionSummary(msg.reactions)).length > 0 && (
-                                <div className="message-reactions">
-                                  {Object.entries(getReactionSummary(msg.reactions)).map(([emoji, count]) => (
-                                    <span key={emoji} className="reaction-badge">{emoji} {count > 1 ? count : ''}</span>
-                                  ))}
+                              <div className="message-content">
+                                <div className="message-header">
+                                  <div className="message-author">{msg.userName}</div>
+                                  <div className="message-time">{formatTime(msg.createdAt)}</div>
                                 </div>
-                              )}
+                                <div className="message-text">{msg.text}</div>
+                                
+                                {/* Reactions Display */}
+                                {msg.reactions && Object.keys(getReactionSummary(msg.reactions)).length > 0 && (
+                                  <div className="message-reactions">
+                                    {Object.entries(getReactionSummary(msg.reactions)).map(([emoji, count]) => (
+                                      <span key={emoji} className="reaction-badge">{emoji} {count > 1 ? count : ''}</span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
 
                               {/* Reaction Buttons */}
                               {reactionTarget === msg.id && (
@@ -530,229 +650,29 @@ const ChatPage = () => {
                       className="chat-input"
                     />
                     <button type="submit" disabled={sending || !newMessage.trim()} className="chat-send-btn">
-                      {sending ? '...' : '➤'}
+                      {sending ? '...' : 'Send'}
                     </button>
                   </form>
-                </div>
-              ) : (
-                <div className="chat-private">
-                  <div className="users-list">
-                    <div className="users-header">Team Members</div>
-                    {users.length === 0 ? (
-                      <div className="no-users">No team members available</div>
-                    ) : (
-                      users.map((user) => (
-                        <div
-                          key={user.id}
-                          className={`user-item ${selectedUser?.id === user.id ? 'selected' : ''}`}
-                          onClick={() => setSelectedUser(user)}
-                        >
-                          <div className="user-avatar">
-                            {renderUserInitial(user.name)}
-                          </div>
-                          <div className="user-info">
-                            <div className="user-name">{user.name}</div>
-                            <div className="user-email">{user.email}</div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  <div className="chat-private-panel">
-                    {selectedUser ? (
-                      <>
-                        <div className="private-header">
-                          <div className="private-user-info">
-                            <div className="private-avatar">
-                              {renderUserInitial(selectedUser.name)}
-                            </div>
-                            <div>
-                              <div className="private-user-name">{selectedUser.name}</div>
-                              <div className="private-user-email">{selectedUser.email}</div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="chat-messages">
-                          {privateMessages.length === 0 ? (
-                            <div className="no-messages">No messages yet. Start the conversation!</div>
-                          ) : (
-                            privateMessages.map((msg, index) => {
-                              const showDate = index === 0 || 
-                                formatDate(msg.createdAt) !== formatDate(privateMessages[index - 1].createdAt);
-                              
-                              return (
-                                <div key={msg.id}>
-                                  {showDate && (
-                                    <div className="message-date-divider">
-                                      {formatDate(msg.createdAt)}
-                                    </div>
-                                  )}
-                                  <div className={`message-item ${msg.senderId === currentUser?.id ? 'own' : 'other'}`}
-                                    onMouseEnter={() => setReactionTarget(msg.id)}
-                                    onMouseLeave={() => { if (reactionTarget === msg.id) setReactionTarget(null); }}
-                                  >
-                                    <div className="message-content-with-avatar">
-                                      <div className="message-avatar">
-                                        {renderUserInitial(msg.senderName)}
-                                      </div>
-                                      <div className="message-content">
-                                        <div className="message-header">
-                                          <div className="message-author">{msg.senderName}</div>
-                                          <div className="message-time">{formatTime(msg.createdAt)}</div>
-                                        </div>
-                                        <div className="message-bubble">{msg.text}</div>
-                                      </div>
-                                    </div>
-
-                                    {/* Reactions Display */}
-                                    {msg.reactions && Object.keys(getReactionSummary(msg.reactions)).length > 0 && (
-                                      <div className="message-reactions">
-                                        {Object.entries(getReactionSummary(msg.reactions)).map(([emoji, count]) => (
-                                          <span key={emoji} className="reaction-badge">{emoji} {count > 1 ? count : ''}</span>
-                                        ))}
-                                      </div>
-                                    )}
-
-                                    {/* Reaction Buttons */}
-                                    {reactionTarget === msg.id && (
-                                      <div className="reaction-menu">
-                                        {EMOJI_REACTIONS.map((emoji) => (
-                                          <button
-                                            key={emoji}
-                                            className="reaction-btn"
-                                            onClick={() => addReaction(msg.id, emoji, 'private')}
-                                            title="Add reaction"
-                                          >
-                                            {emoji}
-                                          </button>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })
-                          )}
-                          <div ref={messagesEndRef} />
-                        </div>
-
-                        <form onSubmit={sendPrivateMessage} className="chat-form">
-                          <input
-                            type="text"
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            placeholder="Type a message..."
-                            disabled={sending}
-                            className="chat-input"
-                          />
-                          <button type="submit" disabled={sending || !newMessage.trim()} className="chat-send-btn">
-                            {sending ? '...' : '➤'}
-                          </button>
-                        </form>
-                      </>
-                    ) : (
-                      <div className="select-user">
-                        <p>👈 Select a team member to start chatting</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </>
-        ) : (
-          // Groups Tab
-          <div className="groups-container">
-            <div className="groups-sidebar">
-              <button className="create-group-btn" onClick={() => setShowCreateGroup(!showCreateGroup)}>
-                ➕ New Group
-              </button>
-              
-              {showCreateGroup && (
-                <div className="create-group-form">
-                  <input
-                    type="text"
-                    placeholder="Group name..."
-                    value={groupName}
-                    onChange={(e) => setGroupName(e.target.value)}
-                    className="group-input"
-                  />
-                  <div className="members-select">
-                    <p className="select-label">Select members:</p>
-                    <div className="members-list">
-                      {users.map((user) => (
-                        <label key={user.id} className="member-checkbox">
-                          <input
-                            type="checkbox"
-                            checked={selectedMembers.some(m => m.id === user.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedMembers([...selectedMembers, user]);
-                              } else {
-                                setSelectedMembers(selectedMembers.filter(m => m.id !== user.id));
-                              }
-                            }}
-                          />
-                          <span>{user.name}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="form-buttons">
-                    <button className="btn-primary" onClick={createGroup}>Create</button>
-                    <button className="btn-secondary" onClick={() => {
-                      setShowCreateGroup(false);
-                      setGroupName('');
-                      setSelectedMembers([]);
-                    }}>Cancel</button>
-                  </div>
-                </div>
-              )}
-
-              <div className="groups-list">
-                <div className="groups-header">Your Groups</div>
-                {groups.length === 0 ? (
-                  <div className="no-groups">No groups yet</div>
-                ) : (
-                  groups.map((group) => (
-                    <div
-                      key={group.id}
-                      className={`group-item ${selectedGroup?.id === group.id ? 'selected' : ''}`}
-                      onClick={() => setSelectedGroup(group)}
-                    >
-                      <div className="group-avatar">{group.avatar}</div>
-                      <div className="group-info">
-                        <div className="group-name">{group.name}</div>
-                        <div className="group-members">{group.members.length} members</div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="group-chat-panel">
-              {selectedGroup ? (
+                </>
+              ) : selectedUser ? (
                 <>
-                  <div className="group-header">
-                    <div className="group-header-info">
-                      <div className="group-avatar-lg">{selectedGroup.avatar}</div>
-                      <div>
-                        <div className="group-header-name">{selectedGroup.name}</div>
-                        <div className="group-header-members">{selectedGroup.members.length} members</div>
-                      </div>
+                  <div className="chat-header">
+                    <div className="chat-item-avatar">
+                      {renderUserInitial(selectedUser.name)}
+                    </div>
+                    <div>
+                      <div className="chat-header-title">{selectedUser.name}</div>
+                      <div className="chat-header-subtitle">{selectedUser.email}</div>
                     </div>
                   </div>
 
                   <div className="chat-messages">
-                    {groupMessages.length === 0 ? (
-                      <div className="no-messages">Be the first to message!</div>
+                    {privateMessages.length === 0 ? (
+                      <div className="no-messages">No messages yet. Start the conversation!</div>
                     ) : (
-                      groupMessages.map((msg, index) => {
+                      privateMessages.map((msg, index) => {
                         const showDate = index === 0 || 
-                          formatDate(msg.createdAt) !== formatDate(groupMessages[index - 1].createdAt);
+                          formatDate(msg.createdAt) !== formatDate(privateMessages[index - 1].createdAt);
                         
                         return (
                           <div key={msg.id}>
@@ -765,27 +685,25 @@ const ChatPage = () => {
                               onMouseEnter={() => setReactionTarget(msg.id)}
                               onMouseLeave={() => { if (reactionTarget === msg.id) setReactionTarget(null); }}
                             >
-                              <div className="message-content-with-avatar">
-                                <div className="message-avatar">
-                                  {renderUserInitial(msg.senderName)}
-                                </div>
-                                <div className="message-content">
-                                  <div className="message-header">
-                                    <div className="message-author">{msg.senderName}</div>
-                                    <div className="message-time">{formatTime(msg.createdAt)}</div>
-                                  </div>
-                                  <div className="message-bubble">{msg.text}</div>
-                                </div>
+                              <div className="message-avatar">
+                                {renderUserInitial(msg.senderName)}
                               </div>
-
-                              {/* Reactions Display */}
-                              {msg.reactions && Object.keys(getReactionSummary(msg.reactions)).length > 0 && (
-                                <div className="message-reactions">
-                                  {Object.entries(getReactionSummary(msg.reactions)).map(([emoji, count]) => (
-                                    <span key={emoji} className="reaction-badge">{emoji} {count > 1 ? count : ''}</span>
-                                  ))}
+                              <div className="message-content">
+                                <div className="message-header">
+                                  <div className="message-author">{msg.senderName}</div>
+                                  <div className="message-time">{formatTime(msg.createdAt)}</div>
                                 </div>
-                              )}
+                                <div className="message-text">{msg.text}</div>
+
+                                {/* Reactions Display */}
+                                {msg.reactions && Object.keys(getReactionSummary(msg.reactions)).length > 0 && (
+                                  <div className="message-reactions">
+                                    {Object.entries(getReactionSummary(msg.reactions)).map(([emoji, count]) => (
+                                      <span key={emoji} className="reaction-badge">{emoji} {count > 1 ? count : ''}</span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
 
                               {/* Reaction Buttons */}
                               {reactionTarget === msg.id && (
@@ -794,7 +712,7 @@ const ChatPage = () => {
                                     <button
                                       key={emoji}
                                       className="reaction-btn"
-                                      onClick={() => addReaction(msg.id, emoji, 'group')}
+                                      onClick={() => addReaction(msg.id, emoji, 'private')}
                                       title="Add reaction"
                                     >
                                       {emoji}
@@ -810,7 +728,7 @@ const ChatPage = () => {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  <form onSubmit={sendGroupMessage} className="chat-form">
+                  <form onSubmit={sendPrivateMessage} className="chat-form">
                     <input
                       type="text"
                       value={newMessage}
@@ -820,20 +738,108 @@ const ChatPage = () => {
                       className="chat-input"
                     />
                     <button type="submit" disabled={sending || !newMessage.trim()} className="chat-send-btn">
-                      {sending ? '...' : '➤'}
+                      {sending ? '...' : 'Send'}
                     </button>
                   </form>
                 </>
               ) : (
-                <div className="select-group">
-                  <p>👈 Select a group to start chatting</p>
+                <div className="select-conversation">
+                  <p>← Select a person to start chatting</p>
                 </div>
-              )}
-            </div>
+              )
+            ) : selectedGroup ? (
+              <>
+                <div className="chat-header">
+                  <div className="chat-item-avatar">{selectedGroup.avatar}</div>
+                  <div>
+                    <div className="chat-header-title">{selectedGroup.name}</div>
+                    <div className="chat-header-subtitle">{selectedGroup.members.length} members</div>
+                  </div>
+                </div>
+
+                <div className="chat-messages">
+                  {groupMessages.length === 0 ? (
+                    <div className="no-messages">Be the first to message!</div>
+                  ) : (
+                    groupMessages.map((msg, index) => {
+                      const showDate = index === 0 || 
+                        formatDate(msg.createdAt) !== formatDate(groupMessages[index - 1].createdAt);
+                      
+                      return (
+                        <div key={msg.id}>
+                          {showDate && (
+                            <div className="message-date-divider">
+                              {formatDate(msg.createdAt)}
+                            </div>
+                          )}
+                          <div className={`message-item ${msg.senderId === currentUser?.id ? 'own' : 'other'}`}
+                            onMouseEnter={() => setReactionTarget(msg.id)}
+                            onMouseLeave={() => { if (reactionTarget === msg.id) setReactionTarget(null); }}
+                          >
+                            <div className="message-avatar">
+                              {renderUserInitial(msg.senderName)}
+                            </div>
+                            <div className="message-content">
+                              <div className="message-header">
+                                <div className="message-author">{msg.senderName}</div>
+                                <div className="message-time">{formatTime(msg.createdAt)}</div>
+                              </div>
+                              <div className="message-text">{msg.text}</div>
+
+                              {/* Reactions Display */}
+                              {msg.reactions && Object.keys(getReactionSummary(msg.reactions)).length > 0 && (
+                                <div className="message-reactions">
+                                  {Object.entries(getReactionSummary(msg.reactions)).map(([emoji, count]) => (
+                                    <span key={emoji} className="reaction-badge">{emoji} {count > 1 ? count : ''}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Reaction Buttons */}
+                            {reactionTarget === msg.id && (
+                              <div className="reaction-menu">
+                                {EMOJI_REACTIONS.map((emoji) => (
+                                  <button
+                                    key={emoji}
+                                    className="reaction-btn"
+                                    onClick={() => addReaction(msg.id, emoji, 'group')}
+                                    title="Add reaction"
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                <form onSubmit={sendGroupMessage} className="chat-form">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    disabled={sending}
+                    className="chat-input"
+                  />
+                  <button type="submit" disabled={sending || !newMessage.trim()} className="chat-send-btn">
+                    {sending ? '...' : 'Send'}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className="select-group">
+                <p>← Select a team to start chatting</p>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-      )}
+        </div>
     </div>
   );
 };
