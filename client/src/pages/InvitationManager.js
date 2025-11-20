@@ -28,15 +28,31 @@ const InvitationManager = () => {
       console.log('📋 Loading invitation data for user:', user.id);
       
       // Load invitation link
-      const invitationResult = await getAccountOwnerInvitationLink(user.id);
+      let invitationResult = await getAccountOwnerInvitationLink(user.id);
       console.log('📊 Invitation result:', invitationResult);
+      
+      // If no invitation exists, create one
+      if (!invitationResult) {
+        console.log('⚠️ No invitation found, creating new one...');
+        try {
+          const { createInvitationLink } = await import('../services/invitationService');
+          invitationResult = await createInvitationLink(
+            user.id, 
+            user.email, 
+            'My Organization'
+          );
+          console.log('✅ New invitation created:', invitationResult);
+          setSuccess('✅ Invitation link created successfully!');
+          setTimeout(() => setSuccess(''), 3000);
+        } catch (createError) {
+          console.error('❌ Failed to create invitation:', createError);
+          setError('Could not create invitation link: ' + createError.message);
+        }
+      }
       
       if (invitationResult) {
         console.log('✅ Invitation found');
         setInvitation(invitationResult);
-      } else {
-        console.warn('⚠️ No invitation found for this user');
-        setInvitation(null);
       }
 
       // Load invited users
@@ -46,10 +62,12 @@ const InvitationManager = () => {
         setInvitedUsers(usersResult.users);
       }
 
-      setError('');
+      setError(prev => !prev ? '' : prev); // Clear error only if not already set
     } catch (error) {
       console.error('❌ Error loading invitation data:', error);
-      setError('Failed to load invitation data: ' + error.message);
+      if (!error.message.includes('Could not create')) {
+        setError('Failed to load invitation data: ' + error.message);
+      }
     } finally {
       setLoading(false);
     }
