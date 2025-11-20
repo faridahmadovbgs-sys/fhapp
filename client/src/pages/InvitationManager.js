@@ -164,7 +164,6 @@ const InvitationManager = () => {
                 <p><strong>Link Created:</strong> {invitation.createdAt?.seconds 
                   ? new Date(invitation.createdAt.seconds * 1000).toLocaleDateString() 
                   : 'Just now'}</p>
-                <p><strong>Members Joined:</strong> {invitation.usedCount || 0}</p>
               </div>
 
               <div className="link-display">
