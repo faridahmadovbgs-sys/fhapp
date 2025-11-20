@@ -36,7 +36,26 @@ const ChatPage = () => {
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [reactionTarget, setReactionTarget] = useState(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState(null);
   const messagesEndRef = useRef(null);
+
+  // Fetch current user's profile
+  useEffect(() => {
+    const fetchCurrentUserProfile = async () => {
+      if (!currentUser || !db) return;
+
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.id));
+        if (userDoc.exists()) {
+          setCurrentUserProfile(userDoc.data());
+        }
+      } catch (error) {
+        console.error('Error fetching current user profile:', error);
+      }
+    };
+
+    fetchCurrentUserProfile();
+  }, [currentUser]);
 
   // Fetch all users
   useEffect(() => {
@@ -53,7 +72,8 @@ const ChatPage = () => {
             id: doc.id,
             uid: userData.uid,
             email: userData.email,
-            name: userData.email?.split('@')[0] || 'User'
+            name: userData.email?.split('@')[0] || 'User',
+            profilePictureUrl: userData.profilePictureUrl || null
           });
         }
       });
@@ -194,7 +214,8 @@ const ChatPage = () => {
         createdAt: serverTimestamp(),
         userId: currentUser.id,
         userName: currentUser.name || currentUser.email.split('@')[0],
-        userEmail: currentUser.email
+        userEmail: currentUser.email,
+        userProfilePic: currentUserProfile?.profilePictureUrl || null
       });
       setNewMessage('');
     } catch (error) {
@@ -215,7 +236,8 @@ const ChatPage = () => {
         text: newMessage.trim(),
         createdAt: serverTimestamp(),
         senderId: currentUser.id,
-        senderName: currentUser.name || currentUser.email.split('@')[0]
+        senderName: currentUser.name || currentUser.email.split('@')[0],
+        userProfilePic: currentUserProfile?.profilePictureUrl || null
       });
       setNewMessage('');
     } catch (error) {
@@ -265,7 +287,8 @@ const ChatPage = () => {
         createdAt: serverTimestamp(),
         senderId: currentUser.id,
         senderName: currentUser.name || currentUser.email.split('@')[0],
-        receiverId: selectedUser.uid
+        receiverId: selectedUser.uid,
+        userProfilePic: currentUserProfile?.profilePictureUrl || null
       });
       setNewMessage('');
     } catch (error) {
@@ -341,6 +364,31 @@ const ChatPage = () => {
     }
   };
 
+  const renderUserAvatar = (profilePictureUrl, userName) => {
+    if (profilePictureUrl) {
+      return (
+        <img 
+          src={profilePictureUrl} 
+          alt={userName} 
+          className="user-avatar-img"
+          onError={(e) => {
+            e.target.style.display = 'none';
+            e.target.nextElementSibling.style.display = 'flex';
+          }}
+        />
+      );
+    }
+    return null;
+  };
+
+  const renderUserInitial = (userName) => {
+    return (
+      <div className="user-avatar-initial">
+        {userName?.charAt(0).toUpperCase() || '?'}
+      </div>
+    );
+  };
+
   return (
     <div className="chat-page">
       <div className="chat-page-header">
@@ -406,9 +454,17 @@ const ChatPage = () => {
                               onMouseEnter={() => setReactionTarget(msg.id)}
                               onMouseLeave={() => { if (reactionTarget === msg.id) setReactionTarget(null); }}
                             >
-                              <div className="message-author">{msg.userName}</div>
-                              <div className="message-bubble">{msg.text}</div>
-                              <div className="message-time">{formatTime(msg.createdAt)}</div>
+                              <div className="message-content-with-avatar">
+                                <div className="message-avatar">
+                                  {renderUserAvatar(msg.userProfilePic, msg.userName)}
+                                  {renderUserInitial(msg.userName)}
+                                </div>
+                                <div className="message-content">
+                                  <div className="message-author">{msg.userName}</div>
+                                  <div className="message-bubble">{msg.text}</div>
+                                  <div className="message-time">{formatTime(msg.createdAt)}</div>
+                                </div>
+                              </div>
                               
                               {/* Reactions Display */}
                               {msg.reactions && Object.keys(getReactionSummary(msg.reactions)).length > 0 && (
@@ -469,7 +525,10 @@ const ChatPage = () => {
                           className={`user-item ${selectedUser?.id === user.id ? 'selected' : ''}`}
                           onClick={() => setSelectedUser(user)}
                         >
-                          <div className="user-avatar">{user.name.charAt(0).toUpperCase()}</div>
+                          <div className="user-avatar">
+                            {renderUserAvatar(user.profilePictureUrl, user.name)}
+                            {renderUserInitial(user.name)}
+                          </div>
                           <div className="user-info">
                             <div className="user-name">{user.name}</div>
                             <div className="user-email">{user.email}</div>
@@ -484,7 +543,10 @@ const ChatPage = () => {
                       <>
                         <div className="private-header">
                           <div className="private-user-info">
-                            <div className="private-avatar">{selectedUser.name.charAt(0).toUpperCase()}</div>
+                            <div className="private-avatar">
+                              {renderUserAvatar(selectedUser.profilePictureUrl, selectedUser.name)}
+                              {renderUserInitial(selectedUser.name)}
+                            </div>
                             <div>
                               <div className="private-user-name">{selectedUser.name}</div>
                               <div className="private-user-email">{selectedUser.email}</div>
@@ -511,8 +573,16 @@ const ChatPage = () => {
                                     onMouseEnter={() => setReactionTarget(msg.id)}
                                     onMouseLeave={() => { if (reactionTarget === msg.id) setReactionTarget(null); }}
                                   >
-                                    <div className="message-bubble">{msg.text}</div>
-                                    <div className="message-time">{formatTime(msg.createdAt)}</div>
+                                    <div className="message-content-with-avatar">
+                                      <div className="message-avatar">
+                                        {renderUserAvatar(msg.userProfilePic, msg.senderName)}
+                                        {renderUserInitial(msg.senderName)}
+                                      </div>
+                                      <div className="message-content">
+                                        <div className="message-bubble">{msg.text}</div>
+                                        <div className="message-time">{formatTime(msg.createdAt)}</div>
+                                      </div>
+                                    </div>
 
                                     {/* Reactions Display */}
                                     {msg.reactions && Object.keys(getReactionSummary(msg.reactions)).length > 0 && (
@@ -673,9 +743,17 @@ const ChatPage = () => {
                               onMouseEnter={() => setReactionTarget(msg.id)}
                               onMouseLeave={() => { if (reactionTarget === msg.id) setReactionTarget(null); }}
                             >
-                              <div className="message-author">{msg.senderName}</div>
-                              <div className="message-bubble">{msg.text}</div>
-                              <div className="message-time">{formatTime(msg.createdAt)}</div>
+                              <div className="message-content-with-avatar">
+                                <div className="message-avatar">
+                                  {renderUserAvatar(msg.userProfilePic, msg.senderName)}
+                                  {renderUserInitial(msg.senderName)}
+                                </div>
+                                <div className="message-content">
+                                  <div className="message-author">{msg.senderName}</div>
+                                  <div className="message-bubble">{msg.text}</div>
+                                  <div className="message-time">{formatTime(msg.createdAt)}</div>
+                                </div>
+                              </div>
 
                               {/* Reactions Display */}
                               {msg.reactions && Object.keys(getReactionSummary(msg.reactions)).length > 0 && (

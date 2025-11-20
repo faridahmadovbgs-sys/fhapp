@@ -455,6 +455,29 @@
   justify-content: center;
   font-weight: 600;
   flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+}
+
+.user-avatar-initial {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #36c5f0, #0a8fb4);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9em;
+  position: relative;
+  z-index: 1;
 }
 
 .user-info {
@@ -517,6 +540,20 @@
   justify-content: center;
   font-weight: 600;
   font-size: 1.1em;
+  overflow: hidden;
+  position: relative;
+}
+
+.private-avatar .user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+}
+
+.private-avatar .user-avatar-initial {
+  position: relative;
+  z-index: 1;
 }
 
 .private-user-name {
@@ -587,6 +624,7 @@
   display: flex;
   flex-direction: column;
   margin-bottom: 4px;
+  position: relative;
 }
 
 .message-item.own {
@@ -594,6 +632,62 @@
 }
 
 .message-item.other {
+  align-items: flex-start;
+}
+
+/* Message with Avatar Layout */
+.message-content-with-avatar {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.message-item.own .message-content-with-avatar {
+  flex-direction: row-reverse;
+}
+
+.message-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #36c5f0, #0a8fb4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-avatar-initial {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #36c5f0, #0a8fb4);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
+.message-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.message-item.own .message-content {
+  align-items: flex-end;
+}
+
+.message-item.other .message-content {
   align-items: flex-start;
 }
 

@@ -2,6 +2,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 // Your web app's Firebase config
 const firebaseConfig = {
@@ -23,7 +24,7 @@ if (!isFirebaseConfigured) {
 }
 
 // Initialize Firebase
-let app, auth, db;
+let app, auth, db, storage;
 
 try {
   if (isFirebaseConfigured) {
@@ -35,17 +36,20 @@ try {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app);
     
     console.log('✅ Firebase initialized successfully', {
       app: !!app,
       auth: !!auth,
-      db: !!db
+      db: !!db,
+      storage: !!storage
     });
   } else {
     console.warn('⚠️ Firebase not configured - using demo mode');
-    // Provide null auth and db for demo mode
+    // Provide null services for demo mode
     auth = null;
     db = null;
+    storage = null;
   }
 } catch (error) {
   console.error('❌ Firebase initialization error:', error);
@@ -56,7 +60,8 @@ try {
   });
   auth = null;
   db = null;
+  storage = null;
 }
 
-export { auth, db };
+export { auth, db, storage };
 export default app;
