@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "framework": "react",
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "client/build",
   "env": {
