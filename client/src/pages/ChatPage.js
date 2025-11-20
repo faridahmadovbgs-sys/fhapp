@@ -8,11 +8,15 @@ import {
   serverTimestamp,
   limit,
   doc,
-  getDoc
+  getDoc,
+  updateDoc,
+  arrayUnion
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import './ChatPage.css';
+
+const EMOJI_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '😸'];
 
 const ChatPage = () => {
   const { user: currentUser } = useAuth();
@@ -30,6 +34,8 @@ const ChatPage = () => {
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState([]);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [reactionTarget, setReactionTarget] = useState(null);
   const messagesEndRef = useRef(null);
 
   // Fetch all users
@@ -280,6 +286,51 @@ const ChatPage = () => {
     }
   };
 
+  const addReaction = async (messageId, emoji, messageType) => {
+    if (!db || !currentUser) return;
+
+    try {
+      let messageRef;
+      
+      if (messageType === 'public') {
+        messageRef = doc(db, 'messages', messageId);
+      } else if (messageType === 'private' && selectedUser) {
+        const conversationId = [currentUser.id, selectedUser.uid].sort().join('-');
+        messageRef = doc(db, `conversations/${conversationId}/messages`, messageId);
+      } else if (messageType === 'group' && selectedGroup) {
+        messageRef = doc(db, `groups/${selectedGroup.id}/messages`, messageId);
+      }
+
+      if (messageRef) {
+        const reactionKey = `reactions.${emoji}.${currentUser.id}`;
+        await updateDoc(messageRef, {
+          [reactionKey]: serverTimestamp()
+        });
+      }
+
+      setShowEmojiPicker(false);
+      setReactionTarget(null);
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+    }
+  };
+
+  const getReactionSummary = (reactions) => {
+    if (!reactions) return {};
+    const summary = {};
+    
+    Object.entries(reactions).forEach(([emoji, users]) => {
+      if (typeof users === 'object' && users !== null) {
+        const userCount = Object.keys(users).length;
+        if (userCount > 0) {
+          summary[emoji] = userCount;
+        }
+      }
+    });
+
+    return summary;
+  };
+
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
     try {
@@ -351,10 +402,38 @@ const ChatPage = () => {
                                 {formatDate(msg.createdAt)}
                               </div>
                             )}
-                            <div className={`message-item ${msg.userId === currentUser?.id ? 'own' : 'other'}`}>
+                            <div className={`message-item ${msg.userId === currentUser?.id ? 'own' : 'other'}`}
+                              onMouseEnter={() => setReactionTarget(msg.id)}
+                              onMouseLeave={() => { if (reactionTarget === msg.id) setReactionTarget(null); }}
+                            >
                               <div className="message-author">{msg.userName}</div>
                               <div className="message-bubble">{msg.text}</div>
                               <div className="message-time">{formatTime(msg.createdAt)}</div>
+                              
+                              {/* Reactions Display */}
+                              {msg.reactions && Object.keys(getReactionSummary(msg.reactions)).length > 0 && (
+                                <div className="message-reactions">
+                                  {Object.entries(getReactionSummary(msg.reactions)).map(([emoji, count]) => (
+                                    <span key={emoji} className="reaction-badge">{emoji} {count > 1 ? count : ''}</span>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Reaction Buttons */}
+                              {reactionTarget === msg.id && (
+                                <div className="reaction-menu">
+                                  {EMOJI_REACTIONS.map((emoji) => (
+                                    <button
+                                      key={emoji}
+                                      className="reaction-btn"
+                                      onClick={() => addReaction(msg.id, emoji, 'public')}
+                                      title="Add reaction"
+                                    >
+                                      {emoji}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
@@ -428,9 +507,37 @@ const ChatPage = () => {
                                       {formatDate(msg.createdAt)}
                                     </div>
                                   )}
-                                  <div className={`message-item ${msg.senderId === currentUser?.id ? 'own' : 'other'}`}>
+                                  <div className={`message-item ${msg.senderId === currentUser?.id ? 'own' : 'other'}`}
+                                    onMouseEnter={() => setReactionTarget(msg.id)}
+                                    onMouseLeave={() => { if (reactionTarget === msg.id) setReactionTarget(null); }}
+                                  >
                                     <div className="message-bubble">{msg.text}</div>
                                     <div className="message-time">{formatTime(msg.createdAt)}</div>
+
+                                    {/* Reactions Display */}
+                                    {msg.reactions && Object.keys(getReactionSummary(msg.reactions)).length > 0 && (
+                                      <div className="message-reactions">
+                                        {Object.entries(getReactionSummary(msg.reactions)).map(([emoji, count]) => (
+                                          <span key={emoji} className="reaction-badge">{emoji} {count > 1 ? count : ''}</span>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {/* Reaction Buttons */}
+                                    {reactionTarget === msg.id && (
+                                      <div className="reaction-menu">
+                                        {EMOJI_REACTIONS.map((emoji) => (
+                                          <button
+                                            key={emoji}
+                                            className="reaction-btn"
+                                            onClick={() => addReaction(msg.id, emoji, 'private')}
+                                            title="Add reaction"
+                                          >
+                                            {emoji}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               );
@@ -562,10 +669,38 @@ const ChatPage = () => {
                                 {formatDate(msg.createdAt)}
                               </div>
                             )}
-                            <div className={`message-item ${msg.senderId === currentUser?.id ? 'own' : 'other'}`}>
+                            <div className={`message-item ${msg.senderId === currentUser?.id ? 'own' : 'other'}`}
+                              onMouseEnter={() => setReactionTarget(msg.id)}
+                              onMouseLeave={() => { if (reactionTarget === msg.id) setReactionTarget(null); }}
+                            >
                               <div className="message-author">{msg.senderName}</div>
                               <div className="message-bubble">{msg.text}</div>
                               <div className="message-time">{formatTime(msg.createdAt)}</div>
+
+                              {/* Reactions Display */}
+                              {msg.reactions && Object.keys(getReactionSummary(msg.reactions)).length > 0 && (
+                                <div className="message-reactions">
+                                  {Object.entries(getReactionSummary(msg.reactions)).map(([emoji, count]) => (
+                                    <span key={emoji} className="reaction-badge">{emoji} {count > 1 ? count : ''}</span>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Reaction Buttons */}
+                              {reactionTarget === msg.id && (
+                                <div className="reaction-menu">
+                                  {EMOJI_REACTIONS.map((emoji) => (
+                                    <button
+                                      key={emoji}
+                                      className="reaction-btn"
+                                      onClick={() => addReaction(msg.id, emoji, 'group')}
+                                      title="Add reaction"
+                                    >
+                                      {emoji}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
