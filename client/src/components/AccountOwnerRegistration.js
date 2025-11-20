@@ -4,6 +4,8 @@ import { setUserRoleInDatabase } from '../services/roleService';
 import './Login.css';
 
 const AccountOwnerRegistration = () => {
+  console.log('🔍 AccountOwnerRegistration component loading...');
+  
   const { register, loading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
@@ -17,6 +19,14 @@ const AccountOwnerRegistration = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [firebaseReady, setFirebaseReady] = useState(false);
+
+  // Add error boundary logging
+  React.useEffect(() => {
+    console.log('✅ AccountOwnerRegistration mounted successfully');
+    return () => {
+      console.log('🔄 AccountOwnerRegistration unmounting');
+    };
+  }, []);
 
   // Check Firebase connection on component mount
   React.useEffect(() => {
