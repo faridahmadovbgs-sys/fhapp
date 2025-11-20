@@ -303,7 +303,7 @@ Share this link with team members so they can join your organization. You can vi
                 disabled={loading}
                 aria-label="Toggle password visibility"
               >
-                {showPassword ? '👁️' : '👁️‍🗨️'}
+                {showPassword ? '🙈' : '👁️'}
               </button>
             </div>
           </div>
@@ -328,7 +328,7 @@ Share this link with team members so they can join your organization. You can vi
                 disabled={loading}
                 aria-label="Toggle confirm password visibility"
               >
-                {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+                {showConfirmPassword ? '🙈' : '👁️'}
               </button>
             </div>
           </div>
