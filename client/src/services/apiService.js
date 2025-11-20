@@ -1,7 +1,9 @@
 import axios from 'axios';
 
-// GitHub Pages deployment - use local storage only
-const API_BASE_URL = null; // Disable API calls for GitHub Pages
+// Vercel deployment - use Vercel API routes
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://fhapp-client-9sz4a06ks-farids-projects-0239e101.vercel.app'
+  : 'http://localhost:5000';
 
 const apiService = axios.create({
   baseURL: API_BASE_URL,

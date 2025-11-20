@@ -45,14 +45,23 @@ router.post('/register', [
       });
     }
 
+    // Check if this is the first user (make them admin)
+    const userCount = await User.countDocuments();
+    const isFirstUser = userCount === 0;
+
     // Create new user
     const user = new User({
       name: name || email.split('@')[0], // Use email prefix as default name
       email,
-      password
+      password,
+      role: isFirstUser ? 'admin' : 'user' // First user becomes admin
     });
 
     await user.save();
+
+    if (isFirstUser) {
+      console.log(`🔑 First user registered as admin: ${email}`);
+    }
 
     // Create JWT token
     const token = jwt.sign(

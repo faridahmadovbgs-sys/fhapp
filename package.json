@@ -1,26 +1,39 @@
 {
-  "name": "integrant-workspace",
+  "name": "fhapp-fullstack",
   "version": "1.0.0",
-  "description": "Integrant - Full-stack web application with React frontend and Node.js backend",
+  "description": "Full-stack web application with role-based authorization system",
   "scripts": {
     "install:client": "cd client && npm install",
     "install:server": "cd server && npm install", 
     "install:all": "npm run install:client && npm run install:server",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "cd client && npm start",
     "dev:server": "cd server && npm run dev",
     "start:client": "cd client && npm start",
     "start:server": "cd server && npm start",
     "build": "cd client && npm run build",
     "build:client": "cd client && npm run build",
-    "test:client": "cd client && npm test",
+    "test:client": "cd client && npm test -- --watchAll=false",
     "test:server": "cd server && npm test",
-    "vercel-build": "cd client && npm install && npm run build"
+    "test": "npm run test:client && npm run test:server",
+    "vercel-build": "cd client && npm install && npm run build",
+    "deploy:production": "npm run build && npm run start:server",
+    "deploy:docker": "docker-compose up -d --build",
+    "setup:admin": "cd server && node setup-admin.js",
+    "health:check": "curl http://localhost:5000/api/health"
   },
   "workspaces": [
     "client",
     "server"
   ],
-  "keywords": ["fullstack", "react", "nodejs", "mongodb"],
-  "author": "",
-  "license": "MIT"
+  "keywords": ["fullstack", "react", "nodejs", "mongodb", "authorization", "rbac", "authentication"],
+  "author": "FHApp Development Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
 }

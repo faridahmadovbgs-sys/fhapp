@@ -1,13 +1,28 @@
 import React from 'react';
 import ChatPopup from '../components/ChatPopup';
+import { usePermissions } from '../hooks/usePermissions';
 
 const Home = ({ data }) => {
+  const { isAdmin, userRole } = usePermissions();
+
   return (
     <div>
       <div className="hero">
         <h1>Welcome to Integrant</h1>
-        <p>A modern full-stack web application</p>
+        <p>A modern full-stack web application with role-based access control</p>
+        <div style={{ marginTop: '10px', padding: '10px', background: '#e9ecef', borderRadius: '5px' }}>
+          <strong>Your Current Role: </strong>
+          <span style={{ 
+            color: isAdmin() ? '#28a745' : userRole === 'moderator' ? '#ffc107' : '#007bff',
+            fontWeight: 'bold'
+          }}>
+            {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+            {isAdmin() && ' 👑'}
+          </span>
+        </div>
       </div>
+
+
       
       {data && (
         <div className="status">

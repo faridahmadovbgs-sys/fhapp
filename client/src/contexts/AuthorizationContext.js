@@ -1,0 +1,271 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import apiService from '../services/apiService';
+
+// Create the AuthorizationContext
+const AuthorizationContext = createContext();
+
+// Custom hook to use the AuthorizationContext
+export const useAuthorization = () => {
+  const context = useContext(AuthorizationContext);
+  if (!context) {
+    throw new Error('useAuthorization must be used within an AuthorizationProvider');
+  }
+  return context;
+};
+
+// Default permissions structure
+const defaultPermissions = {
+  pages: {
+    home: true,
+    about: true,
+    profile: true,
+    admin: false,
+    users: false,
+    reports: false,
+    settings: false
+  },
+  actions: {
+    create_user: false,
+    edit_user: false,
+    delete_user: false,
+    view_users: false,
+    manage_roles: false,
+    export_data: false,
+    view_analytics: false,
+    system_settings: false
+  }
+};
+
+// Role-based default permissions
+const rolePermissions = {
+  user: {
+    pages: {
+      home: true,
+      about: true,
+      profile: true,
+      admin: false,
+      users: false,
+      reports: false,
+      settings: false
+    },
+    actions: {
+      create_user: false,
+      edit_user: false,
+      delete_user: false,
+      view_users: false,
+      manage_roles: false,
+      export_data: false,
+      view_analytics: false,
+      system_settings: false
+    }
+  },
+  moderator: {
+    pages: {
+      home: true,
+      about: true,
+      profile: true,
+      admin: false,
+      users: true,
+      reports: true,
+      settings: false
+    },
+    actions: {
+      create_user: false,
+      edit_user: true,
+      delete_user: false,
+      view_users: true,
+      manage_roles: false,
+      export_data: true,
+      view_analytics: true,
+      system_settings: false
+    }
+  },
+  admin: {
+    pages: {
+      home: true,
+      about: true,
+      profile: true,
+      admin: true,
+      users: true,
+      reports: true,
+      settings: true
+    },
+    actions: {
+      create_user: true,
+      edit_user: true,
+      delete_user: true,
+      view_users: true,
+      manage_roles: true,
+      export_data: true,
+      view_analytics: true,
+      system_settings: true
+    }
+  }
+};
+
+// AuthorizationProvider component
+export const AuthorizationProvider = ({ children }) => {
+  const { user, isAuthenticated } = useAuth();
+  const [permissions, setPermissions] = useState(defaultPermissions);
+  const [userRole, setUserRole] = useState('user');
+  const [loading, setLoading] = useState(true);
+
+  // Fetch user permissions when user changes
+  useEffect(() => {
+    const fetchUserPermissions = async () => {
+      if (isAuthenticated && user) {
+        try {
+          // Check if user was promoted to admin locally
+          const localAdminStatus = localStorage.getItem(`admin_${user.id}`);
+          const localUserRole = localStorage.getItem(`role_${user.id}`);
+          
+          if (localAdminStatus === 'true' || localUserRole) {
+            // Use locally stored admin status
+            const role = localUserRole || 'admin';
+            setUserRole(role);
+            setPermissions(rolePermissions[role] || rolePermissions.admin);
+            console.log(`Using local admin privileges for user: ${user.email}`);
+            setLoading(false);
+            return;
+          }
+
+          // Try to fetch user permissions from server
+          const response = await apiService.get(`/api/users/${user.id}/permissions`);
+          if (response.data && response.data.permissions) {
+            setPermissions(response.data.permissions);
+            setUserRole(response.data.role || 'user');
+          } else {
+            // Fallback to role-based permissions
+            const role = response.data?.role || 'user';
+            setUserRole(role);
+            setPermissions(rolePermissions[role] || rolePermissions.user);
+          }
+        } catch (error) {
+          // If API fails, check for local admin status first
+          const localAdminStatus = localStorage.getItem(`admin_${user.id}`);
+          const localUserRole = localStorage.getItem(`role_${user.id}`);
+          
+          if (localAdminStatus === 'true' || localUserRole) {
+            const role = localUserRole || 'admin';
+            setUserRole(role);
+            setPermissions(rolePermissions[role] || rolePermissions.admin);
+            console.log(`Using local admin privileges (API failed) for user: ${user.email}`);
+          } else {
+            // Default fallback
+            console.warn('Failed to fetch user permissions, using default:', error);
+            const role = user.role || 'user';
+            setUserRole(role);
+            setPermissions(rolePermissions[role] || rolePermissions.user);
+          }
+        }
+      } else {
+        // Reset permissions for unauthenticated users
+        setPermissions(defaultPermissions);
+        setUserRole('user');
+      }
+      setLoading(false);
+    };
+
+    fetchUserPermissions();
+  }, [user, isAuthenticated]);
+
+  // Check if user has permission for a specific page
+  const hasPagePermission = (pageName) => {
+    if (!isAuthenticated) return false;
+    return permissions?.pages?.[pageName] || false;
+  };
+
+  // Check if user has permission for a specific action
+  const hasActionPermission = (actionName) => {
+    if (!isAuthenticated) return false;
+    return permissions?.actions?.[actionName] || false;
+  };
+
+  // Check if user has a specific role
+  const hasRole = (roleName) => {
+    if (!isAuthenticated) return false;
+    return userRole === roleName;
+  };
+
+  // Check if user has any of the specified roles
+  const hasAnyRole = (roleNames) => {
+    if (!isAuthenticated || !Array.isArray(roleNames)) return false;
+    return roleNames.includes(userRole);
+  };
+
+  // Update user permissions (for admin use)
+  const updateUserPermissions = async (userId, newPermissions) => {
+    try {
+      const response = await apiService.put(`/api/users/${userId}/permissions`, {
+        permissions: newPermissions
+      });
+      
+      // If updating current user, refresh permissions
+      if (userId === user?.id) {
+        setPermissions(newPermissions);
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Failed to update user permissions:', error);
+      throw error;
+    }
+  };
+
+  // Update user role (for admin use)
+  const updateUserRole = async (userId, newRole) => {
+    try {
+      const response = await apiService.put(`/api/users/${userId}/role`, {
+        role: newRole
+      });
+      
+      // If updating current user, refresh permissions
+      if (userId === user?.id) {
+        setUserRole(newRole);
+        setPermissions(rolePermissions[newRole] || rolePermissions.user);
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Failed to update user role:', error);
+      throw error;
+    }
+  };
+
+  // Get all available permissions
+  const getAllPermissions = () => {
+    return {
+      pages: Object.keys(defaultPermissions.pages),
+      actions: Object.keys(defaultPermissions.actions)
+    };
+  };
+
+  // Get all available roles
+  const getAllRoles = () => {
+    return Object.keys(rolePermissions);
+  };
+
+  const value = {
+    permissions,
+    userRole,
+    loading,
+    hasPagePermission,
+    hasActionPermission,
+    hasRole,
+    hasAnyRole,
+    updateUserPermissions,
+    updateUserRole,
+    getAllPermissions,
+    getAllRoles,
+    rolePermissions
+  };
+
+  return (
+    <AuthorizationContext.Provider value={value}>
+      {children}
+    </AuthorizationContext.Provider>
+  );
+};
+
+export default AuthorizationContext;

@@ -4,11 +4,16 @@ import './App.css';
 import Header from './components/Header';
 import Login from './components/Login';
 import ResetPassword from './components/ResetPassword';
+import { ProtectedRoute, PermissionProtectedRoute } from './components/ProtectedRoute';
 import Home from './pages/Home';
 import About from './pages/About';
 import RegisteredUsers from './pages/RegisteredUsers';
+import AdminPanel from './pages/AdminPanel';
+import Unauthorized from './pages/Unauthorized';
+import DemoPermissions from './pages/DemoPermissions';
 import apiService from './services/apiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthorizationProvider } from './contexts/AuthorizationContext';
 
 // Main app content when user is authenticated
 function MainApp() {
@@ -41,7 +46,24 @@ function MainApp() {
           <Routes>
             <Route path="/" element={<Home data={data} />} />
             <Route path="/about" element={<About />} />
-            <Route path="/registered-users" element={<RegisteredUsers />} />
+            <Route path="/demo-permissions" element={<DemoPermissions />} />
+            <Route 
+              path="/registered-users" 
+              element={
+                <PermissionProtectedRoute requiredPage="users">
+                  <RegisteredUsers />
+                </PermissionProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin" 
+              element={
+                <PermissionProtectedRoute requiredPage="admin">
+                  <AdminPanel />
+                </PermissionProtectedRoute>
+              } 
+            />
+            <Route path="/unauthorized" element={<Unauthorized />} />
           </Routes>
         )}
       </main>
@@ -53,9 +75,11 @@ function MainApp() {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <AuthorizationProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </AuthorizationProvider>
     </AuthProvider>
   );
 }
