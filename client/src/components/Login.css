@@ -442,7 +442,7 @@
   cursor: pointer;
   accent-color: #667eea;
   order: 2;
-  margin: 0;
+  margin: 0 0 0 12px;
 }
 
 .checkbox-label .checkbox-text {
