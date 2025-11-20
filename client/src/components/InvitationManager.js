@@ -157,7 +157,7 @@ const InvitationManager = () => {
         </div>
         
         {/* Organization Selector */}
-        {organizations.length > 1 && (
+        {organizations.length > 0 && (
           <div className="org-selector-section">
             <label htmlFor="org-select">Organization:</label>
             <select
