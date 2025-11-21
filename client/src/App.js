@@ -12,6 +12,7 @@ import AdminPanel from './pages/AdminPanel';
 import ChatPage from './pages/ChatPage';
 import InvitationManager from './pages/InvitationManager';
 import OrganizationMembers from './pages/OrganizationMembers';
+import UserProfileForm from './components/UserProfileForm';
 import Unauthorized from './pages/Unauthorized';
 import DemoPermissions from './pages/DemoPermissions';
 import AccountOwnerRegistration from './components/AccountOwnerRegistration';
@@ -72,6 +73,12 @@ function MainApp() {
               path="/chat" 
               element={
                 <ChatPage />
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <UserProfileForm />
               } 
             />
             <Route 
