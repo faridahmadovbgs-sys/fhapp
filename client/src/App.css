@@ -19,6 +19,9 @@ header .container {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 20px;
 }
 
 nav ul {
@@ -26,7 +29,8 @@ nav ul {
   padding: 0;
   margin: 0;
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
+  flex-wrap: wrap;
 }
 
 nav a {
@@ -44,6 +48,8 @@ nav a:hover {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-shrink: 0;
+  margin-left: 1rem;
 }
 
 .user-profile-section {
@@ -54,6 +60,7 @@ nav a:hover {
   padding: 0.5rem;
   border-radius: 20px;
   transition: background-color 0.2s;
+  white-space: nowrap;
 }
 
 .user-profile-section:hover {
@@ -100,6 +107,10 @@ nav a:hover {
   color: #61dafb;
   font-weight: 500;
   font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
 }
 
 .logout-button {
@@ -116,6 +127,60 @@ nav a:hover {
 .logout-button:hover {
   background-color: #61dafb;
   color: #282c34;
+}
+
+/* Responsive Header */
+@media (max-width: 1400px) {
+  nav ul {
+    gap: 1rem;
+  }
+
+  nav a {
+    font-size: 0.9rem;
+  }
+
+  .welcome-text {
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 1200px) {
+  nav ul {
+    gap: 0.75rem;
+  }
+
+  .user-info {
+    gap: 0.5rem;
+  }
+
+  .welcome-text {
+    display: none;
+  }
+
+  .user-avatar-header {
+    width: 36px;
+    height: 36px;
+  }
+
+  .logout-button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 768px) {
+  header .container {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  nav ul {
+    justify-content: center;
+  }
+
+  .user-info {
+    margin-left: 0;
+  }
 }
 
 .hero {

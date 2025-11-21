@@ -1,0 +1,456 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { getUserMemberOrganizations } from '../services/organizationService';
+import { 
+  getMemberBills, 
+  recordPayment, 
+  getMemberPaymentHistory 
+} from '../services/billingService';
+import './MemberPayments.css';
+
+const MemberPayments = () => {
+  const { user } = useAuth();
+  const [organizations, setOrganizations] = useState([]);
+  const [selectedOrg, setSelectedOrg] = useState(null);
+  const [bills, setBills] = useState([]);
+  const [paymentHistory, setPaymentHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [selectedBill, setSelectedBill] = useState(null);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'history'
+  
+  const [paymentForm, setPaymentForm] = useState({
+    paymentMethod: 'credit_card',
+    cardNumber: '',
+    cardName: '',
+    expiryDate: '',
+    cvv: ''
+  });
+
+  // Fetch organizations
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const result = await getUserMemberOrganizations(user.id);
+        setOrganizations(result.organizations);
+        
+        if (result.organizations.length > 0 && !selectedOrg) {
+          setSelectedOrg(result.organizations[0]);
+        }
+      } catch (error) {
+        console.error('Error fetching organizations:', error);
+        setError('Failed to load organizations');
+      }
+    };
+    
+    fetchOrganizations();
+  }, [user]);
+
+  // Fetch bills and payment history when organization changes
+  useEffect(() => {
+    if (selectedOrg) {
+      loadData();
+    }
+  }, [selectedOrg, user]);
+
+  const loadData = async () => {
+    if (!selectedOrg || !user) return;
+    
+    try {
+      setLoading(true);
+      
+      // Load bills
+      const billsResult = await getMemberBills(user.id, selectedOrg.id);
+      if (billsResult.success) {
+        setBills(billsResult.bills);
+      }
+      
+      // Load payment history
+      const historyResult = await getMemberPaymentHistory(user.id, selectedOrg.id);
+      if (historyResult.success) {
+        setPaymentHistory(historyResult.payments);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setError('Failed to load payment information');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePaymentFormChange = (e) => {
+    const { name, value } = e.target;
+    setPaymentForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const initiatePayment = (bill) => {
+    setSelectedBill(bill);
+    setShowPaymentForm(true);
+    setError('');
+  };
+
+  const handlePaymentSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!selectedBill) return;
+
+    // Validate form
+    if (!paymentForm.cardNumber || !paymentForm.cardName || !paymentForm.expiryDate || !paymentForm.cvv) {
+      setError('Please fill in all payment details');
+      return;
+    }
+
+    try {
+      // In production, you would integrate with Stripe, PayPal, etc.
+      // For now, we'll simulate a successful payment
+      
+      const paymentData = {
+        billId: selectedBill.id,
+        memberId: user.id,
+        memberName: user.name || user.email.split('@')[0],
+        memberEmail: user.email,
+        amount: selectedBill.amount,
+        organizationId: selectedOrg.id,
+        organizationName: selectedOrg.name,
+        paymentMethod: paymentForm.paymentMethod,
+        billTitle: selectedBill.title,
+        billType: selectedBill.billType
+      };
+
+      await recordPayment(paymentData);
+      
+      setSuccess('✅ Payment processed successfully!');
+      setShowPaymentForm(false);
+      setSelectedBill(null);
+      setPaymentForm({
+        paymentMethod: 'credit_card',
+        cardNumber: '',
+        cardName: '',
+        expiryDate: '',
+        cvv: ''
+      });
+      
+      // Reload data
+      await loadData();
+      
+      setTimeout(() => setSuccess(''), 5000);
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      setError('Payment failed: ' + error.message);
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
+  };
+
+  const formatDate = (date) => {
+    if (!date) return 'N/A';
+    const d = date.toDate ? date.toDate() : new Date(date);
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  const pendingBills = bills.filter(bill => 
+    !bill.paymentStatus?.paid && bill.status === 'active'
+  );
+
+  const paidBills = bills.filter(bill => 
+    bill.paymentStatus?.paid
+  );
+
+  if (loading) {
+    return <div className="member-payments"><p>Loading...</p></div>;
+  }
+
+  return (
+    <div className="member-payments">
+      <div className="payments-header">
+        <div>
+          <h2>💳 My Payments</h2>
+          <p>View and pay your bills</p>
+        </div>
+        
+        {/* Organization Selector */}
+        {organizations.length > 0 && (
+          <div className="org-selector">
+            <label>Organization:</label>
+            <select
+              value={selectedOrg?.id || ''}
+              onChange={(e) => {
+                const org = organizations.find(o => o.id === e.target.value);
+                setSelectedOrg(org);
+              }}
+            >
+              {organizations.map(org => (
+                <option key={org.id} value={org.id}>{org.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+      {error && <div className="error-message">{error}</div>}
+      {success && <div className="success-message">{success}</div>}
+
+      {/* Summary Cards */}
+      <div className="summary-cards">
+        <div className="summary-card pending">
+          <div className="summary-icon">⏳</div>
+          <div className="summary-info">
+            <h3>{pendingBills.length}</h3>
+            <p>Pending Bills</p>
+          </div>
+        </div>
+        
+        <div className="summary-card paid">
+          <div className="summary-icon">✅</div>
+          <div className="summary-info">
+            <h3>{paidBills.length}</h3>
+            <p>Paid Bills</p>
+          </div>
+        </div>
+        
+        <div className="summary-card total">
+          <div className="summary-icon">💰</div>
+          <div className="summary-info">
+            <h3>{formatCurrency(paymentHistory.reduce((sum, p) => sum + (p.amount || 0), 0))}</h3>
+            <p>Total Paid</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="tabs">
+        <button 
+          className={`tab ${activeTab === 'pending' ? 'active' : ''}`}
+          onClick={() => setActiveTab('pending')}
+        >
+          Pending Bills ({pendingBills.length})
+        </button>
+        <button 
+          className={`tab ${activeTab === 'history' ? 'active' : ''}`}
+          onClick={() => setActiveTab('history')}
+        >
+          Payment History ({paymentHistory.length})
+        </button>
+      </div>
+
+      {/* Pending Bills */}
+      {activeTab === 'pending' && (
+        <div className="bills-section">
+          {pendingBills.length === 0 ? (
+            <div className="empty-state">
+              <p>🎉 No pending bills! You're all caught up.</p>
+            </div>
+          ) : (
+            <div className="bills-list">
+              {pendingBills.map(bill => (
+                <div key={bill.id} className="bill-card pending-bill">
+                  <div className="bill-main">
+                    <div className="bill-icon">
+                      {bill.billType === 'subscription' ? '🔄' : '💵'}
+                    </div>
+                    <div className="bill-info">
+                      <h3>{bill.title}</h3>
+                      <p className="bill-description">{bill.description}</p>
+                      <div className="bill-meta">
+                        {bill.dueDate && (
+                          <span className="meta-item">
+                            📅 Due: {formatDate(bill.dueDate)}
+                          </span>
+                        )}
+                        <span className="meta-item">
+                          {bill.billType === 'subscription' 
+                            ? `🔄 ${bill.subscriptionInterval}` 
+                            : '💵 One-time'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="bill-amount">
+                      <div className="amount-value">{formatCurrency(bill.amount)}</div>
+                      <button 
+                        className="btn btn-primary"
+                        onClick={() => initiatePayment(bill)}
+                      >
+                        Pay Now
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Payment History */}
+      {activeTab === 'history' && (
+        <div className="history-section">
+          {paymentHistory.length === 0 ? (
+            <div className="empty-state">
+              <p>No payment history yet.</p>
+            </div>
+          ) : (
+            <div className="history-list">
+              {paymentHistory.map(payment => (
+                <div key={payment.id} className="history-item">
+                  <div className="history-icon">✅</div>
+                  <div className="history-info">
+                    <h4>{payment.billTitle}</h4>
+                    <p className="history-date">
+                      Paid on {formatDate(payment.paidAt)}
+                    </p>
+                    <p className="history-method">
+                      {payment.paymentMethod === 'credit_card' ? '💳 Credit Card' : 
+                       payment.paymentMethod === 'paypal' ? '🅿️ PayPal' : 
+                       payment.paymentMethod}
+                    </p>
+                  </div>
+                  <div className="history-amount">
+                    {formatCurrency(payment.amount)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Payment Form Modal */}
+      {showPaymentForm && selectedBill && (
+        <div className="modal-overlay" onClick={() => setShowPaymentForm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Make Payment</h3>
+              <button className="close-btn" onClick={() => setShowPaymentForm(false)}>✖</button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="payment-summary">
+                <h4>Bill Details</h4>
+                <div className="summary-row">
+                  <span>Title:</span>
+                  <span>{selectedBill.title}</span>
+                </div>
+                <div className="summary-row">
+                  <span>Amount:</span>
+                  <strong>{formatCurrency(selectedBill.amount)}</strong>
+                </div>
+                {selectedBill.dueDate && (
+                  <div className="summary-row">
+                    <span>Due Date:</span>
+                    <span>{formatDate(selectedBill.dueDate)}</span>
+                  </div>
+                )}
+              </div>
+
+              <form onSubmit={handlePaymentSubmit} className="payment-form">
+                <div className="form-group">
+                  <label>Payment Method</label>
+                  <select
+                    name="paymentMethod"
+                    value={paymentForm.paymentMethod}
+                    onChange={handlePaymentFormChange}
+                  >
+                    <option value="credit_card">💳 Credit Card</option>
+                    <option value="debit_card">💳 Debit Card</option>
+                    <option value="paypal">🅿️ PayPal</option>
+                    <option value="bank_transfer">🏦 Bank Transfer</option>
+                  </select>
+                </div>
+
+                {(paymentForm.paymentMethod === 'credit_card' || paymentForm.paymentMethod === 'debit_card') && (
+                  <>
+                    <div className="form-group">
+                      <label>Cardholder Name</label>
+                      <input
+                        type="text"
+                        name="cardName"
+                        value={paymentForm.cardName}
+                        onChange={handlePaymentFormChange}
+                        placeholder="John Doe"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Card Number</label>
+                      <input
+                        type="text"
+                        name="cardNumber"
+                        value={paymentForm.cardNumber}
+                        onChange={handlePaymentFormChange}
+                        placeholder="1234 5678 9012 3456"
+                        maxLength="19"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Expiry Date</label>
+                        <input
+                          type="text"
+                          name="expiryDate"
+                          value={paymentForm.expiryDate}
+                          onChange={handlePaymentFormChange}
+                          placeholder="MM/YY"
+                          maxLength="5"
+                          required
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label>CVV</label>
+                        <input
+                          type="text"
+                          name="cvv"
+                          value={paymentForm.cvv}
+                          onChange={handlePaymentFormChange}
+                          placeholder="123"
+                          maxLength="4"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className="form-note">
+                  <p>🔒 Your payment information is secure and encrypted.</p>
+                </div>
+
+                <div className="form-actions">
+                  <button type="submit" className="btn btn-primary btn-large">
+                    Pay {formatCurrency(selectedBill.amount)}
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary"
+                    onClick={() => setShowPaymentForm(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MemberPayments;

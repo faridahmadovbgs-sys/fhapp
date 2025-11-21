@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserOrganizations } from '../services/organizationService';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import './OrganizationMembers.css';
 
@@ -13,6 +13,8 @@ const OrganizationMembers = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const membersPerPage = 20;
 
   useEffect(() => {
@@ -101,6 +103,65 @@ const OrganizationMembers = () => {
     setCurrentPage(pageNumber);
   };
 
+  const handleDeleteMember = async (member) => {
+    if (!selectedOrg || !user) return;
+
+    // Check if current user is the owner (check both uid and id)
+    const isOwner = selectedOrg.ownerId === user.uid || selectedOrg.ownerId === user.id;
+    if (!isOwner) {
+      alert('Only the organization owner can remove members.');
+      return;
+    }
+
+    // Prevent owner from deleting themselves
+    if (member.uid === selectedOrg.ownerId) {
+      alert('Organization owner cannot be removed.');
+      return;
+    }
+
+    setDeleteConfirm(member);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm || !selectedOrg) return;
+
+    try {
+      setDeleting(true);
+
+      // Remove member from organization's members array
+      const orgRef = doc(db, 'organizations', selectedOrg.id);
+      await updateDoc(orgRef, {
+        members: arrayRemove(deleteConfirm.uid)
+      });
+
+      // Optionally: Delete user's document if they're not in any other organizations
+      // For now, we'll just remove them from the organization
+
+      setDeleteConfirm(null);
+      
+      // Reload members
+      await loadMembers();
+      
+      // Update selectedOrg in state
+      const updatedOrg = {
+        ...selectedOrg,
+        members: selectedOrg.members.filter(id => id !== deleteConfirm.uid)
+      };
+      setSelectedOrg(updatedOrg);
+
+      alert(`${deleteConfirm.name} has been removed from ${selectedOrg.name}`);
+    } catch (error) {
+      console.error('Error deleting member:', error);
+      alert('Failed to remove member: ' + error.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirm(null);
+  };
+
   const formatDate = (date) => {
     if (!date) return 'N/A';
     if (date.seconds) {
@@ -168,36 +229,80 @@ const OrganizationMembers = () => {
         </div>
       </div>
 
-      {/* Members Grid */}
+      {/* Members Table */}
       {currentMembers.length === 0 ? (
         <div className="no-members">
           <p>No members found. {searchTerm ? 'Try a different search term.' : 'Invite members to get started!'}</p>
         </div>
       ) : (
         <>
-          <div className="members-grid">
-            {currentMembers.map((member) => (
-              <div key={member.id} className="member-card">
-                <div className="member-avatar">
-                  {member.photoURL ? (
-                    <img src={member.photoURL} alt={member.name} className="member-avatar-photo" />
-                  ) : (
-                    member.name.charAt(0).toUpperCase()
-                  )}
-                </div>
-                <div className="member-info">
-                  <div className="member-name">
-                    {member.name}
-                    {member.isOwner && <span className="owner-badge">Owner</span>}
-                  </div>
-                  <div className="member-email">{member.email}</div>
-                  <div className="member-role">{member.role}</div>
-                  {member.joinedAt && (
-                    <div className="member-joined">Joined: {formatDate(member.joinedAt)}</div>
-                  )}
-                </div>
-              </div>
-            ))}
+          {/* Debug info - remove after testing */}
+          {process.env.NODE_ENV === 'development' && (
+            <div style={{padding: '10px', background: '#f0f0f0', marginBottom: '10px', fontSize: '12px'}}>
+              <strong>Debug:</strong> User UID: {user?.uid || 'null'} | Owner ID: {selectedOrg?.ownerId || 'null'} | 
+              Match: {(selectedOrg?.ownerId === user?.uid) ? 'YES ✅' : 'NO ❌'} |
+              User ID: {user?.id || 'null'}
+            </div>
+          )}
+          
+          <div className="table-container">
+            <table className="members-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Member</th>
+                  <th>Email</th>
+                  <th>Organization</th>
+                  <th>Role</th>
+                  <th>Joined</th>
+                  {(selectedOrg?.ownerId === user?.uid || selectedOrg?.ownerId === user?.id) && <th>Actions</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {currentMembers.map((member, index) => (
+                  <tr key={member.id}>
+                    <td className="number-cell">{indexOfFirstMember + index + 1}</td>
+                    <td className="member-cell">
+                      <div className="member-info-row">
+                        <div className="member-avatar-small">
+                          {member.photoURL ? (
+                            <img src={member.photoURL} alt={member.name} />
+                          ) : (
+                            <span>{member.name.charAt(0).toUpperCase()}</span>
+                          )}
+                        </div>
+                        <strong>{member.name}</strong>
+                      </div>
+                    </td>
+                    <td className="email-cell">{member.email}</td>
+                    <td className="org-cell">
+                      <span className="org-badge">{selectedOrg?.name || 'N/A'}</span>
+                    </td>
+                    <td className="role-cell">
+                      {member.isOwner ? (
+                        <span className="role-badge owner">👑 Owner</span>
+                      ) : (
+                        <span className="role-badge member">👤 Member</span>
+                      )}
+                    </td>
+                    <td className="date-cell">{formatDate(member.joinedAt)}</td>
+                    {(selectedOrg?.ownerId === user?.uid || selectedOrg?.ownerId === user?.id) && (
+                      <td className="actions-cell">
+                        {!member.isOwner && (
+                          <button
+                            onClick={() => handleDeleteMember(member)}
+                            className="delete-btn"
+                            title="Remove member"
+                          >
+                            🗑️ Remove
+                          </button>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
           {/* Pagination */}
@@ -250,6 +355,38 @@ const OrganizationMembers = () => {
             Showing {indexOfFirstMember + 1} to {Math.min(indexOfLastMember, filteredMembers.length)} of {filteredMembers.length} members
           </div>
         </>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>⚠️ Remove Member</h3>
+            <p>
+              Are you sure you want to remove <strong>{deleteConfirm.name}</strong> ({deleteConfirm.email}) 
+              from <strong>{selectedOrg?.name}</strong>?
+            </p>
+            <p className="warning-text">
+              This action will remove their access to the organization.
+            </p>
+            <div className="modal-actions">
+              <button
+                onClick={cancelDelete}
+                className="cancel-btn"
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="confirm-delete-btn"
+                disabled={deleting}
+              >
+                {deleting ? 'Removing...' : 'Remove Member'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

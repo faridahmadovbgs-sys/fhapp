@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Users collection - allow authenticated users to create/update their own document
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Organizations collection
+    match /organizations/{orgId} {
+      // Allow reading if user is authenticated
+      allow read: if isSignedIn();
+      // Allow creation by any authenticated user
+      allow create: if isSignedIn();
+      // Allow updates by authenticated users
+      allow update: if isSignedIn();
+      // Only owner can delete
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
+    }
+    
+    // Public messages (organization chat)
+    match /messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+    }
+    
+    // Private conversations
+    match /conversations/{conversationId}/messages/{messageId} {
+      allow read, write: if isSignedIn();
+    }
+    
+    // Groups
+    match /groups/{groupId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn();
+      
+      // Group messages
+      match /messages/{messageId} {
+        allow read, write: if isSignedIn();
+      }
+    }
+    
+    // Invitations - allow anyone to read (for registration validation)
+    match /invitations/{invitationId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+    
+    // Bills - account owners can create, all authenticated users can read
+    match /bills/{billId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
+    }
+    
+    // Payments - authenticated users can read and create, only payment creator can update/delete
+    match /payments/{paymentId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.memberId;
+    }
+  }
+}
