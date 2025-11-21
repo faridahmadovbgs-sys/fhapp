@@ -39,7 +39,24 @@ const ChatPage = () => {
   const [groupName, setGroupName] = useState('');
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [reactionTarget, setReactionTarget] = useState(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const messagesEndRef = useRef(null);
+  const previousMessageCountRef = useRef({
+    public: 0,
+    private: 0,
+    group: 0
+  });
+
+  // Request notification permission
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        setNotificationsEnabled(permission === 'granted');
+      });
+    } else if (Notification.permission === 'granted') {
+      setNotificationsEnabled(true);
+    }
+  }, []);
 
   // Fetch user's organizations
   useEffect(() => {
@@ -152,6 +169,23 @@ const ChatPage = () => {
         if (!a.createdAt || !b.createdAt) return 0;
         return a.createdAt.toMillis() - b.createdAt.toMillis();
       });
+      
+      // Show notification for new messages
+      const previousCount = previousMessageCountRef.current.public;
+      if (messagesData.length > previousCount && previousCount > 0) {
+        const newMessages = messagesData.slice(previousCount);
+        newMessages.forEach(msg => {
+          if (msg.userId !== currentUser.id && notificationsEnabled) {
+            showNotification(
+              `${msg.userName || 'Someone'} in ${selectedOrganization.name}`,
+              msg.text,
+              'public'
+            );
+          }
+        });
+      }
+      previousMessageCountRef.current.public = messagesData.length;
+      
       setPublicMessages(messagesData);
     }, (error) => {
       console.error('Error fetching messages:', error);
@@ -185,6 +219,23 @@ const ChatPage = () => {
           ...doc.data()
         });
       });
+      
+      // Show notification for new private messages
+      const previousCount = previousMessageCountRef.current.private;
+      if (messagesData.length > previousCount && previousCount > 0) {
+        const newMessages = messagesData.slice(previousCount);
+        newMessages.forEach(msg => {
+          if (msg.senderId !== currentUser.id && notificationsEnabled) {
+            showNotification(
+              `${msg.senderName || 'Someone'} (Direct Message)`,
+              msg.text,
+              'private'
+            );
+          }
+        });
+      }
+      previousMessageCountRef.current.private = messagesData.length;
+      
       setPrivateMessages(messagesData);
     }, (error) => {
       console.log('No private messages yet');
@@ -215,6 +266,23 @@ const ChatPage = () => {
           ...doc.data()
         });
       });
+      
+      // Show notification for new group messages
+      const previousCount = previousMessageCountRef.current.group;
+      if (messagesData.length > previousCount && previousCount > 0) {
+        const newMessages = messagesData.slice(previousCount);
+        newMessages.forEach(msg => {
+          if (msg.senderId !== currentUser.id && notificationsEnabled) {
+            showNotification(
+              `${msg.senderName || 'Someone'} in ${selectedGroup.name}`,
+              msg.text,
+              'group'
+            );
+          }
+        });
+      }
+      previousMessageCountRef.current.group = messagesData.length;
+      
       setGroupMessages(messagesData);
     }, (error) => {
       console.log('No group messages yet');
@@ -231,6 +299,46 @@ const ChatPage = () => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const showNotification = (title, body, type) => {
+    // Play notification sound
+    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZSA0PVajk7qxdGAg+ltryxnMpBSuBzvLYiTcIGWi77eefTRAMUKfj8LZjHAY4ktfyzHksBSR3x/DdkEAKFF606+uoVRQKRp/g8r5sIQUxh9Hz04IzBh5uwO/jmUgND1Wo5O6sXRgIPpba8sZzKQUrm87y2Ik3CBlou+3nn0wQDFCn4/C2YxwGOJLX8sx5LAUkd8fw3ZBAE6');
+    audio.volume = 0.3;
+    audio.play().catch(err => console.log('Could not play notification sound'));
+
+    // Show browser notification
+    if (notificationsEnabled && document.hidden) {
+      try {
+        const notification = new Notification(title, {
+          body: body.length > 100 ? body.substring(0, 97) + '...' : body,
+          icon: '/favicon.ico',
+          badge: '/favicon.ico',
+          tag: type,
+          requireInteraction: false,
+          silent: false
+        });
+
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+
+        // Auto close after 5 seconds
+        setTimeout(() => notification.close(), 5000);
+      } catch (error) {
+        console.log('Notification error:', error);
+      }
+    }
+    
+    // Visual flash if user is on the page
+    if (!document.hidden) {
+      const originalTitle = document.title;
+      document.title = '💬 New Message!';
+      setTimeout(() => {
+        document.title = originalTitle;
+      }, 2000);
+    }
   };
 
   const sendPublicMessage = async (e) => {
