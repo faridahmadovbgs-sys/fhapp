@@ -90,29 +90,57 @@ const ProfilePhotoUpload = ({ userId, currentPhotoURL, onPhotoUploaded }) => {
       setUploading(true);
       setError('');
 
+      console.log('🔄 Starting upload process...');
+      
+      // Check if storage is available
+      if (!storage) {
+        throw new Error('Firebase Storage is not configured');
+      }
+
       // Compress image
+      console.log('📦 Compressing image...');
       const compressedBlob = await compressImage(file);
+      console.log('✅ Image compressed:', compressedBlob.size, 'bytes');
       
       // Create preview
       const previewURL = URL.createObjectURL(compressedBlob);
       setPreview(previewURL);
 
       // Upload to Firebase Storage
+      console.log('☁️ Uploading to Firebase Storage...');
       const storageRef = ref(storage, `profile-photos/${userId}/${Date.now()}.jpg`);
-      await uploadBytes(storageRef, compressedBlob);
+      const uploadResult = await uploadBytes(storageRef, compressedBlob);
+      console.log('✅ Upload complete:', uploadResult);
       
       // Get download URL
+      console.log('🔗 Getting download URL...');
       const downloadURL = await getDownloadURL(storageRef);
+      console.log('✅ Download URL obtained:', downloadURL);
       
       // Call parent callback
       if (onPhotoUploaded) {
+        console.log('💾 Saving to database...');
         await onPhotoUploaded(downloadURL);
+        console.log('✅ Photo saved successfully!');
       }
 
       setUploading(false);
     } catch (error) {
-      console.error('Error uploading photo:', error);
-      setError('Failed to upload photo. Please try again.');
+      console.error('❌ Error uploading photo:', error);
+      console.error('Error details:', error.code, error.message);
+      
+      let errorMessage = 'Failed to upload photo. ';
+      if (error.code === 'storage/unauthorized') {
+        errorMessage += 'Not authorized. Check Firebase Storage rules.';
+      } else if (error.code === 'storage/unauthenticated') {
+        errorMessage += 'Please log in first.';
+      } else if (error.message.includes('not configured')) {
+        errorMessage += 'Storage is not configured properly.';
+      } else {
+        errorMessage += error.message || 'Please try again.';
+      }
+      
+      setError(errorMessage);
       setUploading(false);
     }
   };
