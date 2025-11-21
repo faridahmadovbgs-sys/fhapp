@@ -17,7 +17,10 @@ const InvitationManager = () => {
 
   useEffect(() => {
     const fetchOrganizations = async () => {
-      if (!user?.id) return;
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
       
       try {
         const result = await getUserOrganizations(user.id);
@@ -26,9 +29,15 @@ const InvitationManager = () => {
         // Auto-select first organization
         if (result.organizations.length > 0 && !selectedOrg) {
           setSelectedOrg(result.organizations[0]);
+        } else if (result.organizations.length === 0) {
+          // No organizations found
+          setLoading(false);
+          setError('No organizations found. Please create an organization first.');
         }
       } catch (error) {
         console.error('Error fetching organizations:', error);
+        setError('Failed to load organizations: ' + error.message);
+        setLoading(false);
       }
     };
     
@@ -44,12 +53,20 @@ const InvitationManager = () => {
   const loadInvitationData = async () => {
     if (!user?.id || !selectedOrg) {
       console.warn('⚠️ No user ID or selected organization available');
+      setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
       console.log('📋 Loading invitation data for user:', user.id, 'org:', selectedOrg.id, 'orgName:', selectedOrg.name);
+      
+      // Set timeout fallback to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.error('⏱️ Loading timeout - forcing completion');
+        setLoading(false);
+        setError('Loading took too long. Please refresh the page.');
+      }, 10000); // 10 second timeout
       
       // Load invitation link for the selected organization
       let invitationResult = await getAccountOwnerInvitationLink(user.id, selectedOrg.id);
@@ -91,6 +108,11 @@ const InvitationManager = () => {
       }
 
       setError(prev => !prev ? '' : prev); // Clear error only if not already set
+      
+      // Clear timeout if we got here
+      if (typeof timeoutId !== 'undefined') {
+        clearTimeout(timeoutId);
+      }
     } catch (error) {
       console.error('❌ Error loading invitation data:', error);
       if (!error.message.includes('Could not create')) {

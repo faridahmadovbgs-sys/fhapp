@@ -60,23 +60,35 @@ export const getAccountOwnerInvitationLink = async (userId, organizationId) => {
       throw new Error('Firebase Firestore not available');
     }
 
-    // Query invitations by userId, organizationId, and active status
+    // Query invitations - simplified to avoid index requirement
     let q = query(
       collection(db, 'invitations'),
       where('accountOwnerId', '==', userId),
-      where('organizationId', '==', organizationId),
       where('status', '==', 'active')
     );
 
     let querySnapshot = await getDocs(q);
-    console.log('📊 Active invitations found for this org:', querySnapshot.docs.length);
+    console.log('📊 Active invitations found:', querySnapshot.docs.length);
 
     if (querySnapshot.empty) {
-      console.warn('⚠️ No invitation found for userId:', userId, 'organizationId:', organizationId);
+      console.warn('⚠️ No invitation found for userId:', userId);
       return null;
     }
 
-    const inviteDoc = querySnapshot.docs[0];
+    // Filter by organizationId in memory
+    const matchingDocs = querySnapshot.docs.filter(doc => {
+      const data = doc.data();
+      return data.organizationId === organizationId;
+    });
+
+    console.log('📊 Invitations matching organizationId:', matchingDocs.length);
+
+    if (matchingDocs.length === 0) {
+      console.warn('⚠️ No invitation found for organizationId:', organizationId);
+      return null;
+    }
+
+    const inviteDoc = matchingDocs[0];
     const inviteData = { id: inviteDoc.id, ...inviteDoc.data() };
 
     console.log('✅ Found invitation:', {
@@ -98,8 +110,12 @@ export const getAccountOwnerInvitationLink = async (userId, organizationId) => {
       description: inviteData.description
     };
   } catch (error) {
-    console.error('Error getting invitation link:', error);
-    throw error;
+    console.error('❌ Error getting invitation link:', error);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    
+    // Return null instead of throwing to allow page to load
+    return null;
   }
 };
 
@@ -110,21 +126,23 @@ export const regenerateInvitationLink = async (userId, organizationName, organiz
       throw new Error('Firebase Firestore not available');
     }
 
-    // Deactivate old invitation
+    // Deactivate old invitation - simplified query
     const q = query(
       collection(db, 'invitations'),
       where('accountOwnerId', '==', userId),
-      where('organizationId', '==', organizationId),
       where('status', '==', 'active')
     );
 
     const querySnapshot = await getDocs(q);
     
-    if (!querySnapshot.empty) {
-      const oldInviteDoc = querySnapshot.docs[0];
-      await updateDoc(doc(db, 'invitations', oldInviteDoc.id), {
-        status: 'replaced'
-      });
+    // Filter by organizationId in memory and deactivate
+    for (const docSnapshot of querySnapshot.docs) {
+      const data = docSnapshot.data();
+      if (data.organizationId === organizationId) {
+        await updateDoc(doc(db, 'invitations', docSnapshot.id), {
+          status: 'replaced'
+        });
+      }
     }
 
     // Create new invitation
@@ -135,9 +153,7 @@ export const regenerateInvitationLink = async (userId, organizationName, organiz
     console.error('Error regenerating invitation link:', error);
     throw error;
   }
-};
-
-// Update invitation usage count when someone registers
+};// Update invitation usage count when someone registers
 export const recordInvitationUsage = async (invitationId, newUserId) => {
   try {
     if (!db || !invitationId) {
@@ -173,21 +189,27 @@ export const getInvitedUsers = async (accountOwnerId, organizationId) => {
       throw new Error('Firebase Firestore not available');
     }
 
+    // Query by ownerUserId only to avoid index requirement
     const q = query(
       collection(db, 'users'),
-      where('ownerUserId', '==', accountOwnerId),
-      where('organizationId', '==', organizationId)
+      where('ownerUserId', '==', accountOwnerId)
     );
 
     const querySnapshot = await getDocs(q);
     const users = [];
 
+    // Filter by organizationId in memory
     querySnapshot.forEach((doc) => {
-      users.push({
-        id: doc.id,
-        ...doc.data()
-      });
+      const userData = doc.data();
+      if (userData.organizationId === organizationId) {
+        users.push({
+          id: doc.id,
+          ...userData
+        });
+      }
     });
+
+    console.log(`📊 Found ${users.length} invited users for org:`, organizationId);
 
     return {
       success: true,
@@ -195,7 +217,15 @@ export const getInvitedUsers = async (accountOwnerId, organizationId) => {
       count: users.length
     };
   } catch (error) {
-    console.error('Error getting invited users:', error);
-    throw error;
+    console.error('❌ Error getting invited users:', error);
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    
+    // Return empty list instead of throwing to allow page to load
+    return {
+      success: false,
+      users: [],
+      count: 0
+    };
   }
 };
