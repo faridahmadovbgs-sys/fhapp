@@ -438,7 +438,9 @@
 
 .permission-toggle input[type="checkbox"] {
   margin-right: 6px;
-  transform: scale(0.9);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
 }
 
 .permission-toggle span {

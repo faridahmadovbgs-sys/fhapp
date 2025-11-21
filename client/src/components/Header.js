@@ -45,7 +45,7 @@ const Header = ({ user }) => {
             <li><Link to="/about">About</Link></li>
             <li><Link to="/chat">💬 Chat</Link></li>
             <li><Link to="/demo-permissions">Permissions Demo</Link></li>
-            <PermissionGuard requiredPage="users">
+            <PermissionGuard requiredPage="admin">
               <li><Link to="/registered-users">Users</Link></li>
             </PermissionGuard>
             <PermissionGuard requiredPage="admin">

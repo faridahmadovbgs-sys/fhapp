@@ -108,26 +108,26 @@ const rolePermissions = {
       home: true,
       about: true,
       profile: true,
-      admin: true,
-      users: true,
-      reports: true,
-      settings: true,
+      admin: false,
+      users: false,
+      reports: false,
+      settings: false,
       invitations: true,
       billing: true
     },
     actions: {
-      create_user: true,
-      edit_user: true,
-      delete_user: true,
-      view_users: true,
-      manage_roles: true,
-      export_data: true,
-      view_analytics: true,
-      system_settings: true,
+      create_user: false,
+      edit_user: false,
+      delete_user: false,
+      view_users: false,
+      manage_roles: false,
+      export_data: false,
+      view_analytics: false,
+      system_settings: false,
       manage_invitations: true,
       manage_billing: true,
-      delete_account: true,
-      transfer_ownership: true
+      delete_account: false,
+      transfer_ownership: false
     }
   }
 };
@@ -260,6 +260,28 @@ export const AuthorizationProvider = ({ children }) => {
     return Object.keys(rolePermissions);
   };
 
+  // Update role permissions (for admin use)
+  const updateRolePermissions = async (role, newPermissions) => {
+    try {
+      // In a real application, you would save this to a backend or Firestore
+      // For now, we'll update the local state
+      
+      // Update the rolePermissions object
+      rolePermissions[role] = newPermissions;
+      
+      // If the current user has this role, update their permissions too
+      if (userRole === role) {
+        setPermissions(newPermissions);
+      }
+      
+      console.log(`Updated permissions for role: ${role}`, newPermissions);
+      return true;
+    } catch (error) {
+      console.error('Failed to update role permissions:', error);
+      throw error;
+    }
+  };
+
   const value = {
     permissions,
     userRole,
@@ -272,7 +294,8 @@ export const AuthorizationProvider = ({ children }) => {
     updateUserRole,
     getAllPermissions,
     getAllRoles,
-    rolePermissions
+    rolePermissions,
+    updateRolePermissions
   };
 
   return (

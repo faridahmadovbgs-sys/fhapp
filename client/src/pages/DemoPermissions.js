@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { PermissionGuard } from '../components/ProtectedRoute';
-import { usePermissions, useActionPermission, useFieldPermission } from '../hooks/usePermissions';
+import { usePermissions } from '../hooks/usePermissions';
+import { useAuthorization } from '../contexts/AuthorizationContext';
+import './DemoPermissions.css';
 
 const DemoPermissions = () => {
-  const [formData, setFormData] = useState({ name: '', email: '', role: 'user' });
-  
-  // Using the comprehensive permissions hook
   const {
     isAdmin,
     isModerator,
@@ -17,203 +15,281 @@ const DemoPermissions = () => {
     userRole
   } = usePermissions();
 
-  // Using specific permission hooks
-  const { hasPermission: canCreateUser } = useActionPermission('create_user');
-  const { hasPermission: canEditUser } = useActionPermission('edit_user');
-  const { hasPermission: canDeleteUser } = useActionPermission('delete_user');
+  const { rolePermissions, updateRolePermissions, getAllRoles } = useAuthorization();
+  
+  const [selectedRole, setSelectedRole] = useState('user');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedPermissions, setEditedPermissions] = useState(null);
+  const [saveMessage, setSaveMessage] = useState('');
 
-  // Using field permission hook for form controls
-  const { canEditField, getFieldProps } = useFieldPermission();
+  const pages = [
+    { name: 'Home', key: 'home' },
+    { name: 'About', key: 'about' },
+    { name: 'Profile', key: 'profile' },
+    { name: 'Admin Panel', key: 'admin' },
+    { name: 'Users', key: 'users' },
+    { name: 'Reports', key: 'reports' },
+    { name: 'Settings', key: 'settings' },
+    { name: 'Invitations', key: 'invitations' },
+    { name: 'Billing', key: 'billing' }
+  ];
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (canCreateUser) {
-      console.log('Creating user:', formData);
-      // API call to create user
-    } else {
-      alert('You don\'t have permission to create users');
+  const actions = [
+    { name: 'Create User', key: 'create_user' },
+    { name: 'Edit User', key: 'edit_user' },
+    { name: 'Delete User', key: 'delete_user' },
+    { name: 'View Users', key: 'view_users' },
+    { name: 'Manage Roles', key: 'manage_roles' },
+    { name: 'Export Data', key: 'export_data' },
+    { name: 'View Analytics', key: 'view_analytics' },
+    { name: 'System Settings', key: 'system_settings' },
+    { name: 'Manage Invitations', key: 'manage_invitations' },
+    { name: 'Manage Billing', key: 'manage_billing' }
+  ];
+
+  const handleRoleChange = (role) => {
+    setSelectedRole(role);
+    setIsEditing(false);
+    setEditedPermissions(null);
+  };
+
+  const startEditing = () => {
+    const currentPerms = rolePermissions[selectedRole];
+    setEditedPermissions(JSON.parse(JSON.stringify(currentPerms)));
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditedPermissions(null);
+  };
+
+  const togglePagePermission = (pageKey) => {
+    setEditedPermissions(prev => ({
+      ...prev,
+      pages: {
+        ...prev.pages,
+        [pageKey]: !prev.pages[pageKey]
+      }
+    }));
+  };
+
+  const toggleActionPermission = (actionKey) => {
+    setEditedPermissions(prev => ({
+      ...prev,
+      actions: {
+        ...prev.actions,
+        [actionKey]: !prev.actions[actionKey]
+      }
+    }));
+  };
+
+  const savePermissions = async () => {
+    try {
+      await updateRolePermissions(selectedRole, editedPermissions);
+      setIsEditing(false);
+      setEditedPermissions(null);
+      setSaveMessage('✅ Permissions updated successfully!');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (error) {
+      console.error('Error saving permissions:', error);
+      setSaveMessage('❌ Failed to save permissions');
+      setTimeout(() => setSaveMessage(''), 3000);
     }
   };
 
-  const handleExport = () => {
-    if (canExportData) {
-      console.log('Exporting data...');
-      // Export logic
-    } else {
-      alert('You don\'t have permission to export data');
-    }
+  const getCurrentPermissions = () => {
+    return isEditing ? editedPermissions : rolePermissions[selectedRole];
   };
+
+  const currentPermissions = getCurrentPermissions();
+  const isAdminUser = isAdmin();
 
   return (
-    <div className="demo-permissions" style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h1>Permission System Demo</h1>
-      
-      {/* User Role and Status Display */}
-      <div style={{ marginBottom: '30px', padding: '15px', background: '#f8f9fa', borderRadius: '5px' }}>
-        <h3>Your Current Status:</h3>
-        <p><strong>Role:</strong> {userRole}</p>
-        <p><strong>Is Admin:</strong> {isAdmin() ? 'Yes' : 'No'}</p>
-        <p><strong>Is Moderator:</strong> {isModerator() ? 'Yes' : 'No'}</p>
-        <p><strong>Can Manage Users:</strong> {canManageUsers() ? 'Yes' : 'No'}</p>
-        <p><strong>Can View Analytics:</strong> {canViewAnalytics() ? 'Yes' : 'No'}</p>
+    <div className="demo-permissions-container">
+      <div className="page-header">
+        <h1>🔐 Permissions Dashboard</h1>
+        <p className="subtitle">
+          {isAdminUser ? 'Manage role permissions and view your access levels' : 'View your current role and permission levels'}
+        </p>
       </div>
 
-      {/* Conditional Buttons Based on Permissions */}
-      <div style={{ marginBottom: '30px' }}>
-        <h3>Available Actions:</h3>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <PermissionGuard requiredAction="create_user">
-            <button className="btn btn-primary">Create User</button>
-          </PermissionGuard>
-          
-          <PermissionGuard requiredAction="edit_user">
-            <button className="btn btn-secondary">Edit Users</button>
-          </PermissionGuard>
-          
-          <PermissionGuard requiredAction="delete_user">
-            <button className="btn btn-danger" style={{ background: '#dc3545' }}>Delete Users</button>
-          </PermissionGuard>
-          
-          <PermissionGuard requiredAction="export_data">
-            <button className="btn btn-success" onClick={handleExport} style={{ background: '#28a745' }}>
-              Export Data
-            </button>
-          </PermissionGuard>
-          
-          <PermissionGuard requiredAction="view_analytics">
-            <button className="btn btn-info" style={{ background: '#17a2b8' }}>View Analytics</button>
-          </PermissionGuard>
-        </div>
-      </div>
-
-      {/* Form with Field-Level Permissions */}
-      <PermissionGuard 
-        requiredAction="create_user" 
-        fallback={
-          <div style={{ padding: '20px', background: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '5px' }}>
-            <p>You don't have permission to create users. This form is disabled.</p>
+      {/* Role Status Card - Your Personal Role */}
+      <div className="status-card">
+        <h2>👤 Your Role</h2>
+        <div className="role-display">
+          <div className={`role-badge role-${userRole}`}>
+            {userRole === 'admin' && '👑 Admin'}
+            {userRole === 'account_owner' && '🏢 Account Owner'}
+            {userRole === 'moderator' && '🛡️ Moderator'}
+            {userRole === 'user' && '👤 User'}
           </div>
-        }
-      >
-        <div style={{ marginBottom: '30px' }}>
-          <h3>Create New User Form</h3>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <div>
-              <label>Name:</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                {...getFieldProps('name', 'create_user')}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-              />
-            </div>
-            
-            <div>
-              <label>Email:</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                {...getFieldProps('email', 'create_user')}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-              />
-            </div>
-            
-            <div>
-              <label>Role:</label>
-              <select
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                {...getFieldProps('role', 'manage_roles')}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-              >
-                <option value="user">User</option>
-                <option value="moderator">Moderator</option>
-                <option value="admin">Admin</option>
-              </select>
-              {!canEditField('role', 'manage_roles') && (
-                <small style={{ color: '#666' }}>Only admins can set user roles</small>
-              )}
-            </div>
-            
-            <button 
-              type="submit" 
-              className="btn btn-primary"
-              style={{ alignSelf: 'flex-start', padding: '10px 20px' }}
-            >
-              Create User
-            </button>
-          </form>
         </div>
-      </PermissionGuard>
-
-      {/* Page Access Examples */}
-      <div style={{ marginBottom: '30px' }}>
-        <h3>Page Access Status:</h3>
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          <li style={{ padding: '5px 0', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Home Page:</span>
-            <span style={{ color: hasPagePermission('home') ? 'green' : 'red' }}>
-              {hasPagePermission('home') ? '✓ Allowed' : '✗ Denied'}
+        
+        <div className="role-info-grid">
+          <div className="info-item">
+            <span className="label">Admin Access:</span>
+            <span className={`value ${isAdminUser ? 'yes' : 'no'}`}>
+              {isAdminUser ? '✅ Yes' : '❌ No'}
             </span>
-          </li>
-          <li style={{ padding: '5px 0', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Users Page:</span>
-            <span style={{ color: hasPagePermission('users') ? 'green' : 'red' }}>
-              {hasPagePermission('users') ? '✓ Allowed' : '✗ Denied'}
+          </div>
+          <div className="info-item">
+            <span className="label">Moderator Access:</span>
+            <span className={`value ${isModerator() ? 'yes' : 'no'}`}>
+              {isModerator() ? '✅ Yes' : '❌ No'}
             </span>
-          </li>
-          <li style={{ padding: '5px 0', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Admin Panel:</span>
-            <span style={{ color: hasPagePermission('admin') ? 'green' : 'red' }}>
-              {hasPagePermission('admin') ? '✓ Allowed' : '✗ Denied'}
+          </div>
+          <div className="info-item">
+            <span className="label">Manage Users:</span>
+            <span className={`value ${canManageUsers() ? 'yes' : 'no'}`}>
+              {canManageUsers() ? '✅ Yes' : '❌ No'}
             </span>
-          </li>
-          <li style={{ padding: '5px 0', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Reports Page:</span>
-            <span style={{ color: hasPagePermission('reports') ? 'green' : 'red' }}>
-              {hasPagePermission('reports') ? '✓ Allowed' : '✗ Denied'}
+          </div>
+          <div className="info-item">
+            <span className="label">View Analytics:</span>
+            <span className={`value ${canViewAnalytics() ? 'yes' : 'no'}`}>
+              {canViewAnalytics() ? '✅ Yes' : '❌ No'}
             </span>
-          </li>
-        </ul>
+          </div>
+        </div>
       </div>
 
-      {/* Action Permissions Examples */}
-      <div>
-        <h3>Action Permissions Status:</h3>
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          <li style={{ padding: '5px 0', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Create User:</span>
-            <span style={{ color: hasActionPermission('create_user') ? 'green' : 'red' }}>
-              {hasActionPermission('create_user') ? '✓ Allowed' : '✗ Denied'}
-            </span>
-          </li>
-          <li style={{ padding: '5px 0', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Edit User:</span>
-            <span style={{ color: hasActionPermission('edit_user') ? 'green' : 'red' }}>
-              {hasActionPermission('edit_user') ? '✓ Allowed' : '✗ Denied'}
-            </span>
-          </li>
-          <li style={{ padding: '5px 0', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Delete User:</span>
-            <span style={{ color: hasActionPermission('delete_user') ? 'green' : 'red' }}>
-              {hasActionPermission('delete_user') ? '✓ Allowed' : '✗ Denied'}
-            </span>
-          </li>
-          <li style={{ padding: '5px 0', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Manage Roles:</span>
-            <span style={{ color: hasActionPermission('manage_roles') ? 'green' : 'red' }}>
-              {hasActionPermission('manage_roles') ? '✓ Allowed' : '✗ Denied'}
-            </span>
-          </li>
-          <li style={{ padding: '5px 0', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Export Data:</span>
-            <span style={{ color: hasActionPermission('export_data') ? 'green' : 'red' }}>
-              {hasActionPermission('export_data') ? '✓ Allowed' : '✗ Denied'}
-            </span>
-          </li>
-        </ul>
+      {/* Admin Role Permission Editor */}
+      {isAdminUser && (
+        <>
+          <div className="role-editor-card">
+            <div className="editor-header">
+              <div>
+                <h2>⚙️ Role Permission Editor</h2>
+                <p className="editor-subtitle">Customize permissions for each role</p>
+              </div>
+              <div className="editor-controls">
+                <select 
+                  value={selectedRole} 
+                  onChange={(e) => handleRoleChange(e.target.value)}
+                  className="role-selector"
+                  disabled={isEditing}
+                >
+                  {getAllRoles().map(role => (
+                    <option key={role} value={role}>
+                      {role === 'account_owner' ? 'Account Owner' : role.charAt(0).toUpperCase() + role.slice(1)}
+                    </option>
+                  ))}
+                </select>
+                {!isEditing ? (
+                  <button onClick={startEditing} className="edit-btn">
+                    ✏️ Edit Permissions
+                  </button>
+                ) : (
+                  <>
+                    <button onClick={savePermissions} className="save-btn">
+                      💾 Save Changes
+                    </button>
+                    <button onClick={cancelEditing} className="cancel-btn">
+                      ❌ Cancel
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+            {saveMessage && (
+              <div className={`save-message ${saveMessage.includes('✅') ? 'success' : 'error'}`}>
+                {saveMessage}
+              </div>
+            )}
+          </div>
+
+          <div className="permissions-grid">
+            {/* Page Permissions */}
+            <div className="permissions-card">
+              <h3>📄 Page Access</h3>
+              <div className="permissions-list">
+                {pages.map(page => (
+                  <div key={page.key} className="permission-item editable">
+                    <span className="permission-name">{page.name}</span>
+                    {isEditing ? (
+                      <input
+                        type="checkbox"
+                        checked={currentPermissions?.pages?.[page.key] || false}
+                        onChange={() => togglePagePermission(page.key)}
+                        className="permission-checkbox"
+                      />
+                    ) : (
+                      <span className={`permission-status ${currentPermissions?.pages?.[page.key] ? 'allowed' : 'denied'}`}>
+                        {currentPermissions?.pages?.[page.key] ? '✅ Allowed' : '❌ Denied'}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Permissions */}
+            <div className="permissions-card">
+              <h3>⚡ Action Permissions</h3>
+              <div className="permissions-list">
+                {actions.map(action => (
+                  <div key={action.key} className="permission-item editable">
+                    <span className="permission-name">{action.name}</span>
+                    {isEditing ? (
+                      <input
+                        type="checkbox"
+                        checked={currentPermissions?.actions?.[action.key] || false}
+                        onChange={() => toggleActionPermission(action.key)}
+                        className="permission-checkbox"
+                      />
+                    ) : (
+                      <span className={`permission-status ${currentPermissions?.actions?.[action.key] ? 'allowed' : 'denied'}`}>
+                        {currentPermissions?.actions?.[action.key] ? '✅ Allowed' : '❌ Denied'}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Non-Admin View - Just Show Your Permissions */}
+      {!isAdminUser && (
+        <div className="permissions-grid">
+          {/* Page Permissions */}
+          <div className="permissions-card">
+            <h3>📄 Your Page Access</h3>
+            <div className="permissions-list">
+              {pages.map(page => (
+                <div key={page.key} className="permission-item">
+                  <span className="permission-name">{page.name}</span>
+                  <span className={`permission-status ${hasPagePermission(page.key) ? 'allowed' : 'denied'}`}>
+                    {hasPagePermission(page.key) ? '✅ Allowed' : '❌ Denied'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Action Permissions */}
+          <div className="permissions-card">
+            <h3>⚡ Your Action Permissions</h3>
+            <div className="permissions-list">
+              {actions.map(action => (
+                <div key={action.key} className="permission-item">
+                  <span className="permission-name">{action.name}</span>
+                  <span className={`permission-status ${hasActionPermission(action.key) ? 'allowed' : 'denied'}`}>
+                    {hasActionPermission(action.key) ? '✅ Allowed' : '❌ Denied'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="info-box">
+        <strong>💡 Note:</strong> {isAdminUser 
+          ? 'As an admin, you can modify role permissions. Changes affect all users with the selected role.' 
+          : 'This page shows your current permission levels. Contact an administrator if you need different access levels.'}
       </div>
     </div>
   );

@@ -3,6 +3,8 @@ import { useAuthorization } from '../contexts/AuthorizationContext';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/apiService';
 import { getUserOrganizations, createOrganization } from '../services/organizationService';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import '../components/AdminPanel.css';
 
 const AdminPanel = () => {
@@ -13,7 +15,8 @@ const AdminPanel = () => {
     getAllRoles,
     rolePermissions,
     updateUserPermissions,
-    updateUserRole
+    updateUserRole,
+    userRole
   } = useAuthorization();
 
   const { user: currentUser } = useAuth();
@@ -80,31 +83,35 @@ const AdminPanel = () => {
     const fetchFirebaseUsersData = async () => {
       try {
         setFirebaseLoading(true);
-        // Get Firebase users through our API (which will use Firebase Admin SDK)
-        const response = await apiService.get('/api/users/firebase-users');
         
-        // If API fails, create a mock list with current user and some sample data
-        if (!response.data) {
-          const mockUsers = [
-            {
-              id: currentUser?.id || 'current-user',
-              email: currentUser?.email || 'admin@example.com',
-              name: currentUser?.name || 'Current Admin',
-              emailVerified: true,
-              role: 'admin',
-              isActive: true,
-              createdAt: new Date().toISOString(),
-              lastSignIn: new Date().toISOString(),
-              permissions: rolePermissions.admin
-            }
-          ];
-          setFirebaseUsers(mockUsers);
-        } else {
-          setFirebaseUsers(response.data);
+        if (!db) {
+          throw new Error('Firestore not available');
         }
+
+        // Fetch all users directly from Firestore
+        const usersSnapshot = await getDocs(collection(db, 'users'));
+        const usersList = [];
         
+        usersSnapshot.forEach((doc) => {
+          const userData = doc.data();
+          usersList.push({
+            id: doc.id,
+            email: userData.email || 'N/A',
+            name: userData.name || userData.fullName || userData.email?.split('@')[0] || 'Unknown',
+            emailVerified: userData.emailVerified || false,
+            role: userData.role || 'user',
+            isActive: true,
+            createdAt: userData.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+            lastSignIn: userData.lastSignIn?.toDate?.()?.toISOString() || userData.lastLoginAt?.toDate?.()?.toISOString() || null,
+            photoURL: userData.photoURL || userData.profilePictureUrl || null,
+            permissions: rolePermissions[userData.role || 'user'] || rolePermissions.user
+          });
+        });
+
+        setFirebaseUsers(usersList);
         setError('');
       } catch (err) {
+        console.error('Error fetching users from Firestore:', err);
         // Fallback: Use current user as admin for demonstration
         const mockUsers = [
           {
@@ -211,6 +218,23 @@ const AdminPanel = () => {
 
   const handleRoleChange = async (userId, newRole) => {
     try {
+      // Find the target user
+      const targetUser = firebaseUsers.find(u => u.id === userId);
+      
+      // Only admins can change account owner roles
+      if (targetUser?.role === 'account_owner' && userRole !== 'admin') {
+        setError('Only admins can change account owner privileges');
+        setTimeout(() => setError(''), 3000);
+        return;
+      }
+      
+      // Prevent changing to account_owner unless you're an admin
+      if (newRole === 'account_owner' && userRole !== 'admin') {
+        setError('Only admins can promote users to account owner');
+        setTimeout(() => setError(''), 3000);
+        return;
+      }
+      
       await updateUserRole(userId, newRole);
       setSuccess(`User role updated to ${newRole}`);
       setTimeout(() => setSuccess(''), 3000);
@@ -222,8 +246,15 @@ const AdminPanel = () => {
 
   const handlePermissionChange = async (userId, permissionType, permissionName, value) => {
     try {
-      const user = users.find(u => u.id === userId);
+      const user = firebaseUsers.find(u => u.id === userId);
       if (!user) return;
+
+      // Only admins can change account owner permissions
+      if (user.role === 'account_owner' && userRole !== 'admin') {
+        setError('Only admins can change account owner permissions');
+        setTimeout(() => setError(''), 3000);
+        return;
+      }
 
       // Get current permissions or default based on role
       const currentPermissions = user.permissions || rolePermissions[user.role] || rolePermissions.user;
@@ -386,11 +417,11 @@ const AdminPanel = () => {
                           value={user.role || 'user'}
                           onChange={(e) => handleRoleChange(user.id, e.target.value)}
                           className="role-select"
-                          disabled={isCurrentUser}
+                          disabled={isCurrentUser || (user.role === 'account_owner' && userRole !== 'admin')}
                         >
                           {getAllRoles().map(role => (
                             <option key={role} value={role}>
-                              {role.charAt(0).toUpperCase() + role.slice(1)}
+                              {role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')}
                             </option>
                           ))}
                         </select>
@@ -399,6 +430,9 @@ const AdminPanel = () => {
                         </span>
                         {isCurrentUser && (
                           <small className="role-note">Cannot change your own role</small>
+                        )}
+                        {user.role === 'account_owner' && userRole !== 'admin' && !isCurrentUser && (
+                          <small className="role-note">Only admins can modify account owners</small>
                         )}
                       </div>
                     </td>
@@ -424,7 +458,7 @@ const AdminPanel = () => {
                               type="checkbox"
                               checked={userPermissions?.pages?.admin || false}
                               onChange={(e) => handlePermissionChange(user.id, 'pages', 'admin', e.target.checked)}
-                              disabled={isCurrentUser}
+                              disabled={isCurrentUser || (user.role === 'account_owner' && userRole !== 'admin')}
                             />
                             <span>Admin Panel</span>
                           </label>
@@ -435,6 +469,7 @@ const AdminPanel = () => {
                               type="checkbox"
                               checked={userPermissions?.pages?.users || false}
                               onChange={(e) => handlePermissionChange(user.id, 'pages', 'users', e.target.checked)}
+                              disabled={user.role === 'account_owner' && userRole !== 'admin'}
                             />
                             <span>User Management</span>
                           </label>
@@ -445,7 +480,7 @@ const AdminPanel = () => {
                               type="checkbox"
                               checked={userPermissions?.actions?.manage_roles || false}
                               onChange={(e) => handlePermissionChange(user.id, 'actions', 'manage_roles', e.target.checked)}
-                              disabled={isCurrentUser}
+                              disabled={isCurrentUser || (user.role === 'account_owner' && userRole !== 'admin')}
                             />
                             <span>Manage Roles</span>
                           </label>

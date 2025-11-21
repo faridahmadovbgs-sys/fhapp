@@ -26,7 +26,7 @@ export const PermissionProtectedRoute = ({
   requiredRole = null,
   requiredRoles = null,
   fallback = null,
-  redirectTo = '/unauthorized'
+  redirectTo = '/'
 }) => {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const { 

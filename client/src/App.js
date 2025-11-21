@@ -58,7 +58,7 @@ function MainApp() {
             <Route 
               path="/registered-users" 
               element={
-                <PermissionProtectedRoute requiredPage="users">
+                <PermissionProtectedRoute requiredPage="admin">
                   <RegisteredUsers />
                 </PermissionProtectedRoute>
               } 
