@@ -44,7 +44,6 @@ const Header = ({ user }) => {
             <li><Link to="/">Home</Link></li>
             <li><Link to="/about">About</Link></li>
             <li><Link to="/chat">💬 Chat</Link></li>
-            <li><Link to="/profile">👤 Profile</Link></li>
             <li><Link to="/demo-permissions">Permissions Demo</Link></li>
             <PermissionGuard requiredPage="users">
               <li><Link to="/registered-users">Users</Link></li>
@@ -64,6 +63,7 @@ const Header = ({ user }) => {
         {user && (
           <div className="user-info">
             <div className="user-profile-section" onClick={handleProfileClick}>
+              <span className="welcome-text">Welcome, {user.name || user.email}!</span>
               <div className="user-avatar-header">
                 {photoURL ? (
                   <img src={photoURL} alt={user.name || user.email} className="user-avatar-photo-header" />
@@ -73,7 +73,6 @@ const Header = ({ user }) => {
                   </div>
                 )}
               </div>
-              <span className="welcome-text">Welcome, {user.name || user.email}!</span>
             </div>
             <button onClick={handleLogout} className="logout-button">
               Logout

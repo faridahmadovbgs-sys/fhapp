@@ -61,8 +61,8 @@ nav a:hover {
 }
 
 .user-avatar-header {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: linear-gradient(135deg, #6264a7 0%, #8b8cc7 100%);
   display: flex;
@@ -70,6 +70,13 @@ nav a:hover {
   justify-content: center;
   overflow: hidden;
   border: 2px solid #61dafb;
+  box-shadow: 0 2px 8px rgba(98, 100, 167, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.user-profile-section:hover .user-avatar-header {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(98, 100, 167, 0.5);
 }
 
 .user-avatar-photo-header {
@@ -86,7 +93,7 @@ nav a:hover {
   justify-content: center;
   color: white;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 32px;
 }
 
 .welcome-text {
