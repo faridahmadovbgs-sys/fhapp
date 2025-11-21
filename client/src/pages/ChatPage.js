@@ -87,6 +87,7 @@ const ChatPage = () => {
               uid: userData.uid,
               email: userData.email,
               name: userData.name || userData.email?.split('@')[0] || 'User',
+              photoURL: userData.photoURL || userData.profilePictureUrl || null,
               role: userData.uid === selectedOrganization.ownerId ? 'Account Owner' : 'Member'
             });
           });
@@ -393,6 +394,23 @@ const ChatPage = () => {
     );
   };
 
+  const renderAvatar = (user, size = 'medium') => {
+    if (user?.photoURL) {
+      return (
+        <img 
+          src={user.photoURL} 
+          alt={user.name || 'User'} 
+          className={`user-avatar-photo ${size}`}
+          onError={(e) => {
+            e.target.style.display = 'none';
+            e.target.nextSibling.style.display = 'flex';
+          }}
+        />
+      );
+    }
+    return renderUserInitial(user?.name || 'User');
+  };
+
   return (
     <div className="chat-page">
       <div className="chat-page-header">
@@ -491,7 +509,11 @@ const ChatPage = () => {
                           }}
                         >
                           <div className="chat-item-avatar">
-                            {renderUserInitial(user.name)}
+                            {user.photoURL ? (
+                              <img src={user.photoURL} alt={user.name} className="user-avatar-photo" />
+                            ) : (
+                              renderUserInitial(user.name)
+                            )}
                           </div>
                           <div className="chat-item-info">
                             <div className="chat-item-name">{user.name}</div>

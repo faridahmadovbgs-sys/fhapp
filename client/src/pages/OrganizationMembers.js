@@ -62,6 +62,7 @@ const OrganizationMembers = () => {
             uid: userData.uid,
             email: userData.email,
             name: userData.name || userData.email?.split('@')[0] || 'User',
+            photoURL: userData.photoURL || userData.profilePictureUrl || null,
             role: userData.uid === selectedOrg.ownerId ? 'Account Owner' : 'Member',
             joinedAt: userData.invitedAt,
             isOwner: userData.uid === selectedOrg.ownerId
@@ -178,7 +179,11 @@ const OrganizationMembers = () => {
             {currentMembers.map((member) => (
               <div key={member.id} className="member-card">
                 <div className="member-avatar">
-                  {member.name.charAt(0).toUpperCase()}
+                  {member.photoURL ? (
+                    <img src={member.photoURL} alt={member.name} className="member-avatar-photo" />
+                  ) : (
+                    member.name.charAt(0).toUpperCase()
+                  )}
                 </div>
                 <div className="member-info">
                   <div className="member-name">
