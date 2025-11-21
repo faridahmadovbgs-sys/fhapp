@@ -136,7 +136,6 @@ const ChatPage = () => {
     const messagesQuery = query(
       collection(db, 'messages'),
       where('organizationId', '==', selectedOrganization.id),
-      orderBy('createdAt', 'asc'),
       limit(100)
     );
 
@@ -148,7 +147,15 @@ const ChatPage = () => {
           ...doc.data()
         });
       });
+      // Sort by createdAt in memory
+      messagesData.sort((a, b) => {
+        if (!a.createdAt || !b.createdAt) return 0;
+        return a.createdAt.toMillis() - b.createdAt.toMillis();
+      });
       setPublicMessages(messagesData);
+    }, (error) => {
+      console.error('Error fetching messages:', error);
+      setPublicMessages([]);
     });
 
     return () => unsubscribe();
@@ -228,11 +235,28 @@ const ChatPage = () => {
 
   const sendPublicMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || sending || !currentUser || !db || !selectedOrganization) return;
+    
+    console.log('📤 Attempting to send message...');
+    console.log('Current user:', currentUser?.id, currentUser?.email);
+    console.log('Selected org:', selectedOrganization?.id, selectedOrganization?.name);
+    console.log('DB initialized:', !!db);
+    console.log('Message:', newMessage.trim());
+    
+    if (!newMessage.trim() || sending || !currentUser || !db || !selectedOrganization) {
+      console.warn('❌ Message send blocked:', {
+        hasMessage: !!newMessage.trim(),
+        sending,
+        hasUser: !!currentUser,
+        hasDb: !!db,
+        hasOrg: !!selectedOrganization
+      });
+      return;
+    }
 
     setSending(true);
     try {
-      await addDoc(collection(db, 'messages'), {
+      console.log('💾 Adding document to Firestore...');
+      const docRef = await addDoc(collection(db, 'messages'), {
         text: newMessage.trim(),
         createdAt: serverTimestamp(),
         userId: currentUser.id,
@@ -240,10 +264,13 @@ const ChatPage = () => {
         userEmail: currentUser.email,
         organizationId: selectedOrganization.id
       });
+      console.log('✅ Message sent successfully! Doc ID:', docRef.id);
       setNewMessage('');
     } catch (error) {
-      console.error('Error sending message:', error);
-      alert('Failed to send message');
+      console.error('❌ Error sending message:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      alert(`Failed to send message: ${error.message}`);
     } finally {
       setSending(false);
     }
