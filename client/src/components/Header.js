@@ -51,13 +51,13 @@ const Header = ({ user }) => {
             <PermissionGuard requiredPage="admin">
               <li><Link to="/admin">Admin Panel</Link></li>
             </PermissionGuard>
-            <PermissionGuard requiredPage="admin">
+            <PermissionGuard requiredPage="invitations">
               <li><Link to="/invitations">📤 Invite Team</Link></li>
             </PermissionGuard>
-            <PermissionGuard requiredPage="admin">
+            <PermissionGuard requiredPage="invitations">
               <li><Link to="/members">👥 Members</Link></li>
             </PermissionGuard>
-            <PermissionGuard requiredPage="admin">
+            <PermissionGuard requiredPage="billing">
               <li><Link to="/billing">💰 Billing</Link></li>
             </PermissionGuard>
             <li><Link to="/payments">💳 Payments</Link></li>

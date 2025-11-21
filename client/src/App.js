@@ -86,7 +86,7 @@ function MainApp() {
             <Route 
               path="/invitations" 
               element={
-                <PermissionProtectedRoute requiredPage="admin">
+                <PermissionProtectedRoute requiredPage="invitations">
                   <InvitationManager />
                 </PermissionProtectedRoute>
               } 
@@ -94,7 +94,7 @@ function MainApp() {
             <Route 
               path="/members" 
               element={
-                <PermissionProtectedRoute requiredPage="admin">
+                <PermissionProtectedRoute requiredPage="invitations">
                   <OrganizationMembers />
                 </PermissionProtectedRoute>
               } 
@@ -102,7 +102,7 @@ function MainApp() {
             <Route 
               path="/billing" 
               element={
-                <PermissionProtectedRoute requiredPage="admin">
+                <PermissionProtectedRoute requiredPage="billing">
                   <BillingManagement />
                 </PermissionProtectedRoute>
               } 
