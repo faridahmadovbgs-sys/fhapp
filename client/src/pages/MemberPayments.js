@@ -278,6 +278,27 @@ const MemberPayments = () => {
     return <div className="member-payments"><p>Loading...</p></div>;
   }
 
+  if (!user) {
+    return <div className="member-payments"><p>Please log in to view your payments.</p></div>;
+  }
+
+  if (organizations.length === 0) {
+    return (
+      <div className="member-payments">
+        <div className="payments-header">
+          <div>
+            <h2>💳 My Payments</h2>
+            <p>View and pay your bills</p>
+          </div>
+        </div>
+        <div className="empty-state">
+          <p>You are not a member of any organization yet.</p>
+          <p>Contact your organization administrator to be added as a member.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="member-payments">
       <div className="payments-header">
