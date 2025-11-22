@@ -156,7 +156,8 @@ export const recordPayment = async (paymentData) => {
     const payment = {
       ...paymentData,
       paidAt: serverTimestamp(),
-      status: 'completed'
+      status: 'completed',
+      paymentMethod: paymentData.paymentMethod || 'manual'
     };
 
     const paymentRef = await addDoc(collection(db, 'payments'), payment);
@@ -288,6 +289,34 @@ export const updateBillStatus = async (billId, status) => {
   }
 };
 
+// Update bill member assignments
+export const updateBillMembers = async (billId, memberIds) => {
+  try {
+    if (!db) {
+      throw new Error('Firebase Firestore not available');
+    }
+
+    const billRef = doc(db, 'bills', billId);
+    
+    // If memberIds is null or empty, it means "all members"
+    const updateData = {
+      memberIds: memberIds && memberIds.length > 0 ? memberIds : null,
+      updatedAt: serverTimestamp()
+    };
+
+    await updateDoc(billRef, updateData);
+    
+    console.log('✅ Bill members updated:', memberIds);
+
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error('❌ Error updating bill members:', error);
+    throw error;
+  }
+};
+
 // Get payment history for member
 export const getMemberPaymentHistory = async (memberId, organizationId) => {
   try {
@@ -339,5 +368,6 @@ export default {
   getBillPayments,
   getMemberPaymentStatus,
   updateBillStatus,
+  updateBillMembers,
   getMemberPaymentHistory
 };

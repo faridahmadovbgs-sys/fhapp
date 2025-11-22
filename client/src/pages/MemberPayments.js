@@ -17,6 +17,11 @@ const MemberPayments = () => {
   const [loading, setLoading] = useState(true);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
+  const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
+  const [markPaidBill, setMarkPaidBill] = useState(null);
+  const [manualPaymentAmount, setManualPaymentAmount] = useState('');
+  const [manualPaymentNotes, setManualPaymentNotes] = useState('');
+  const [manualPaymentMethod, setManualPaymentMethod] = useState('cash');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'history'
@@ -149,6 +154,65 @@ const MemberPayments = () => {
     }
   };
 
+  const openMarkPaidModal = (bill) => {
+    setMarkPaidBill(bill);
+    setManualPaymentAmount(bill.amount.toString());
+    setManualPaymentNotes('');
+    setManualPaymentMethod('cash');
+    setShowMarkPaidModal(true);
+  };
+
+  const closeMarkPaidModal = () => {
+    setShowMarkPaidModal(false);
+    setMarkPaidBill(null);
+    setManualPaymentAmount('');
+    setManualPaymentNotes('');
+    setManualPaymentMethod('cash');
+  };
+
+  const markAsPaidByMember = async () => {
+    if (!markPaidBill) return;
+    
+    try {
+      setError('');
+      setSuccess('');
+
+      const amount = parseFloat(manualPaymentAmount);
+      if (isNaN(amount) || amount <= 0) {
+        setError('Please enter a valid payment amount');
+        return;
+      }
+
+      const paymentData = {
+        billId: markPaidBill.id,
+        billTitle: markPaidBill.title,
+        memberId: user.id,
+        memberName: user.displayName || user.email,
+        memberEmail: user.email,
+        organizationId: selectedOrg.id,
+        organizationName: selectedOrg.name,
+        amount: amount,
+        paymentMethod: manualPaymentMethod,
+        notes: manualPaymentNotes || 'Manually marked as paid by member',
+        recordedBy: user.id,
+        recordedByName: user.displayName || user.email
+      };
+
+      await recordPayment(paymentData);
+      
+      setSuccess('✅ Payment marked as paid!');
+      closeMarkPaidModal();
+      
+      // Reload data
+      await loadData();
+      
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error marking payment:', error);
+      setError('Failed to record payment: ' + error.message);
+    }
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -160,6 +224,38 @@ const MemberPayments = () => {
     if (!date) return 'N/A';
     const d = date.toDate ? date.toDate() : new Date(date);
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  const formatPaymentMethod = (method) => {
+    const methods = {
+      'cash': 'Cash',
+      'check': 'Check',
+      'bank_transfer': 'Bank Transfer',
+      'credit_card': 'Credit Card',
+      'debit_card': 'Debit Card',
+      'paypal': 'PayPal',
+      'venmo': 'Venmo',
+      'zelle': 'Zelle',
+      'manual': 'Manual',
+      'other': 'Other'
+    };
+    return methods[method] || method;
+  };
+
+  const getPaymentMethodIcon = (method) => {
+    const icons = {
+      'cash': '💵',
+      'check': '📝',
+      'bank_transfer': '🏦',
+      'credit_card': '💳',
+      'debit_card': '💳',
+      'paypal': '🅿️',
+      'venmo': '📱',
+      'zelle': '⚡',
+      'manual': '✍️',
+      'other': '📋'
+    };
+    return icons[method] || '💰';
   };
 
   const pendingBills = bills.filter(bill => 
@@ -280,12 +376,20 @@ const MemberPayments = () => {
                     </div>
                     <div className="bill-amount">
                       <div className="amount-value">{formatCurrency(bill.amount)}</div>
-                      <button 
-                        className="btn btn-primary"
-                        onClick={() => initiatePayment(bill)}
-                      >
-                        Pay Now
-                      </button>
+                      <div className="bill-actions-member">
+                        <button 
+                          className="btn btn-primary"
+                          onClick={() => initiatePayment(bill)}
+                        >
+                          Pay Now
+                        </button>
+                        <button 
+                          className="btn btn-success btn-small"
+                          onClick={() => openMarkPaidModal(bill)}
+                        >
+                          Mark as Paid
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -312,11 +416,14 @@ const MemberPayments = () => {
                     <p className="history-date">
                       Paid on {formatDate(payment.paidAt)}
                     </p>
-                    <p className="history-method">
-                      {payment.paymentMethod === 'credit_card' ? '💳 Credit Card' : 
-                       payment.paymentMethod === 'paypal' ? '🅿️ PayPal' : 
-                       payment.paymentMethod}
-                    </p>
+                    {payment.paymentMethod && (
+                      <p className="history-method">
+                        {getPaymentMethodIcon(payment.paymentMethod)} {formatPaymentMethod(payment.paymentMethod)}
+                      </p>
+                    )}
+                    {payment.notes && (
+                      <p className="history-notes">{payment.notes}</p>
+                    )}
                   </div>
                   <div className="history-amount">
                     {formatCurrency(payment.amount)}
@@ -445,6 +552,85 @@ const MemberPayments = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mark as Paid Modal */}
+      {showMarkPaidModal && markPaidBill && (
+        <div className="modal-overlay" onClick={closeMarkPaidModal}>
+          <div className="modal-content mark-paid-modal-member" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Mark Payment - {markPaidBill.title}</h3>
+              <button className="close-btn" onClick={closeMarkPaidModal}>✖</button>
+            </div>
+            
+            <div className="modal-body">
+              <p className="modal-description">
+                Record that you have paid this bill through another method (cash, check, bank transfer, etc.).
+              </p>
+
+              <div className="form-group">
+                <label>Payment Amount</label>
+                <input
+                  type="number"
+                  value={manualPaymentAmount}
+                  onChange={(e) => setManualPaymentAmount(e.target.value)}
+                  step="0.01"
+                  min="0"
+                  placeholder="Enter amount"
+                  className="form-input"
+                />
+                <span className="helper-text">Bill amount: {formatCurrency(markPaidBill.amount)}</span>
+              </div>
+
+              <div className="form-group">
+                <label>Payment Method</label>
+                <select
+                  value={manualPaymentMethod}
+                  onChange={(e) => setManualPaymentMethod(e.target.value)}
+                  className="form-input"
+                >
+                  <option value="cash">💵 Cash</option>
+                  <option value="check">📝 Check</option>
+                  <option value="bank_transfer">🏦 Bank Transfer</option>
+                  <option value="credit_card">💳 Credit Card</option>
+                  <option value="debit_card">💳 Debit Card</option>
+                  <option value="paypal">🅿️ PayPal</option>
+                  <option value="venmo">📱 Venmo</option>
+                  <option value="zelle">⚡ Zelle</option>
+                  <option value="other">📋 Other</option>
+                </select>
+                <span className="helper-text">How did you pay this bill?</span>
+              </div>
+
+              <div className="form-group">
+                <label>Payment Notes (optional)</label>
+                <textarea
+                  value={manualPaymentNotes}
+                  onChange={(e) => setManualPaymentNotes(e.target.value)}
+                  placeholder="Add details about how you paid (e.g., 'Paid via cash', 'Check #1234', 'Bank transfer on 11/20')..."
+                  className="form-textarea"
+                  rows="3"
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button 
+                  className="btn btn-secondary"
+                  onClick={closeMarkPaidModal}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="btn btn-success"
+                  onClick={markAsPaidByMember}
+                  disabled={!manualPaymentAmount}
+                >
+                  Record Payment
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserOrganizations } from '../services/organizationService';
+import { getUserOrganizations, getOrganizationMembers } from '../services/organizationService';
 import { 
   createBill, 
   getOrganizationBills, 
   updateBillStatus,
-  getBillPayments 
+  getBillPayments,
+  updateBillMembers,
+  recordPayment
 } from '../services/billingService';
 import './BillingManagement.css';
 
@@ -17,6 +19,18 @@ const BillingManagement = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
+  const [billMembers, setBillMembers] = useState({});
+  const [showManageMembersModal, setShowManageMembersModal] = useState(false);
+  const [managingBill, setManagingBill] = useState(null);
+  const [allOrgMembers, setAllOrgMembers] = useState([]);
+  const [selectedMemberIds, setSelectedMemberIds] = useState([]);
+  const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
+  const [markPaidBill, setMarkPaidBill] = useState(null);
+  const [selectedPayerIds, setSelectedPayerIds] = useState([]);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
@@ -27,8 +41,10 @@ const BillingManagement = () => {
     billType: 'one-time', // 'one-time' or 'subscription'
     dueDate: '',
     subscriptionInterval: 'monthly', // 'monthly', 'quarterly', 'yearly'
+    recurringDayOfMonth: '', // Day of month for recurring bills (1-31)
     assignToAll: true,
-    selectedMembers: []
+    selectedMembers: [],
+    lineItems: [{ description: '', amount: '' }]
   });
 
   // Fetch organizations
@@ -67,12 +83,47 @@ const BillingManagement = () => {
       const result = await getOrganizationBills(selectedOrg.id);
       if (result.success) {
         setBills(result.bills);
+        
+        // Load members for each bill
+        await loadBillMembers(result.bills);
       }
     } catch (error) {
       console.error('Error loading bills:', error);
       setError('Failed to load bills');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadBillMembers = async (billsList) => {
+    if (!selectedOrg) return;
+    
+    try {
+      // Get all organization members
+      const membersResult = await getOrganizationMembers(selectedOrg.id);
+      const allMembers = membersResult.members || [];
+      
+      // Store all members for later use
+      setAllOrgMembers(allMembers);
+      
+      // Create a map of bill IDs to their assigned members
+      const membersMap = {};
+      
+      for (const bill of billsList) {
+        if (bill.memberIds && Array.isArray(bill.memberIds)) {
+          // Specific members assigned
+          membersMap[bill.id] = allMembers.filter(member => 
+            bill.memberIds.includes(member.uid)
+          );
+        } else {
+          // Assigned to all members
+          membersMap[bill.id] = allMembers;
+        }
+      }
+      
+      setBillMembers(membersMap);
+    } catch (error) {
+      console.error('Error loading bill members:', error);
     }
   };
 
@@ -84,24 +135,76 @@ const BillingManagement = () => {
     }));
   };
 
+  const handleLineItemChange = (index, field, value) => {
+    const newLineItems = [...formData.lineItems];
+    newLineItems[index][field] = value;
+    setFormData(prev => ({
+      ...prev,
+      lineItems: newLineItems
+    }));
+  };
+
+  const addLineItem = () => {
+    setFormData(prev => ({
+      ...prev,
+      lineItems: [...prev.lineItems, { description: '', amount: '' }]
+    }));
+  };
+
+  const removeLineItem = (index) => {
+    if (formData.lineItems.length > 1) {
+      const newLineItems = formData.lineItems.filter((_, i) => i !== index);
+      setFormData(prev => ({
+        ...prev,
+        lineItems: newLineItems
+      }));
+    }
+  };
+
+  const calculateTotalAmount = () => {
+    return formData.lineItems.reduce((total, item) => {
+      const amount = parseFloat(item.amount) || 0;
+      return total + amount;
+    }, 0);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
-    if (!formData.title.trim() || !formData.amount) {
-      setError('Title and amount are required');
+    if (!formData.title.trim()) {
+      setError('Title is required');
       return;
     }
+
+    // Validate line items
+    const validLineItems = formData.lineItems.filter(item => 
+      item.description.trim() && item.amount && parseFloat(item.amount) > 0
+    );
+
+    if (validLineItems.length === 0) {
+      setError('At least one line item with description and amount is required');
+      return;
+    }
+
+    const totalAmount = validLineItems.reduce((sum, item) => sum + parseFloat(item.amount), 0);
 
     try {
       const billData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
-        amount: parseFloat(formData.amount),
+        amount: totalAmount,
+        lineItems: validLineItems.map(item => ({
+          description: item.description.trim(),
+          amount: parseFloat(item.amount)
+        })),
         billType: formData.billType,
         dueDate: formData.dueDate ? new Date(formData.dueDate) : null,
         subscriptionInterval: formData.billType === 'subscription' ? formData.subscriptionInterval : null,
+        recurringDayOfMonth: formData.billType === 'subscription' && formData.recurringDayOfMonth 
+          ? parseInt(formData.recurringDayOfMonth) 
+          : null,
         organizationId: selectedOrg.id,
         organizationName: selectedOrg.name,
         ownerId: user.id,
@@ -118,8 +221,10 @@ const BillingManagement = () => {
         billType: 'one-time',
         dueDate: '',
         subscriptionInterval: 'monthly',
+        recurringDayOfMonth: '',
         assignToAll: true,
-        selectedMembers: []
+        selectedMembers: [],
+        lineItems: [{ description: '', amount: '' }]
       });
       
       // Reload bills
@@ -148,6 +253,170 @@ const BillingManagement = () => {
     setSelectedBill(bill);
   };
 
+  const openManageMembersModal = (bill) => {
+    setManagingBill(bill);
+    
+    // Set current member selection
+    if (bill.memberIds && Array.isArray(bill.memberIds)) {
+      setSelectedMemberIds(bill.memberIds);
+    } else {
+      // All members selected
+      setSelectedMemberIds(allOrgMembers.map(m => m.uid));
+    }
+    
+    setShowManageMembersModal(true);
+  };
+
+  const closeManageMembersModal = () => {
+    setShowManageMembersModal(false);
+    setManagingBill(null);
+    setSelectedMemberIds([]);
+  };
+
+  const toggleMemberSelection = (memberId) => {
+    setSelectedMemberIds(prev => {
+      if (prev.includes(memberId)) {
+        return prev.filter(id => id !== memberId);
+      } else {
+        return [...prev, memberId];
+      }
+    });
+  };
+
+  const selectAllMembers = () => {
+    setSelectedMemberIds(allOrgMembers.map(m => m.uid));
+  };
+
+  const deselectAllMembers = () => {
+    setSelectedMemberIds([]);
+  };
+
+  const saveMemberAssignments = async () => {
+    if (!managingBill) return;
+    
+    try {
+      setError('');
+      setSuccess('');
+      
+      // If all members selected, pass null (means "all members")
+      const memberIds = selectedMemberIds.length === allOrgMembers.length 
+        ? null 
+        : selectedMemberIds;
+      
+      await updateBillMembers(managingBill.id, memberIds);
+      
+      setSuccess('✅ Member assignments updated!');
+      closeManageMembersModal();
+      
+      // Reload bills to reflect changes
+      await loadBills();
+      
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error updating member assignments:', error);
+      setError('Failed to update member assignments');
+    }
+  };
+
+  const openMarkPaidModal = (bill) => {
+    setMarkPaidBill(bill);
+    setSelectedPayerIds([]);
+    setPaymentAmount(bill.amount.toString());
+    setPaymentNotes('');
+    setPaymentMethod('cash');
+    setShowMarkPaidModal(true);
+  };
+
+  const closeMarkPaidModal = () => {
+    setShowMarkPaidModal(false);
+    setMarkPaidBill(null);
+    setSelectedPayerIds([]);
+    setPaymentAmount('');
+    setPaymentNotes('');
+    setPaymentMethod('cash');
+  };
+
+  const togglePayerSelection = (memberId) => {
+    setSelectedPayerIds(prev => {
+      if (prev.includes(memberId)) {
+        return prev.filter(id => id !== memberId);
+      } else {
+        return [...prev, memberId];
+      }
+    });
+  };
+
+  const selectAllPayers = () => {
+    const billMembersList = billMembers[markPaidBill?.id] || [];
+    setSelectedPayerIds(billMembersList.map(m => m.uid));
+  };
+
+  const deselectAllPayers = () => {
+    setSelectedPayerIds([]);
+  };
+
+  const markAsPaid = async () => {
+    if (!markPaidBill) return;
+    
+    try {
+      setError('');
+      setSuccess('');
+
+      if (selectedPayerIds.length === 0) {
+        setError('Please select at least one member who paid');
+        return;
+      }
+
+      const amount = parseFloat(paymentAmount);
+      if (isNaN(amount) || amount <= 0) {
+        setError('Please enter a valid payment amount');
+        return;
+      }
+
+      // Record payment for each selected member
+      for (const memberId of selectedPayerIds) {
+        const member = allOrgMembers.find(m => m.uid === memberId);
+        
+        const paymentData = {
+          billId: markPaidBill.id,
+          billTitle: markPaidBill.title,
+          memberId: memberId,
+          memberName: member?.name || member?.email || 'Unknown',
+          memberEmail: member?.email || '',
+          organizationId: selectedOrg.id,
+          organizationName: selectedOrg.name,
+          amount: amount,
+          paymentMethod: paymentMethod,
+          notes: paymentNotes || 'Manually marked as paid',
+          recordedBy: user.id,
+          recordedByName: user.displayName || user.email
+        };
+
+        await recordPayment(paymentData);
+      }
+
+      setSuccess(`✅ Payment recorded for ${selectedPayerIds.length} member(s)!`);
+      closeMarkPaidModal();
+      
+      // Reload bills to reflect changes
+      await loadBills();
+      
+      // If viewing bill details, refresh it
+      if (selectedBill && selectedBill.id === markPaidBill.id) {
+        const updatedBills = await getOrganizationBills(selectedOrg.id);
+        const updatedBill = updatedBills.bills.find(b => b.id === markPaidBill.id);
+        if (updatedBill) {
+          setSelectedBill(updatedBill);
+        }
+      }
+      
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error marking payment:', error);
+      setError('Failed to record payment: ' + error.message);
+    }
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -160,6 +429,56 @@ const BillingManagement = () => {
     const d = date.toDate ? date.toDate() : new Date(date);
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
+
+  const formatPaymentMethod = (method) => {
+    const methods = {
+      'cash': 'Cash',
+      'check': 'Check',
+      'bank_transfer': 'Bank Transfer',
+      'credit_card': 'Credit Card',
+      'debit_card': 'Debit Card',
+      'paypal': 'PayPal',
+      'venmo': 'Venmo',
+      'zelle': 'Zelle',
+      'manual': 'Manual',
+      'other': 'Other'
+    };
+    return methods[method] || method;
+  };
+
+  const getPaymentMethodIcon = (method) => {
+    const icons = {
+      'cash': '💵',
+      'check': '📝',
+      'bank_transfer': '🏦',
+      'credit_card': '💳',
+      'debit_card': '💳',
+      'paypal': '🅿️',
+      'venmo': '📱',
+      'zelle': '⚡',
+      'manual': '✍️',
+      'other': '📋'
+    };
+    return icons[method] || '💰';
+  };
+
+  // Filter bills based on search term
+  const filteredBills = bills.filter(bill => {
+    if (!searchTerm.trim()) return true;
+    
+    const search = searchTerm.toLowerCase();
+    const title = bill.title?.toLowerCase() || '';
+    const description = bill.description?.toLowerCase() || '';
+    const amount = bill.amount?.toString() || '';
+    const status = bill.status?.toLowerCase() || '';
+    const totalPaid = bill.totalPaid?.toString() || '';
+    
+    return title.includes(search) || 
+           description.includes(search) || 
+           amount.includes(search) ||
+           status.includes(search) ||
+           totalPaid.includes(search);
+  });
 
   if (loading) {
     return <div className="billing-management"><p>Loading...</p></div>;
@@ -232,21 +551,53 @@ const BillingManagement = () => {
               />
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label>Amount (USD) *</label>
-                <input
-                  type="number"
-                  name="amount"
-                  value={formData.amount}
-                  onChange={handleChange}
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0"
-                  required
-                />
+            {/* Line Items Section */}
+            <div className="form-group">
+              <label>Line Items *</label>
+              <div className="line-items-container">
+                {formData.lineItems.map((item, index) => (
+                  <div key={index} className="line-item-row">
+                    <input
+                      type="text"
+                      placeholder="Item description (e.g., Membership, Operational Expenses)"
+                      value={item.description}
+                      onChange={(e) => handleLineItemChange(index, 'description', e.target.value)}
+                      className="line-item-description"
+                    />
+                    <input
+                      type="number"
+                      placeholder="$0.00"
+                      value={item.amount}
+                      onChange={(e) => handleLineItemChange(index, 'amount', e.target.value)}
+                      step="0.01"
+                      min="0"
+                      className="line-item-amount"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeLineItem(index)}
+                      className="btn-remove-line-item"
+                      disabled={formData.lineItems.length === 1}
+                      title="Remove line item"
+                    >
+                      ✖
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addLineItem}
+                  className="btn-add-line-item"
+                >
+                  ➕ Add Line Item
+                </button>
+                <div className="total-amount">
+                  <strong>Total Amount:</strong> ${calculateTotalAmount().toFixed(2)}
+                </div>
               </div>
+            </div>
 
+            <div className="form-row">
               <div className="form-group">
                 <label>Bill Type</label>
                 <select
@@ -261,28 +612,55 @@ const BillingManagement = () => {
             </div>
 
             {formData.billType === 'subscription' && (
-              <div className="form-group">
-                <label>Billing Interval</label>
-                <select
-                  name="subscriptionInterval"
-                  value={formData.subscriptionInterval}
-                  onChange={handleChange}
-                >
-                  <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
-                  <option value="yearly">Yearly</option>
-                </select>
-              </div>
+              <>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Billing Interval</label>
+                    <select
+                      name="subscriptionInterval"
+                      value={formData.subscriptionInterval}
+                      onChange={handleChange}
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Recurring Day of Month (1-31)</label>
+                    <input
+                      type="number"
+                      name="recurringDayOfMonth"
+                      value={formData.recurringDayOfMonth}
+                      onChange={handleChange}
+                      placeholder="e.g., 10 for 10th of each month"
+                      min="1"
+                      max="31"
+                    />
+                    <small className="helper-text">
+                      Bill will be due on this day each billing period
+                    </small>
+                  </div>
+                </div>
+              </>
             )}
 
             <div className="form-group">
-              <label>Due Date</label>
+              <label>
+                {formData.billType === 'one-time' ? 'Due Date' : 'First Due Date (optional)'}
+              </label>
               <input
                 type="date"
                 name="dueDate"
                 value={formData.dueDate}
                 onChange={handleChange}
               />
+              {formData.billType === 'subscription' && (
+                <small className="helper-text">
+                  Leave empty to use the recurring day of month starting from bill creation
+                </small>
+              )}
             </div>
 
             <div className="form-group">
@@ -315,15 +693,42 @@ const BillingManagement = () => {
 
       {/* Bills List */}
       <div className="bills-section">
-        <h3>Bills ({bills.length})</h3>
+        <div className="bills-header-row">
+          <h3>Bills ({filteredBills.length}{searchTerm && ` of ${bills.length}`})</h3>
+          <div className="search-container">
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search bills by title, description, amount, or status..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button 
+                className="clear-search-btn"
+                onClick={() => setSearchTerm('')}
+                title="Clear search"
+              >
+                ✖
+              </button>
+            )}
+          </div>
+        </div>
         
-        {bills.length === 0 ? (
+        {filteredBills.length === 0 && searchTerm ? (
+          <div className="empty-state">
+            <p>No bills found matching "{searchTerm}"</p>
+            <button className="btn btn-secondary" onClick={() => setSearchTerm('')}>
+              Clear Search
+            </button>
+          </div>
+        ) : bills.length === 0 ? (
           <div className="empty-state">
             <p>No bills created yet. Create your first bill to get started!</p>
           </div>
         ) : (
           <div className="bills-grid">
-            {bills.map(bill => (
+            {filteredBills.map(bill => (
               <div key={bill.id} className="bill-card">
                 <div className="bill-header">
                   <h4>{bill.title}</h4>
@@ -364,6 +769,11 @@ const BillingManagement = () => {
                       <span className="label">Payments:</span>
                       <span className="value">{bill.payments?.length || 0}</span>
                     </div>
+
+                    <div className="info-item">
+                      <span className="label">Members:</span>
+                      <span className="value">{billMembers[bill.id]?.length || 0}</span>
+                    </div>
                   </div>
                 </div>
                 
@@ -373,6 +783,20 @@ const BillingManagement = () => {
                     onClick={() => viewBillDetails(bill)}
                   >
                     View Details
+                  </button>
+                  
+                  <button 
+                    className="btn btn-small btn-primary"
+                    onClick={() => openManageMembersModal(bill)}
+                  >
+                    Manage Members
+                  </button>
+
+                  <button 
+                    className="btn btn-small btn-success"
+                    onClick={() => openMarkPaidModal(bill)}
+                  >
+                    Mark as Paid
                   </button>
                   
                   {bill.status === 'active' && (
@@ -415,7 +839,48 @@ const BillingManagement = () => {
                   <span className="stat-label">Payments</span>
                   <span className="stat-value">{selectedBill.payments?.length || 0}</span>
                 </div>
+                <div className="stat">
+                  <span className="stat-label">Members</span>
+                  <span className="stat-value">{billMembers[selectedBill.id]?.length || 0}</span>
+                </div>
               </div>
+
+              {/* Line Items */}
+              {selectedBill.lineItems && selectedBill.lineItems.length > 0 && (
+                <>
+                  <h4>Line Items</h4>
+                  <div className="line-items-detail">
+                    {selectedBill.lineItems.map((item, index) => (
+                      <div key={index} className="line-item-detail">
+                        <span className="item-desc">{item.description}</span>
+                        <span className="item-amt">{formatCurrency(item.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Assigned Members */}
+              <h4>Assigned Members ({billMembers[selectedBill.id]?.length || 0})</h4>
+              {billMembers[selectedBill.id] && billMembers[selectedBill.id].length > 0 ? (
+                <div className="members-list">
+                  {billMembers[selectedBill.id].map(member => (
+                    <div key={member.uid} className="member-item">
+                      <div className="member-info">
+                        <span className="member-name">{member.name || member.email}</span>
+                        <span className="member-email">{member.email}</span>
+                      </div>
+                      <span className={`member-status ${
+                        selectedBill.payments?.some(p => p.memberId === member.uid) ? 'paid' : 'pending'
+                      }`}>
+                        {selectedBill.payments?.some(p => p.memberId === member.uid) ? '✅ Paid' : '⏳ Pending'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-state">No members assigned</p>
+              )}
               
               <h4>Payment History</h4>
               {selectedBill.payments && selectedBill.payments.length > 0 ? (
@@ -425,6 +890,14 @@ const BillingManagement = () => {
                       <div className="payment-info">
                         <span className="payment-member">{payment.memberName || payment.memberEmail}</span>
                         <span className="payment-date">{formatDate(payment.paidAt)}</span>
+                        {payment.paymentMethod && (
+                          <span className="payment-method-badge">
+                            {getPaymentMethodIcon(payment.paymentMethod)} {formatPaymentMethod(payment.paymentMethod)}
+                          </span>
+                        )}
+                        {payment.notes && (
+                          <span className="payment-notes">{payment.notes}</span>
+                        )}
                       </div>
                       <span className="payment-amount">{formatCurrency(payment.amount)}</span>
                     </div>
@@ -433,6 +906,225 @@ const BillingManagement = () => {
               ) : (
                 <p className="empty-state">No payments received yet</p>
               )}
+
+              <div className="modal-actions">
+                <button 
+                  className="btn btn-success"
+                  onClick={() => {
+                    setSelectedBill(null);
+                    openMarkPaidModal(selectedBill);
+                  }}
+                >
+                  Mark as Paid
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Members Modal */}
+      {showManageMembersModal && managingBill && (
+        <div className="modal-overlay" onClick={closeManageMembersModal}>
+          <div className="modal-content manage-members-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Manage Members - {managingBill.title}</h3>
+              <button className="close-btn" onClick={closeManageMembersModal}>✖</button>
+            </div>
+            
+            <div className="modal-body">
+              <p className="modal-description">
+                Select which members should be assigned to this bill. Selected members will be able to see and pay this bill.
+              </p>
+
+              <div className="member-selection-actions">
+                <button 
+                  type="button"
+                  className="btn btn-small btn-secondary"
+                  onClick={selectAllMembers}
+                >
+                  Select All
+                </button>
+                <button 
+                  type="button"
+                  className="btn btn-small btn-secondary"
+                  onClick={deselectAllMembers}
+                >
+                  Deselect All
+                </button>
+                <span className="selection-count">
+                  {selectedMemberIds.length} of {allOrgMembers.length} selected
+                </span>
+              </div>
+
+              <div className="members-selection-list">
+                {allOrgMembers.length > 0 ? (
+                  allOrgMembers.map(member => (
+                    <div key={member.uid} className="member-selection-item">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={selectedMemberIds.includes(member.uid)}
+                          onChange={() => toggleMemberSelection(member.uid)}
+                        />
+                        <div className="member-selection-info">
+                          <span className="member-selection-name">{member.name || member.email}</span>
+                          <span className="member-selection-email">{member.email}</span>
+                        </div>
+                      </label>
+                    </div>
+                  ))
+                ) : (
+                  <p className="empty-state">No members found in this organization</p>
+                )}
+              </div>
+
+              <div className="modal-actions">
+                <button 
+                  className="btn btn-secondary"
+                  onClick={closeManageMembersModal}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="btn btn-primary"
+                  onClick={saveMemberAssignments}
+                  disabled={selectedMemberIds.length === 0}
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mark as Paid Modal */}
+      {showMarkPaidModal && markPaidBill && (
+        <div className="modal-overlay" onClick={closeMarkPaidModal}>
+          <div className="modal-content mark-paid-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Mark Payment - {markPaidBill.title}</h3>
+              <button className="close-btn" onClick={closeMarkPaidModal}>✖</button>
+            </div>
+            
+            <div className="modal-body">
+              <p className="modal-description">
+                Record a manual payment for this bill. Select which members have paid and enter the payment details.
+              </p>
+
+              <div className="form-group">
+                <label>Payment Amount</label>
+                <input
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  step="0.01"
+                  min="0"
+                  placeholder="Enter amount"
+                  className="form-input"
+                />
+                <span className="helper-text">Bill amount: {formatCurrency(markPaidBill.amount)}</span>
+              </div>
+
+              <div className="form-group">
+                <label>Payment Method</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="form-input"
+                >
+                  <option value="cash">💵 Cash</option>
+                  <option value="check">📝 Check</option>
+                  <option value="bank_transfer">🏦 Bank Transfer</option>
+                  <option value="credit_card">💳 Credit Card</option>
+                  <option value="debit_card">💳 Debit Card</option>
+                  <option value="paypal">🅿️ PayPal</option>
+                  <option value="venmo">📱 Venmo</option>
+                  <option value="zelle">⚡ Zelle</option>
+                  <option value="other">📋 Other</option>
+                </select>
+                <span className="helper-text">How was this payment received?</span>
+              </div>
+
+              <div className="form-group">
+                <label>Payment Notes (optional)</label>
+                <textarea
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  placeholder="Add any notes about this payment..."
+                  className="form-textarea"
+                  rows="3"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Select Members Who Paid</label>
+                <div className="member-selection-actions">
+                  <button 
+                    type="button"
+                    className="btn btn-small btn-secondary"
+                    onClick={selectAllPayers}
+                  >
+                    Select All
+                  </button>
+                  <button 
+                    type="button"
+                    className="btn btn-small btn-secondary"
+                    onClick={deselectAllPayers}
+                  >
+                    Deselect All
+                  </button>
+                  <span className="selection-count">
+                    {selectedPayerIds.length} selected
+                  </span>
+                </div>
+
+                <div className="members-selection-list">
+                  {billMembers[markPaidBill.id] && billMembers[markPaidBill.id].length > 0 ? (
+                    billMembers[markPaidBill.id].map(member => {
+                      const hasPaid = markPaidBill.payments?.some(p => p.memberId === member.uid);
+                      
+                      return (
+                        <div key={member.uid} className="member-selection-item">
+                          <label className="checkbox-label">
+                            <input
+                              type="checkbox"
+                              checked={selectedPayerIds.includes(member.uid)}
+                              onChange={() => togglePayerSelection(member.uid)}
+                            />
+                            <div className="member-selection-info">
+                              <span className="member-selection-name">
+                                {member.name || member.email}
+                                {hasPaid && <span className="paid-badge">✅ Already Paid</span>}
+                              </span>
+                              <span className="member-selection-email">{member.email}</span>
+                            </div>
+                          </label>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="empty-state">No members assigned to this bill</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button 
+                  className="btn btn-secondary"
+                  onClick={closeMarkPaidModal}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="btn btn-success"
+                  onClick={markAsPaid}
+                  disabled={selectedPayerIds.length === 0 || !paymentAmount}
+                >
+                  Record Payment
+                </button>
+              </div>
             </div>
           </div>
         </div>
