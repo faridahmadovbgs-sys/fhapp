@@ -37,18 +37,26 @@ const MemberPayments = () => {
   // Fetch organizations
   useEffect(() => {
     const fetchOrganizations = async () => {
-      if (!user?.id) return;
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
       
       try {
+        setLoading(true);
         const result = await getUserMemberOrganizations(user.id);
         setOrganizations(result.organizations);
         
         if (result.organizations.length > 0 && !selectedOrg) {
           setSelectedOrg(result.organizations[0]);
+        } else if (result.organizations.length === 0) {
+          // No organizations, stop loading
+          setLoading(false);
         }
       } catch (error) {
         console.error('Error fetching organizations:', error);
         setError('Failed to load organizations');
+        setLoading(false);
       }
     };
     
