@@ -9,7 +9,7 @@ import {
 import './MemberPayments.css';
 
 const MemberPayments = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [bills, setBills] = useState([]);
@@ -274,7 +274,7 @@ const MemberPayments = () => {
     bill.paymentStatus?.paid
   );
 
-  if (loading) {
+  if (authLoading || loading) {
     return <div className="member-payments"><p>Loading...</p></div>;
   }
 
