@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import './Home.css';
 
 const Home = ({ data }) => {
   const { user } = useAuth();
   const [userRole, setUserRole] = useState(null);
+  const [announcements, setAnnouncements] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -26,6 +28,37 @@ const Home = ({ data }) => {
     fetchUserRole();
   }, [user]);
 
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      if (!db) return;
+      
+      try {
+        setLoading(true);
+        const announcementsRef = collection(db, 'announcements');
+        const q = query(
+          announcementsRef,
+          where('active', '==', true),
+          orderBy('createdAt', 'desc'),
+          limit(5)
+        );
+        
+        const snapshot = await getDocs(q);
+        const announcementsList = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        setAnnouncements(announcementsList);
+      } catch (error) {
+        console.error('Error fetching announcements:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnnouncements();
+  }, []);
+
   return (
     <div>
       <div className="hero">
@@ -41,6 +74,35 @@ const Home = ({ data }) => {
           <p>Message: {data.message || 'Server is running'}</p>
         </div>
       )}
+
+      {/* Announcements Section */}
+      <div className="announcements-section">
+        <h2>📢 Announcements</h2>
+        {loading ? (
+          <p className="loading-text">Loading announcements...</p>
+        ) : announcements.length > 0 ? (
+          <div className="announcements-list">
+            {announcements.map((announcement) => (
+              <div key={announcement.id} className={`announcement-card ${announcement.priority || 'normal'}`}>
+                <div className="announcement-header">
+                  <h3>{announcement.title}</h3>
+                  <span className="announcement-date">
+                    {announcement.createdAt?.toDate?.()?.toLocaleDateString() || 'Recent'}
+                  </span>
+                </div>
+                <p className="announcement-content">{announcement.content}</p>
+                {announcement.author && (
+                  <p className="announcement-author">— {announcement.author}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="no-announcements">
+            <p>No announcements at this time.</p>
+          </div>
+        )}
+      </div>
 
       <div className="features">
         <div className="feature">

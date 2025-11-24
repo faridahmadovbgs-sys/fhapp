@@ -92,6 +92,9 @@ const Header = ({ user }) => {
             <PermissionGuard requiredPage="admin">
               <li><Link to="/admin" onClick={closeMenu}>Admin Panel</Link></li>
             </PermissionGuard>
+            <PermissionGuard requiredRole="account_owner">
+              <li><Link to="/announcements" onClick={closeMenu}>📢 Announcements</Link></li>
+            </PermissionGuard>
             <PermissionGuard requiredPage="invitations">
               <li><Link to="/invitations" onClick={closeMenu}>📤 Invite Team</Link></li>
             </PermissionGuard>

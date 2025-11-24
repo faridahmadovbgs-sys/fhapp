@@ -113,7 +113,8 @@ const rolePermissions = {
       reports: false,
       settings: false,
       invitations: true,
-      billing: true
+      billing: true,
+      account_owner: true
     },
     actions: {
       create_user: false,

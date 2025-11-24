@@ -88,5 +88,13 @@ service cloud.firestore {
       allow update: if isSignedIn() && request.auth.uid == resource.data.uploadedBy;
       allow delete: if isSignedIn() && (request.auth.uid == resource.data.uploadedBy);
     }
+    
+    // Announcements - all authenticated users can read, only account owners can create/update/delete
+    match /announcements/{announcementId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
   }
 }

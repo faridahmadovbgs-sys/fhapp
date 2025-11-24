@@ -22,6 +22,7 @@ import MemberRegistration from './pages/MemberRegistration';
 import StorageTest from './components/StorageTest';
 import PersonalDocuments from './pages/PersonalDocuments';
 import OrganizationDocuments from './pages/OrganizationDocuments';
+import AnnouncementManager from './pages/AnnouncementManager';
 import apiService from './services/apiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthorizationProvider } from './contexts/AuthorizationContext';
@@ -72,6 +73,14 @@ function MainApp() {
               element={
                 <PermissionProtectedRoute requiredPage="admin">
                   <AdminPanel />
+                </PermissionProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/announcements" 
+              element={
+                <PermissionProtectedRoute requiredRole="account_owner">
+                  <AnnouncementManager />
                 </PermissionProtectedRoute>
               } 
             />
