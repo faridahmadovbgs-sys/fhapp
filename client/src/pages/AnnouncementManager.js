@@ -62,6 +62,12 @@ const AnnouncementManager = () => {
         setMessage('Announcement updated successfully!');
       } else {
         // Create new announcement
+        console.log('Creating new announcement with data:', {
+          ...formData,
+          createdAt: Timestamp.now(),
+          author: user.name || user.email,
+          authorId: user.id || user.uid
+        });
         const docRef = await addDoc(collection(db, 'announcements'), {
           ...formData,
           createdAt: Timestamp.now(),

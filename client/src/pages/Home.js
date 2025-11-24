@@ -30,27 +30,64 @@ const Home = ({ data }) => {
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
-      if (!db) return;
+      if (!db) {
+        console.log('No db instance available');
+        return;
+      }
       
       try {
         setLoading(true);
+        console.log('Fetching announcements...');
         const announcementsRef = collection(db, 'announcements');
-        const q = query(
+        
+        // First try a simple query without composite index requirement
+        console.log('Trying simple query first...');
+        const simpleQuery = query(
           announcementsRef,
-          where('active', '==', true),
           orderBy('createdAt', 'desc'),
-          limit(5)
+          limit(10)
         );
         
-        const snapshot = await getDocs(q);
-        const announcementsList = snapshot.docs.map(doc => ({
+        const simpleSnapshot = await getDocs(simpleQuery);
+        console.log('Simple query result:', simpleSnapshot.docs.length, 'docs');
+        
+        // Filter active announcements in memory
+        const allAnnouncements = simpleSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
         
-        setAnnouncements(announcementsList);
+        const activeAnnouncements = allAnnouncements.filter(ann => ann.active === true);
+        console.log('Active announcements after filtering:', activeAnnouncements.length);
+        
+        // If simple query works, try the composite query
+        try {
+          console.log('Trying composite query...');
+          const q = query(
+            announcementsRef,
+            where('active', '==', true),
+            orderBy('createdAt', 'desc'),
+            limit(5)
+          );
+          
+          const snapshot = await getDocs(q);
+          console.log('Composite query successful:', snapshot.docs.length, 'docs');
+          
+          const announcementsList = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          
+          setAnnouncements(announcementsList);
+        } catch (compositeError) {
+          console.warn('Composite query failed, using filtered results:', compositeError.message);
+          setAnnouncements(activeAnnouncements.slice(0, 5));
+        }
+        
       } catch (error) {
         console.error('Error fetching announcements:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
       } finally {
         setLoading(false);
       }

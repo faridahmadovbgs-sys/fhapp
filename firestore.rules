@@ -92,9 +92,9 @@ service cloud.firestore {
     // Announcements - all authenticated users can read, only account owners can create/update/delete
     match /announcements/{announcementId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow create: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'account_owner';
+      allow update: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'account_owner';
+      allow delete: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'account_owner';
     }
   }
 }
