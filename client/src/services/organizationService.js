@@ -1,7 +1,6 @@
 import { db } from '../config/firebase';
 import { 
   collection, 
-  addDoc, 
   serverTimestamp, 
   query, 
   where, 
@@ -13,9 +12,9 @@ import {
 } from 'firebase/firestore';
 
 // Create a new organization
-export const createOrganization = async (ownerId, ownerEmail, organizationName) => {
+export const createOrganization = async (ownerId, ownerEmail, organizationName, ein = null) => {
   try {
-    console.log('🏢 Creating organization:', { ownerId, organizationName });
+    console.log('🏢 Creating organization:', { ownerId, organizationName, ein });
     
     if (!db) {
       throw new Error('Firebase Firestore not available');
@@ -28,6 +27,7 @@ export const createOrganization = async (ownerId, ownerEmail, organizationName) 
     const orgData = {
       id: orgId,
       name: organizationName,
+      ein: ein,
       ownerId: ownerId,
       ownerEmail: ownerEmail,
       members: [ownerId], // Owner is automatically a member

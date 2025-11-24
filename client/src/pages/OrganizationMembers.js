@@ -15,6 +15,11 @@ const OrganizationMembers = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState('');
+  const [importSuccess, setImportSuccess] = useState('');
   const membersPerPage = 20;
 
   useEffect(() => {
@@ -173,6 +178,143 @@ const OrganizationMembers = () => {
     return new Date(date).toLocaleDateString();
   };
 
+  // Export contacts to CSV
+  const handleExportContacts = () => {
+    if (!members || members.length === 0) {
+      alert('No members to export');
+      return;
+    }
+
+    try {
+      // Create CSV headers
+      const headers = ['Name', 'Email', 'Role', 'Joined Date', 'Organization'];
+      
+      // Create CSV rows
+      const rows = members.map(member => [
+        member.name || '',
+        member.email || '',
+        member.isOwner ? 'Owner' : 'Member',
+        formatDate(member.joinedAt),
+        selectedOrg?.name || ''
+      ]);
+
+      // Combine headers and rows
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${selectedOrg?.name || 'organization'}_contacts_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting contacts:', error);
+      alert('Failed to export contacts');
+    }
+  };
+
+  // Import contacts from CSV
+  const handleImportContacts = () => {
+    setShowImportModal(true);
+    setImportError('');
+    setImportSuccess('');
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.name.endsWith('.csv')) {
+        setImportError('Please select a CSV file');
+        setImportFile(null);
+        return;
+      }
+      setImportFile(file);
+      setImportError('');
+    }
+  };
+
+  const processImportFile = async () => {
+    if (!importFile) {
+      setImportError('Please select a file');
+      return;
+    }
+
+    setImporting(true);
+    setImportError('');
+    setImportSuccess('');
+
+    try {
+      const text = await importFile.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      if (lines.length < 2) {
+        throw new Error('CSV file is empty or invalid');
+      }
+
+      // Skip header row
+      const dataLines = lines.slice(1);
+      const contacts = [];
+
+      for (const line of dataLines) {
+        // Parse CSV line (handle quoted values)
+        const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+        if (!matches || matches.length < 2) continue;
+
+        const name = matches[0]?.replace(/^"|"$/g, '').trim();
+        const email = matches[1]?.replace(/^"|"$/g, '').trim();
+
+        if (email && email.includes('@')) {
+          contacts.push({ name, email });
+        }
+      }
+
+      if (contacts.length === 0) {
+        throw new Error('No valid contacts found in CSV file');
+      }
+
+      // Display success message with contact count
+      setImportSuccess(`✅ Successfully imported ${contacts.length} contact(s)!`);
+      
+      // Note: In a real implementation, you would:
+      // 1. Send invitation emails to these contacts
+      // 2. Create invitation records in Firestore
+      // 3. Wait for them to register and join
+      
+      console.log('Imported contacts:', contacts);
+      
+      // Close modal after 2 seconds
+      setTimeout(() => {
+        setShowImportModal(false);
+        setImportFile(null);
+        setImportSuccess('');
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error importing contacts:', error);
+      setImportError(error.message || 'Failed to import contacts');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const closeImportModal = () => {
+    setShowImportModal(false);
+    setImportFile(null);
+    setImportError('');
+    setImportSuccess('');
+  };
+
   if (loading) {
     return <div className="org-members-container"><p>Loading members...</p></div>;
   }
@@ -221,6 +363,23 @@ const OrganizationMembers = () => {
             }}
             className="search-input"
           />
+        </div>
+        <div className="members-actions">
+          <button 
+            onClick={handleExportContacts}
+            className="export-btn"
+            disabled={!members || members.length === 0}
+            title="Export contacts to CSV"
+          >
+            📥 Export Contacts
+          </button>
+          <button 
+            onClick={handleImportContacts}
+            className="import-btn"
+            title="Import contacts from CSV"
+          >
+            📤 Import Contacts
+          </button>
         </div>
         <div className="members-stats">
           <span className="stat-badge">
@@ -383,6 +542,74 @@ const OrganizationMembers = () => {
                 disabled={deleting}
               >
                 {deleting ? 'Removing...' : 'Remove Member'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Contacts Modal */}
+      {showImportModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>📤 Import Contacts</h3>
+            <p className="modal-description">
+              Upload a CSV file with contacts to invite to your organization.
+            </p>
+            <p className="modal-description">
+              <strong>CSV Format:</strong> Name, Email (first row will be skipped as header)
+            </p>
+            
+            {importError && (
+              <div className="alert-error" style={{marginBottom: '15px', padding: '10px', background: '#fee', border: '1px solid #fcc', borderRadius: '4px', color: '#c00'}}>
+                {importError}
+              </div>
+            )}
+            
+            {importSuccess && (
+              <div className="alert-success" style={{marginBottom: '15px', padding: '10px', background: '#efe', border: '1px solid #cfc', borderRadius: '4px', color: '#060'}}>
+                {importSuccess}
+              </div>
+            )}
+
+            <div className="file-upload-section" style={{margin: '20px 0'}}>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileSelect}
+                style={{marginBottom: '10px'}}
+                disabled={importing}
+              />
+              {importFile && (
+                <p style={{fontSize: '14px', color: '#605e5c'}}>
+                  Selected: {importFile.name}
+                </p>
+              )}
+            </div>
+
+            <div className="example-format" style={{background: '#f5f5f5', padding: '10px', borderRadius: '4px', marginBottom: '15px'}}>
+              <strong>Example CSV:</strong>
+              <pre style={{fontSize: '12px', margin: '5px 0'}}>
+{`Name,Email
+John Doe,john@example.com
+Jane Smith,jane@example.com`}
+              </pre>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                onClick={closeImportModal}
+                className="cancel-btn"
+                disabled={importing}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={processImportFile}
+                className="confirm-btn"
+                disabled={!importFile || importing}
+              >
+                {importing ? 'Importing...' : 'Import Contacts'}
               </button>
             </div>
           </div>

@@ -19,6 +19,9 @@ import Unauthorized from './pages/Unauthorized';
 import DemoPermissions from './pages/DemoPermissions';
 import AccountOwnerRegistration from './components/AccountOwnerRegistration';
 import MemberRegistration from './pages/MemberRegistration';
+import StorageTest from './components/StorageTest';
+import PersonalDocuments from './pages/PersonalDocuments';
+import OrganizationDocuments from './pages/OrganizationDocuments';
 import apiService from './services/apiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthorizationProvider } from './contexts/AuthorizationContext';
@@ -55,6 +58,7 @@ function MainApp() {
             <Route path="/" element={<Home data={data} />} />
             <Route path="/about" element={<About />} />
             <Route path="/demo-permissions" element={<DemoPermissions />} />
+            <Route path="/storage-test" element={<StorageTest />} />
             <Route 
               path="/registered-users" 
               element={
@@ -111,6 +115,18 @@ function MainApp() {
               path="/payments" 
               element={
                 <MemberPayments />
+              } 
+            />
+            <Route 
+              path="/documents" 
+              element={
+                <PersonalDocuments />
+              } 
+            />
+            <Route 
+              path="/org-documents" 
+              element={
+                <OrganizationDocuments />
               } 
             />
             <Route path="/unauthorized" element={<Unauthorized />} />

@@ -1,7 +1,7 @@
 {
   "name": "fhapp-fullstack",
   "version": "1.0.0",
-  "description": "Full-stack web application with role-based authorization system",
+  "description": "Integrant Platform - Enterprise organization management with billing, member management, document storage, and real-time collaboration",
   "scripts": {
     "install:client": "cd client && npm install",
     "install:server": "cd server && npm install", 
@@ -27,7 +27,7 @@
     "server"
   ],
   "keywords": ["fullstack", "react", "nodejs", "mongodb", "authorization", "rbac", "authentication"],
-  "author": "FHApp Development Team",
+  "author": "Farid Ahmadov",
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^7.6.0"

@@ -9,6 +9,8 @@ const Header = ({ user }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [photoURL, setPhotoURL] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const fetchUserPhoto = async () => {
@@ -18,7 +20,9 @@ const Header = ({ user }) => {
         const userDoc = await getDoc(doc(db, 'users', user.id));
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          setPhotoURL(userData.photoURL || userData.profilePictureUrl || null);
+          const newPhotoURL = userData.photoURL || userData.profilePictureUrl || null;
+          setPhotoURL(newPhotoURL);
+          console.log('Header: Loaded photo URL:', newPhotoURL ? 'Photo exists' : 'No photo');
         }
       } catch (error) {
         console.error('Error fetching user photo:', error);
@@ -26,7 +30,20 @@ const Header = ({ user }) => {
     };
 
     fetchUserPhoto();
-  }, [user]);
+    
+    // Listen for storage events to refresh photo when updated
+    const handleStorageChange = () => {
+      console.log('Header: Storage change detected, refreshing photo...');
+      setRefreshKey(prev => prev + 1);
+      fetchUserPhoto();
+    };
+
+    window.addEventListener('profilePhotoUpdated', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('profilePhotoUpdated', handleStorageChange);
+    };
+  }, [user, refreshKey]);
 
   const handleLogout = () => {
     logout();
@@ -36,31 +53,56 @@ const Header = ({ user }) => {
     navigate('/profile');
   };
 
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+  };
+
   return (
     <header>
-      <div className="container">
-        <nav>
+      <div className="header-container">
+        <div className="brand-section">
+          <div className="brand-logo">
+            <div className="logo-icon">I</div>
+            <span className="brand-name">Integrant Platform</span>
+          </div>
+        </div>
+
+        <button className="menu-toggle" onClick={toggleMenu} aria-label="Toggle menu">
+          <span className={`hamburger ${isMenuOpen ? 'open' : ''}`}>
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </button>
+
+        <nav className={isMenuOpen ? 'nav-open' : ''}>
           <ul>
-            <li><Link to="/">Home</Link></li>
-            <li><Link to="/about">About</Link></li>
-            <li><Link to="/chat">💬 Chat</Link></li>
-            <li><Link to="/demo-permissions">Permissions Demo</Link></li>
+            <li><Link to="/" onClick={closeMenu}>🏠 Home</Link></li>
+            <li><Link to="/chat" onClick={closeMenu}>💬 Chat</Link></li>
+            <li><Link to="/documents" onClick={closeMenu}>📁 My Documents</Link></li>
+            <li><Link to="/org-documents" onClick={closeMenu}>🏢 Org Documents</Link></li>
+            <li><Link to="/demo-permissions" onClick={closeMenu}>🔐 Permissions Demo</Link></li>
             <PermissionGuard requiredPage="admin">
-              <li><Link to="/registered-users">Users</Link></li>
+              <li><Link to="/registered-users" onClick={closeMenu}>Users</Link></li>
             </PermissionGuard>
             <PermissionGuard requiredPage="admin">
-              <li><Link to="/admin">Admin Panel</Link></li>
+              <li><Link to="/admin" onClick={closeMenu}>Admin Panel</Link></li>
             </PermissionGuard>
             <PermissionGuard requiredPage="invitations">
-              <li><Link to="/invitations">📤 Invite Team</Link></li>
+              <li><Link to="/invitations" onClick={closeMenu}>📤 Invite Team</Link></li>
             </PermissionGuard>
             <PermissionGuard requiredPage="invitations">
-              <li><Link to="/members">👥 Members</Link></li>
+              <li><Link to="/members" onClick={closeMenu}>👥 Members</Link></li>
             </PermissionGuard>
             <PermissionGuard requiredPage="billing">
-              <li><Link to="/billing">💰 Billing</Link></li>
+              <li><Link to="/billing" onClick={closeMenu}>💰 Billing</Link></li>
             </PermissionGuard>
-            <li><Link to="/payments">💳 Payments</Link></li>
+            <li><Link to="/payments" onClick={closeMenu}>💳 Payments</Link></li>
+            <li><Link to="/about" onClick={closeMenu}>ℹ️ About</Link></li>
           </ul>
         </nav>
         

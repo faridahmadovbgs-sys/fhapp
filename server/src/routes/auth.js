@@ -27,7 +27,19 @@ router.post('/register', [
       });
     }
 
-    const { email, password, name } = req.body;
+    const { email, password, name, organizationName, ein } = req.body;
+
+    // Validate EIN format if provided
+    if (ein) {
+      const einPattern = /^\d{2}-?\d{7}$/;
+      const cleanEin = ein.replace(/-/g, '');
+      if (!einPattern.test(cleanEin)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid EIN format. Must be XX-XXXXXXX (9 digits)'
+        });
+      }
+    }
 
     // Check if database is connected
     if (mongoose.connection.readyState !== 1) {
@@ -54,7 +66,9 @@ router.post('/register', [
       name: name || email.split('@')[0], // Use email prefix as default name
       email,
       password,
-      role: isFirstUser ? 'admin' : 'user' // First user becomes admin
+      role: isFirstUser ? 'admin' : 'user', // First user becomes admin
+      organizationName: organizationName || null,
+      ein: ein || null
     });
 
     await user.save();

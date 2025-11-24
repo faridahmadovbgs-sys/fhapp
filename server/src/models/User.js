@@ -29,6 +29,19 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'moderator', 'admin'],
     default: 'user'
   },
+  organizationName: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Organization name cannot be more than 100 characters']
+  },
+  ein: {
+    type: String,
+    trim: true,
+    match: [
+      /^\d{2}-?\d{7}$/,
+      'Please provide a valid EIN format (XX-XXXXXXX)'
+    ]
+  },
   permissions: {
     type: Object,
     default: null // Will use role-based permissions if null

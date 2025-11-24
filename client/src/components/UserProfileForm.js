@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import ProfilePhotoUpload from './ProfilePhotoUpload';
+import ProfilePhotoUploadFree from './ProfilePhotoUploadFree';
 import './UserProfileForm.css';
 
 const UserProfileForm = () => {
@@ -47,6 +47,10 @@ const UserProfileForm = () => {
       setCurrentPhotoURL(photoURL);
       setMessage(photoURL ? '✅ Profile picture updated!' : '✅ Profile picture removed!');
       setTimeout(() => setMessage(''), 3000);
+      
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('profilePhotoUpdated', { detail: { photoURL } }));
+      console.log('Profile photo updated event dispatched');
     } catch (error) {
       console.error('Error updating profile picture:', error);
       setMessage('❌ Failed to update profile picture');
@@ -63,7 +67,7 @@ const UserProfileForm = () => {
       
       <div className="profile-section">
         <h4>Profile Photo</h4>
-        <ProfilePhotoUpload
+        <ProfilePhotoUploadFree
           userId={currentUser?.id}
           currentPhotoURL={currentPhotoURL}
           onPhotoUploaded={handlePhotoUploaded}

@@ -1,96 +1,131 @@
 .admin-panel {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 2rem 1.5rem;
+  min-height: calc(100vh - 70px);
 }
 
 .admin-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 20px;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid var(--gray-200);
 }
 
 .admin-header h1 {
-  color: #333;
+  color: var(--text-primary);
   margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .admin-tabs {
   display: flex;
-  gap: 10px;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .tab {
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  background: #f5f5f5;
-  color: #666;
-  border-radius: 5px;
+  padding: 0.625rem 1.25rem;
+  border: 2px solid var(--gray-300);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
+  font-weight: 500;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
 }
 
 .tab:hover {
-  background: #e9e9e9;
+  background: var(--gray-50);
+  border-color: var(--secondary-color);
+  color: var(--primary-color);
+  transform: translateY(-1px);
 }
 
 .tab.active {
-  background: #007bff;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
-  border-color: #007bff;
+  border-color: var(--secondary-color);
+  box-shadow: var(--shadow-md);
 }
 
 .access-denied {
   text-align: center;
-  padding: 50px;
-  background: #f8f9fa;
-  border-radius: 10px;
-  border: 1px solid #dee2e6;
+  padding: 4rem 2rem;
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  border: 2px solid var(--error-color);
+  box-shadow: var(--shadow-lg);
+  margin-top: 3rem;
 }
 
 .access-denied h2 {
-  color: #dc3545;
-  margin-bottom: 10px;
+  color: var(--error-color);
+  margin-bottom: 1rem;
+  font-size: 1.75rem;
+  font-weight: 600;
 }
 
 .access-denied p {
-  color: #6c757d;
-  font-size: 16px;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
 .alert {
-  padding: 12px 16px;
-  border-radius: 5px;
-  margin-bottom: 20px;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  margin-bottom: 1.5rem;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .alert-error {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+  background: rgba(220, 38, 38, 0.1);
+  color: var(--error-color);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.alert-error::before {
+  content: "⚠";
+  font-size: 1.25rem;
 }
 
 .alert-success {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
+  background: rgba(5, 150, 105, 0.1);
+  color: var(--success-color);
+  border: 1px solid rgba(5, 150, 105, 0.2);
+}
+
+.alert-success::before {
+  content: "✓";
+  font-size: 1.25rem;
+  font-weight: bold;
 }
 
 /* Users List Styles */
 .users-list h3 {
-  margin-bottom: 20px;
-  color: #333;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
 }
 
 .users-table {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
+  border: 1px solid var(--gray-200);
 }
 
 .users-table table {

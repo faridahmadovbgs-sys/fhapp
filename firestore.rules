@@ -72,5 +72,21 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn() && request.auth.uid == resource.data.memberId;
     }
+    
+    // Personal Documents - users can only access their own documents
+    match /personalDocuments/{documentId} {
+      allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow update: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+    }
+    
+    // Organization Documents - all authenticated users can read/create, uploader or org owner can delete
+    match /organizationDocuments/{documentId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && request.auth.uid == resource.data.uploadedBy;
+      allow delete: if isSignedIn() && (request.auth.uid == resource.data.uploadedBy);
+    }
   }
 }

@@ -1,25 +1,37 @@
-import React from 'react';
-import { usePermissions } from '../hooks/usePermissions';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import './Home.css';
 
 const Home = ({ data }) => {
-  const { isAdmin, userRole } = usePermissions();
+  const { user } = useAuth();
+  const [userRole, setUserRole] = useState(null);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (!user?.id || !db) return;
+
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.id));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setUserRole(userData.role || 'user');
+        }
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+      }
+    };
+
+    fetchUserRole();
+  }, [user]);
 
   return (
     <div>
       <div className="hero">
-        <h1>Welcome to Integrant</h1>
-        <p>A modern full-stack web application with role-based access control</p>
-        <div style={{ marginTop: '10px', padding: '10px', background: '#e9ecef', borderRadius: '5px' }}>
-          <strong>Your Current Role: </strong>
-          <span style={{ 
-            color: isAdmin() ? '#28a745' : userRole === 'moderator' ? '#ffc107' : '#007bff',
-            fontWeight: 'bold'
-          }}>
-            {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
-            {isAdmin() && ' 👑'}
-          </span>
-        </div>
+        <h1>Welcome to Integrant Platform</h1>
+        <p>Enterprise Organization Management</p>
+        <p className="hero-subtitle">Streamline your business operations with automated billing, secure document management, and seamless team collaboration</p>
       </div>
 
       {data && (
@@ -32,18 +44,37 @@ const Home = ({ data }) => {
 
       <div className="features">
         <div className="feature">
-          <h3>React Frontend</h3>
-          <p>Modern React.js application with routing, components, and hooks for a responsive user interface.</p>
+          <h3>💰 Billing Management</h3>
+          <p>Create and manage bills, track payments, and handle subscription billing for your organization members with automated payment tracking.</p>
         </div>
         <div className="feature">
-          <h3>Node.js Backend</h3>
-          <p>Express.js server with RESTful API endpoints, middleware, and proper error handling.</p>
+          <h3>👥 Team Collaboration</h3>
+          <p>Invite members, manage roles and permissions, share documents, and communicate in real-time with built-in chat functionality.</p>
         </div>
         <div className="feature">
-          <h3>MongoDB Database</h3>
-          <p>NoSQL database integration with Mongoose ODM for flexible data modeling and operations.</p>
+          <h3>📁 Document Storage</h3>
+          <p>Securely store and share personal and organization-wide documents with categorization, search, and easy access control.</p>
         </div>
       </div>
+
+      {user && (
+        <div className="user-info-section">
+          <p className="user-greeting">
+            Logged in as: <strong>{user.name || user.email}</strong>
+          </p>
+          {userRole && (
+            <p className="user-role">
+              Account Type: <strong className={`role-${userRole}`}>
+                {userRole === 'account_owner' ? '👑 Account Owner' : 
+                 userRole === 'admin' ? '⚙️ Administrator' : 
+                 userRole === 'moderator' ? '🛡️ Moderator' : 
+                 userRole === 'member' ? '👤 Member' : 
+                 '👤 User'}
+              </strong>
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 };

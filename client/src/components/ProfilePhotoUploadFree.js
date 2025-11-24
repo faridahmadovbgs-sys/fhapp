@@ -1,15 +1,20 @@
 import React, { useState, useRef } from 'react';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../config/firebase';
 import './ProfilePhotoUpload.css';
 
-const ProfilePhotoUpload = ({ userId, currentPhotoURL, onPhotoUploaded }) => {
+/**
+ * Profile Photo Upload - FREE VERSION
+ * Stores compressed images as base64 strings in Firestore
+ * No Firebase Storage required - completely free!
+ * 
+ * Max size: ~100KB per image (fits within Firestore 1MB document limit)
+ */
+const ProfilePhotoUploadFree = ({ userId, currentPhotoURL, onPhotoUploaded }) => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [preview, setPreview] = useState(currentPhotoURL || null);
   const fileInputRef = useRef(null);
 
-  const compressImage = (file) => {
+  const compressImageToBase64 = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -20,12 +25,12 @@ const ProfilePhotoUpload = ({ userId, currentPhotoURL, onPhotoUploaded }) => {
         
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_SIZE = 200;
+          const MAX_SIZE = 150; // Smaller for base64 storage
           
           let width = img.width;
           let height = img.height;
           
-          // Calculate new dimensions
+          // Calculate new dimensions (keep square ratio)
           if (width > height) {
             if (width > MAX_SIZE) {
               height *= MAX_SIZE / width;
@@ -44,23 +49,23 @@ const ProfilePhotoUpload = ({ userId, currentPhotoURL, onPhotoUploaded }) => {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
           
-          // Convert to blob with quality compression
-          canvas.toBlob(
-            (blob) => {
-              if (blob.size > 500000) { // 500KB limit
-                // Further reduce quality if still too large
-                canvas.toBlob(
-                  (smallerBlob) => resolve(smallerBlob),
-                  'image/jpeg',
-                  0.6
-                );
-              } else {
-                resolve(blob);
-              }
-            },
-            'image/jpeg',
-            0.8
-          );
+          // Try different quality levels to keep size small
+          let quality = 0.7;
+          let base64String = canvas.toDataURL('image/jpeg', quality);
+          
+          // If still too large, reduce quality further
+          while (base64String.length > 100000 && quality > 0.1) {
+            quality -= 0.1;
+            base64String = canvas.toDataURL('image/jpeg', quality);
+          }
+          
+          console.log('📦 Compressed image size:', Math.round(base64String.length / 1024), 'KB');
+          
+          if (base64String.length > 150000) {
+            reject(new Error('Image too large even after compression. Try a smaller image.'));
+          } else {
+            resolve(base64String);
+          }
         };
         
         img.onerror = () => reject(new Error('Failed to load image'));
@@ -90,52 +95,30 @@ const ProfilePhotoUpload = ({ userId, currentPhotoURL, onPhotoUploaded }) => {
       setUploading(true);
       setError('');
 
-      console.log('🔄 Starting upload process...');
+      console.log('🔄 Starting upload process (FREE version - no storage needed)...');
       
-      // Check if storage is available
-      if (!storage) {
-        throw new Error('Firebase Storage is not configured');
-      }
+      // Compress image to base64
+      console.log('📦 Compressing image to base64...');
+      const base64String = await compressImageToBase64(file);
+      console.log('✅ Image compressed to base64 string');
+      
+      // Set preview
+      setPreview(base64String);
 
-      // Compress image
-      console.log('📦 Compressing image...');
-      const compressedBlob = await compressImage(file);
-      console.log('✅ Image compressed:', compressedBlob.size, 'bytes');
-      
-      // Create preview
-      const previewURL = URL.createObjectURL(compressedBlob);
-      setPreview(previewURL);
-
-      // Upload to Firebase Storage
-      console.log('☁️ Uploading to Firebase Storage...');
-      const storageRef = ref(storage, `profile-pictures/${userId}/${Date.now()}.jpg`);
-      const uploadResult = await uploadBytes(storageRef, compressedBlob);
-      console.log('✅ Upload complete:', uploadResult);
-      
-      // Get download URL
-      console.log('🔗 Getting download URL...');
-      const downloadURL = await getDownloadURL(storageRef);
-      console.log('✅ Download URL obtained:', downloadURL);
-      
-      // Call parent callback
+      // Call parent callback with base64 string
       if (onPhotoUploaded) {
-        console.log('💾 Saving to database...');
-        await onPhotoUploaded(downloadURL);
-        console.log('✅ Photo saved successfully!');
+        console.log('💾 Saving to Firestore...');
+        await onPhotoUploaded(base64String);
+        console.log('✅ Photo saved successfully (stored in Firestore)!');
       }
 
       setUploading(false);
     } catch (error) {
       console.error('❌ Error uploading photo:', error);
-      console.error('Error details:', error.code, error.message);
       
       let errorMessage = 'Failed to upload photo. ';
-      if (error.code === 'storage/unauthorized') {
-        errorMessage += 'Not authorized. Check Firebase Storage rules.';
-      } else if (error.code === 'storage/unauthenticated') {
-        errorMessage += 'Please log in first.';
-      } else if (error.message.includes('not configured')) {
-        errorMessage += 'Storage is not configured properly.';
+      if (error.message.includes('too large')) {
+        errorMessage += 'Image is too large even after compression. Try a smaller image or crop it first.';
       } else {
         errorMessage += error.message || 'Please try again.';
       }
@@ -183,7 +166,7 @@ const ProfilePhotoUpload = ({ userId, currentPhotoURL, onPhotoUploaded }) => {
           disabled={uploading}
           className="btn-upload-photo"
         >
-          {uploading ? 'Uploading...' : preview ? 'Change Photo' : 'Upload Photo'}
+          {uploading ? 'Processing...' : preview ? 'Change Photo' : 'Upload Photo'}
         </button>
         
         {preview && !uploading && (
@@ -200,10 +183,10 @@ const ProfilePhotoUpload = ({ userId, currentPhotoURL, onPhotoUploaded }) => {
       {error && <div className="upload-error">{error}</div>}
       
       <div className="upload-info">
-        Max size: 5MB • Will be resized to 200x200px
+        ✅ FREE - No storage costs • Max size: 5MB • Auto-resized to 150x150px
       </div>
     </div>
   );
 };
 
-export default ProfilePhotoUpload;
+export default ProfilePhotoUploadFree;

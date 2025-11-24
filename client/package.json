@@ -1,6 +1,8 @@
 {
   "name": "integrant-client",
   "version": "1.0.0",
+  "description": "Integrant Platform - Enterprise organization management frontend",
+  "author": "Farid Ahmadov",
   "private": true,
   "homepage": "/",
   "dependencies": {

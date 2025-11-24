@@ -14,6 +14,7 @@ const AccountOwnerRegistration = () => {
     password: '',
     confirmPassword: '',
     organizationName: '',
+    ein: '',
     acceptTerms: false
   });
   const [loading, setLoading] = useState(false);
@@ -89,6 +90,16 @@ const AccountOwnerRegistration = () => {
       setError('Organization name is required');
       return false;
     }
+    if (!formData.ein.trim()) {
+      setError('EIN (Employer Identification Number) is required');
+      return false;
+    }
+    // Validate EIN format (XX-XXXXXXX)
+    const einPattern = /^\d{2}-?\d{7}$/;
+    if (!einPattern.test(formData.ein.replace(/-/g, ''))) {
+      setError('EIN must be in format XX-XXXXXXX (9 digits)');
+      return false;
+    }
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters');
       return false;
@@ -150,6 +161,7 @@ const AccountOwnerRegistration = () => {
       // Set account owner role in database and store organization metadata
       const metadata = {
         organizationName: formData.organizationName,
+        ein: formData.ein,
         isAccountOwner: true,
         accountCreatedAt: new Date(),
         subscriptionStatus: 'trial'
@@ -169,7 +181,8 @@ const AccountOwnerRegistration = () => {
       const orgResult = await createOrganization(
         userId,
         formData.email,
-        formData.organizationName
+        formData.organizationName,
+        formData.ein
       );
 
       console.log('✅ Organization created:', orgResult);
@@ -291,6 +304,21 @@ Share this link with team members so they can join your organization. You can vi
               placeholder="Enter your organization name"
               required
               disabled={loading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="ein">EIN (Employer Identification Number)</label>
+            <input
+              type="text"
+              id="ein"
+              name="ein"
+              value={formData.ein}
+              onChange={handleChange}
+              placeholder="XX-XXXXXXX (e.g., 12-3456789)"
+              required
+              disabled={loading}
+              maxLength="10"
             />
           </div>
 

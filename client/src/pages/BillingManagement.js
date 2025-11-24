@@ -628,7 +628,7 @@ const BillingManagement = () => {
                   </div>
 
                   <div className="form-group">
-                    <label>Recurring Day of Month (1-31)</label>
+                    <label>Recurring Day of Month (1-28)</label>
                     <input
                       type="number"
                       name="recurringDayOfMonth"
@@ -636,7 +636,7 @@ const BillingManagement = () => {
                       onChange={handleChange}
                       placeholder="e.g., 10 for 10th of each month"
                       min="1"
-                      max="31"
+                      max="28"
                     />
                     <small className="helper-text">
                       Bill will be due on this day each billing period
