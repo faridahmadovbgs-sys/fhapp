@@ -640,3 +640,11 @@
     font-size: 0.85rem;
   }
 }
+
+/* Optional field styling */
+.optional {
+  color: var(--text-secondary);
+  font-size: 0.85em;
+  font-weight: normal;
+  margin-left: 4px;
+}

@@ -90,16 +90,6 @@ const AccountOwnerRegistration = () => {
       setError('Organization name is required');
       return false;
     }
-    if (!formData.ein.trim()) {
-      setError('EIN (Employer Identification Number) is required');
-      return false;
-    }
-    // Validate EIN format (XX-XXXXXXX)
-    const einPattern = /^\d{2}-?\d{7}$/;
-    if (!einPattern.test(formData.ein.replace(/-/g, ''))) {
-      setError('EIN must be in format XX-XXXXXXX (9 digits)');
-      return false;
-    }
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters');
       return false;
@@ -308,7 +298,7 @@ Share this link with team members so they can join your organization. You can vi
           </div>
 
           <div className="form-group">
-            <label htmlFor="ein">EIN (Employer Identification Number)</label>
+            <label htmlFor="ein">EIN (Employer Identification Number) <span className="optional">(Optional)</span></label>
             <input
               type="text"
               id="ein"
@@ -316,7 +306,6 @@ Share this link with team members so they can join your organization. You can vi
               value={formData.ein}
               onChange={handleChange}
               placeholder="XX-XXXXXXX (e.g., 12-3456789)"
-              required
               disabled={loading}
               maxLength="10"
             />
