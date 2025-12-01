@@ -1,6 +1,6 @@
 // Firebase configuration
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, setPersistence, browserSessionPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -35,6 +35,16 @@ try {
     
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
+    
+    // Set persistence to SESSION only (clears on browser close)
+    setPersistence(auth, browserSessionPersistence)
+      .then(() => {
+        console.log('✅ Firebase persistence set to SESSION only');
+      })
+      .catch((error) => {
+        console.error('⚠️ Error setting persistence:', error);
+      });
+    
     db = getFirestore(app);
     storage = getStorage(app);
     

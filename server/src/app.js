@@ -3,7 +3,10 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
+import authRouter from './routes/auth.js';
 import invitationsRouter from './routes/invitations.js';
+import usersRouter from './routes/users.js';
 
 // Load environment variables
 dotenv.config();
@@ -11,9 +14,23 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-console.log('🔥 Firebase-based FHApp Server');
-console.log('📱 Using Firebase for authentication and database');
-console.log('🎯 Authorization system integrated with frontend');
+console.log('🔥 FHApp Server with Firebase Auth + MongoDB');
+console.log('📱 Using Firebase for authentication and MongoDB for data storage');
+console.log('🎯 Full-stack integration: Auth + Database');
+
+// Connect to MongoDB
+const connectDB = async () => {
+  try {
+    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/integrant';
+    await mongoose.connect(mongoURI);
+    console.log('✅ Connected to MongoDB');
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error);
+    console.log('⚠️ Server will continue with limited functionality');
+  }
+};
+
+connectDB();
 
 // Middleware
 app.use(helmet()); // Security headers
@@ -27,41 +44,42 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
 // Health check route
 app.get('/api/health', (req, res) => {
+  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
   res.json({
     success: true,
     message: 'FHApp Server is running',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    database: 'Firebase',
-    status: 'healthy'
+    database: {
+      mongodb: dbStatus,
+      firebase: 'configured'
+    },
+    status: dbStatus === 'connected' ? 'healthy' : 'degraded'
   });
 });
 
-// API routes for Firebase integration
+// API routes
+app.use('/api/auth', authRouter); // Authentication routes (Firebase + MongoDB)
+app.use('/api/invitations', invitationsRouter);
+app.use('/api/users', usersRouter); // User management routes
+
+// Status route
 app.get('/api/status', (req, res) => {
   res.json({
     success: true,
-    message: 'Firebase-based authorization system ready',
+    message: 'Firebase Auth + MongoDB integration ready',
     features: {
       authentication: 'Firebase Auth',
-      database: 'Firebase Firestore',
+      database: 'MongoDB with Firebase Auth integration',
       authorization: 'Role-based permissions',
       frontend: 'React with Context API'
+    },
+    database: {
+      mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+      firebase: 'configured'
     }
   });
 });
-
-// Firebase user management endpoint (placeholder for Firebase integration)
-app.get('/api/users', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Firebase user management handled by frontend',
-    note: 'User permissions are managed through Firebase Firestore'
-  });
-});
-
-// Invitations API routes
-app.use('/api/invitations', invitationsRouter);
 
 // Error handling middleware
 app.use((error, req, res, next) => {

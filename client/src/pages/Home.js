@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import axios from 'axios';
 import './Home.css';
 
 const Home = ({ data }) => {
@@ -12,16 +13,33 @@ const Home = ({ data }) => {
 
   useEffect(() => {
     const fetchUserRole = async () => {
-      if (!user?.id || !db) return;
+      if (!user?.uid) return;
 
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.id));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setUserRole(userData.role || 'user');
+        // First try MongoDB backend API
+        try {
+          const response = await axios.get(`http://localhost:5000/api/users/uid/${user.uid}`);
+          if (response.data.success && response.data.data) {
+            setUserRole(response.data.data.role || 'user');
+            console.log('✅ User role fetched from MongoDB:', response.data.data.role);
+            return;
+          }
+        } catch (apiError) {
+          console.log('⚠️ MongoDB API not available, trying Firebase...', apiError.message);
+        }
+
+        // Fallback to Firebase if MongoDB fails
+        if (user?.id && db) {
+          const userDoc = await getDoc(doc(db, 'users', user.id));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserRole(userData.role || 'user');
+            console.log('✅ User role fetched from Firebase:', userData.role);
+          }
         }
       } catch (error) {
         console.error('Error fetching user role:', error);
+        setUserRole('user'); // Default to 'user' if all fails
       }
     };
 

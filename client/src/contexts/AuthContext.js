@@ -24,17 +24,19 @@ export const AuthProvider = ({ children }) => {
       if (firebaseUser) {
         const userData = {
           id: firebaseUser.uid,
+          uid: firebaseUser.uid,
           email: firebaseUser.email,
           name: firebaseUser.displayName,
           emailVerified: firebaseUser.emailVerified
         };
         setUser(userData);
-        // Store in localStorage for persistence across page reloads
-        localStorage.setItem('user', JSON.stringify(userData));
+        console.log('✅ User authenticated:', userData.email);
       } else {
         setUser(null);
+        // Clear all auth-related localStorage
         localStorage.removeItem('user');
         localStorage.removeItem('token');
+        console.log('🚫 User logged out');
       }
       setLoading(false);
     });

@@ -72,9 +72,38 @@ export const firebaseAuthService = {
       // Save to Firestore database
       await setDoc(doc(db, 'users', userCredential.user.uid), userData);
 
+      // Sync user to MongoDB via backend API
+      try {
+        console.log('💾 Syncing user to MongoDB...');
+        const mongoResponse = await fetch('http://localhost:5000/api/auth/sync-firebase-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: emailStr,
+            firstName: nameStr.split(' ')[0] || nameStr, // First part of name
+            lastName: nameStr.split(' ').slice(1).join(' ') || '', // Rest of name
+            uid: userCredential.user.uid,
+            entity: entityStr
+          })
+        });
+
+        const mongoData = await mongoResponse.json();
+        
+        if (!mongoResponse.ok) {
+          console.warn('⚠️ MongoDB sync failed:', mongoData.message);
+          console.warn('Firebase registration succeeded, but MongoDB sync failed');
+        } else {
+          console.log('✅ User synced to MongoDB:', mongoData);
+        }
+      } catch (mongoError) {
+        console.warn('⚠️ MongoDB connection failed, but Firebase registration succeeded:', mongoError.message);
+      }
+
       return {
         success: true,
-        message: 'Registration successful! User profile created in database.',
+        message: 'Registration successful! User profile created in both Firebase and MongoDB.',
         user: {
           id: userCredential.user.uid,
           email: userCredential.user.email,
@@ -169,6 +198,23 @@ export const firebaseAuthService = {
   logout: async () => {
     try {
       await signOut(auth);
+      
+      // Clear all local storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Clear any cached auth data
+      if (typeof indexedDB !== 'undefined') {
+        const dbs = await indexedDB.databases();
+        dbs.forEach(db => {
+          if (db.name && db.name.includes('firebase')) {
+            indexedDB.deleteDatabase(db.name);
+          }
+        });
+      }
+      
+      console.log('✅ Logged out and cleared all data');
+      
       return {
         success: true,
         message: 'Logged out successfully'

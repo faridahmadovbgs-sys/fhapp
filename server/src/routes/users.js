@@ -122,6 +122,89 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// GET /api/users/uid/:uid - Get user by Firebase UID
+router.get('/uid/:uid', async (req, res) => {
+  try {
+    const user = await User.findOne({ uid: req.params.uid });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        id: user._id,
+        uid: user.uid,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        organizationName: user.organizationName,
+        organizationId: user.organizationId,
+        isActive: user.isActive,
+        createdAt: user.createdAt
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// PATCH /api/users/uid/:uid - Update user by Firebase UID
+router.patch('/uid/:uid', async (req, res) => {
+  try {
+    const { organizationId, organizationName, ein } = req.body;
+    
+    const user = await User.findOne({ uid: req.params.uid });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Update fields if provided
+    if (organizationId !== undefined) user.organizationId = organizationId;
+    if (organizationName !== undefined) user.organizationName = organizationName;
+    if (ein !== undefined) user.ein = ein;
+
+    await user.save();
+
+    console.log(`✅ Updated user ${user.email} with organizationId: ${organizationId}`);
+
+    res.json({
+      success: true,
+      message: 'User updated successfully',
+      data: {
+        id: user._id,
+        uid: user.uid,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        organizationName: user.organizationName,
+        organizationId: user.organizationId,
+        ein: user.ein,
+        isActive: user.isActive
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error updating user:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 // GET /api/users/:id/permissions - Get user permissions
 router.get('/:id/permissions', async (req, res) => {
   try {

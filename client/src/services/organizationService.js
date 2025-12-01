@@ -222,13 +222,41 @@ export const getOrganizationMembers = async (organizationId) => {
   }
 };
 
+// Update organization information
+export const updateOrganization = async (organizationId, updateData) => {
+  try {
+    if (!db || !organizationId) {
+      throw new Error('Invalid parameters');
+    }
+
+    console.log('🔄 Updating organization:', organizationId, updateData);
+
+    const orgRef = doc(db, 'organizations', organizationId);
+    await updateDoc(orgRef, {
+      ...updateData,
+      updatedAt: serverTimestamp()
+    });
+
+    console.log('✅ Organization updated successfully');
+
+    return {
+      success: true,
+      message: 'Organization updated successfully'
+    };
+  } catch (error) {
+    console.error('❌ Error updating organization:', error);
+    throw error;
+  }
+};
+
 const organizationService = {
   createOrganization,
   getUserOrganizations,
   getUserMemberOrganizations,
   addMemberToOrganization,
   getOrganization,
-  getOrganizationMembers
+  getOrganizationMembers,
+  updateOrganization
 };
 
 export default organizationService;

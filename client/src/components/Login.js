@@ -11,7 +11,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [isRegister, setIsRegister] = useState(false);
+
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -46,22 +46,11 @@ const Login = () => {
         return;
       }
       
-      if (isRegister && (!formData.name || !formData.name.trim())) {
-        setError('Please enter your full name');
-        setLoading(false);
-        return;
-      }
+
       
       const firebaseAuthService = await import('../services/firebaseAuthService');
-      let data;
-
-      if (isRegister) {
-        data = await firebaseAuthService.default.register(formData.email, formData.password, formData.name, formData.entity);
-        setSuccess('Account created successfully! Check your email for verification.');
-      } else {
-        data = await firebaseAuthService.default.login(formData.email, formData.password);
-        setSuccess('Login successful! Redirecting...');
-      }
+      const data = await firebaseAuthService.default.login(formData.email, formData.password);
+      setSuccess('Login successful! Redirecting...');
 
       if (data.success) {
         // Firebase AuthContext will handle user state automatically via onAuthStateChanged
@@ -76,14 +65,6 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const toggleMode = () => {
-    setIsRegister(!isRegister);
-    setError('');
-    setSuccess('');
-    setIsForgotPassword(false);
-    setFormData({ name: '', entity: '', email: '', password: '' });
   };
 
   const handleForgotPassword = async (e) => {
@@ -133,16 +114,14 @@ const Login = () => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <h1 className="app-name">Integrant</h1>
+          <h1 className="app-name">Integrant Platform</h1>
           <h2>
-            {isForgotPassword ? 'Reset Password' : isRegister ? 'Register Account' : 'Welcome Back'}
+            {isForgotPassword ? 'Reset Password' : 'Welcome Back'}
           </h2>
           <p>
             {isForgotPassword 
               ? 'Enter your email to receive reset instructions'
-              : isRegister 
-                ? 'Join our full-stack application' 
-                : 'Sign in to continue'
+              : 'Sign in to continue'
             }
           </p>
         </div>
@@ -192,37 +171,6 @@ const Login = () => {
           </form>
         ) : (
           <form onSubmit={handleSubmit} className="login-form">
-            {isRegister && (
-            <div className="form-group">
-              <label htmlFor="name">Full Name</label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                placeholder="Enter your full name"
-                disabled={loading}
-              />
-            </div>
-          )}
-
-          {isRegister && (
-            <div className="form-group">
-              <label htmlFor="entity">Entity (Business or Trust)</label>
-              <input
-                type="text"
-                id="entity"
-                name="entity"
-                value={formData.entity}
-                onChange={handleChange}
-                placeholder="Enter business or trust name (optional)"
-                disabled={loading}
-              />
-            </div>
-          )}
-
           <div className="form-group">
             <label htmlFor="email">Email Address</label>
             <input
@@ -283,10 +231,10 @@ const Login = () => {
             {loading ? (
               <>
                 <span className="spinner"></span>
-                {isRegister ? 'Registering...' : 'Signing In...'}
+                Signing In...
               </>
             ) : (
-              isRegister ? 'Register' : 'Sign In'
+              'Sign In'
             )}
           </button>
           </form>
@@ -306,37 +254,26 @@ const Login = () => {
               </button>
             </p>
           ) : (
-            <>
-              <p>
-                {isRegister ? 'Already have an account? ' : "Don't have an account? "}
-                <button 
-                  type="button" 
-                  className="toggle-button"
-                  onClick={toggleMode}
-                  disabled={loading}
-                >
-                  {isRegister ? 'Sign In' : 'Register'}
-                </button>
-              </p>
-              {!isRegister && (
-                <p>
-                  <button 
-                    type="button" 
-                    className="forgot-password-button"
-                    onClick={toggleForgotPassword}
-                    disabled={loading}
-                  >
-                    Forgot your password?
-                  </button>
-                </p>
-              )}
-            </>
+            <p>
+              <button 
+                type="button" 
+                className="forgot-password-button"
+                onClick={toggleForgotPassword}
+                disabled={loading}
+              >
+                Forgot your password?
+              </button>
+            </p>
           )}
           
           <div className="register-options">
+            <p className="register-prompt">Don't have an account?</p>
             <p className="account-owner-link">
-              Want to create an organization? 
+              Create an organization: 
               <a href="/register/owner" className="owner-link"> Register as Account Owner</a>
+            </p>
+            <p className="member-info">
+              Members can join via invitation link from their organization
             </p>
           </div>
         </div>

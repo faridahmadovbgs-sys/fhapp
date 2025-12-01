@@ -21,8 +21,8 @@ service cloud.firestore {
       allow read: if isSignedIn();
       // Allow creation by any authenticated user
       allow create: if isSignedIn();
-      // Allow updates by authenticated users
-      allow update: if isSignedIn();
+      // Allow updates only by organization owner
+      allow update: if isSignedIn() && request.auth.uid == resource.data.ownerId;
       // Only owner can delete
       allow delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
     }

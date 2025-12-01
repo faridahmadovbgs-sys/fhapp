@@ -1,12 +1,11 @@
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
-  name: {
+  uid: {
     type: String,
-    required: [true, 'Name is required'],
-    trim: true,
-    maxlength: [50, 'Name cannot be more than 50 characters']
+    required: [true, 'Firebase UID is required'],
+    unique: true,
+    index: true
   },
   email: {
     type: String,
@@ -19,15 +18,26 @@ const userSchema = new mongoose.Schema({
       'Please provide a valid email'
     ]
   },
-  password: {
+  firstName: {
     type: String,
-    required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters']
+    required: [true, 'First name is required'],
+    trim: true,
+    maxlength: [50, 'First name cannot be more than 50 characters']
+  },
+  lastName: {
+    type: String,
+    required: [true, 'Last name is required'],
+    trim: true,
+    maxlength: [50, 'Last name cannot be more than 50 characters']
   },
   role: {
     type: String,
-    enum: ['user', 'moderator', 'admin'],
+    enum: ['user', 'moderator', 'admin', 'account_owner'],
     default: 'user'
+  },
+  organizationId: {
+    type: String,
+    default: null
   },
   organizationName: {
     type: String,
@@ -49,61 +59,37 @@ const userSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
-  },
-  resetPasswordToken: {
-    type: String,
-    default: null
-  },
-  resetPasswordExpires: {
-    type: Date,
-    default: null
   }
 }, {
   timestamps: true
 });
-
-// Hash password before saving
-userSchema.pre('save', async function(next) {
-  // Only hash the password if it has been modified (or is new)
-  if (!this.isModified('password')) return next();
-  
-  try {
-    // Hash password with cost of 12
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Instance method to check password
-userSchema.methods.matchPassword = async function(enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
-};
 
 // Static method to find user by email
 userSchema.statics.findByEmail = function(email) {
   return this.findOne({ email: email.toLowerCase() });
 };
 
-// Generate password reset token
-userSchema.methods.generatePasswordResetToken = function() {
-  const crypto = require('crypto');
-  
-  // Generate token
-  const resetToken = crypto.randomBytes(32).toString('hex');
-  
-  // Hash and set reset password token
-  this.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-  
-  // Set expire time (10 minutes)
-  this.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
-  
-  return resetToken;
+// Static method to find user by Firebase UID
+userSchema.statics.findByUid = function(uid) {
+  return this.findOne({ uid });
 };
 
-// Check if reset token is valid and not expired
+// Instance method to get full name
+userSchema.methods.getFullName = function() {
+  return `${this.firstName} ${this.lastName}`;
+};
+
+// Instance method to check if user is account owner
+userSchema.methods.isAccountOwner = function() {
+  return this.role === 'account_owner';
+};
+
+// Instance method to check if user belongs to organization
+userSchema.methods.belongsToOrganization = function(orgId) {
+  return this.organizationId && this.organizationId.toString() === orgId.toString();
+};
+
+// Instance method to check if reset token is valid
 userSchema.methods.isResetTokenValid = function(token) {
   const crypto = require('crypto');
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
@@ -112,6 +98,4 @@ userSchema.methods.isResetTokenValid = function(token) {
          this.resetPasswordExpires > Date.now();
 };
 
-const User = mongoose.model('User', userSchema);
-
-export default User;
+export default mongoose.model('User', userSchema);

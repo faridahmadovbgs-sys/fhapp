@@ -148,6 +148,36 @@ const AccountOwnerRegistration = () => {
         throw new Error('Registration succeeded but user ID not found. Please try logging in.');
       }
       
+      // Sync user to MongoDB
+      try {
+        console.log('💾 Syncing account owner to MongoDB...');
+        const mongoResponse = await fetch('http://localhost:5000/api/auth/sync-firebase-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            firstName: formData.name.split(' ')[0] || formData.name,
+            lastName: formData.name.split(' ').slice(1).join(' ') || '',
+            uid: userId,
+            organizationName: formData.organizationName,
+            ein: formData.ein,
+            role: 'account_owner'
+          })
+        });
+
+        const mongoData = await mongoResponse.json();
+        
+        if (!mongoResponse.ok) {
+          console.warn('⚠️ MongoDB sync failed:', mongoData.message);
+        } else {
+          console.log('✅ Account owner synced to MongoDB:', mongoData);
+        }
+      } catch (mongoError) {
+        console.warn('⚠️ MongoDB sync failed:', mongoError.message);
+      }
+      
       // Set account owner role in database and store organization metadata
       const metadata = {
         organizationName: formData.organizationName,
@@ -176,6 +206,34 @@ const AccountOwnerRegistration = () => {
       );
 
       console.log('✅ Organization created:', orgResult);
+
+      // Update MongoDB user with organizationId
+      if (orgResult && orgResult.organizationId) {
+        try {
+          console.log('📝 Updating MongoDB user with organizationId:', orgResult.organizationId);
+          const updateResponse = await fetch(`http://localhost:5000/api/users/uid/${userId}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              organizationId: orgResult.organizationId
+            })
+          });
+          
+          const updateData = await updateResponse.json();
+          
+          if (updateResponse.ok) {
+            console.log('✅ MongoDB user updated with organizationId:', updateData);
+          } else {
+            console.warn('⚠️ Failed to update MongoDB user with organizationId:', updateData);
+          }
+        } catch (updateError) {
+          console.error('❌ MongoDB update error:', updateError);
+        }
+      } else {
+        console.warn('⚠️ No organizationId returned from createOrganization:', orgResult);
+      }
 
       // Create invitation link for account owner to share
       const invitationResult = await createInvitationLink(
