@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import './App.css';
 import Header from './components/Header';
 import Login from './components/Login';
 import ResetPassword from './components/ResetPassword';
-import { PermissionProtectedRoute } from './components/ProtectedRoute';
+import { PermissionProtectedRoute, PermissionGuard } from './components/ProtectedRoute';
 import Home from './pages/Home';
 import About from './pages/About';
 import RegisteredUsers from './pages/RegisteredUsers';
@@ -31,6 +31,7 @@ import { AuthorizationProvider } from './contexts/AuthorizationContext';
 function MainApp() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
@@ -48,18 +49,59 @@ function MainApp() {
     }
   }, [isAuthenticated]);
 
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+  };
+
   return (
     <div className="App">
-      <Header user={user} />
-      <main className="container">
-        {loading ? (
-          <div className="loading">Connecting to server...</div>
-        ) : (
-          <Routes>
-            <Route path="/" element={<Home data={data} />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/demo-permissions" element={<DemoPermissions />} />
-            <Route path="/storage-test" element={<StorageTest />} />
+      <Header user={user} isMenuOpen={isMenuOpen} toggleMenu={toggleMenu} />
+      {isMenuOpen && <div className="mobile-overlay" onClick={closeMenu}></div>}
+      <div className="app-layout">
+        <aside className={isMenuOpen ? 'sidebar-nav nav-open' : 'sidebar-nav'}>
+          <nav>
+            <ul>
+              <li><Link to="/" onClick={closeMenu}>Home</Link></li>
+              <li><Link to="/chat" onClick={closeMenu}>Chat</Link></li>
+              <li><Link to="/documents" onClick={closeMenu}>My Documents</Link></li>
+              <li><Link to="/org-documents" onClick={closeMenu}>Org Documents</Link></li>
+              <li><Link to="/demo-permissions" onClick={closeMenu}>Permissions Demo</Link></li>
+              <PermissionGuard requiredPage="admin">
+                <li><Link to="/registered-users" onClick={closeMenu}>Users</Link></li>
+              </PermissionGuard>
+              <PermissionGuard requiredPage="admin">
+                <li><Link to="/admin" onClick={closeMenu}>Admin Panel</Link></li>
+              </PermissionGuard>
+              <PermissionGuard requiredRole="account_owner">
+                <li><Link to="/announcements" onClick={closeMenu}>Announcements</Link></li>
+              </PermissionGuard>
+              <PermissionGuard requiredPage="invitations">
+                <li><Link to="/invitations" onClick={closeMenu}>Invite Team</Link></li>
+              </PermissionGuard>
+              <PermissionGuard requiredPage="invitations">
+                <li><Link to="/members" onClick={closeMenu}>Members</Link></li>
+              </PermissionGuard>
+              <PermissionGuard requiredPage="billing">
+                <li><Link to="/billing" onClick={closeMenu}>Billing</Link></li>
+              </PermissionGuard>
+              <li><Link to="/payments" onClick={closeMenu}>Payments</Link></li>
+              <li><Link to="/about" onClick={closeMenu}>About</Link></li>
+            </ul>
+          </nav>
+        </aside>
+        <main className="container">
+          {loading ? (
+            <div className="loading">Connecting to server...</div>
+          ) : (
+            <Routes>
+              <Route path="/" element={<Home data={data} />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/demo-permissions" element={<DemoPermissions />} />
+              <Route path="/storage-test" element={<StorageTest />} />
             <Route 
               path="/registered-users" 
               element={
@@ -142,6 +184,7 @@ function MainApp() {
           </Routes>
         )}
       </main>
+      </div>
     </div>
   );
 }

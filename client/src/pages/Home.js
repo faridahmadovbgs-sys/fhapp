@@ -122,14 +122,6 @@ const Home = ({ data }) => {
         <p className="hero-subtitle">Streamline your business operations with automated billing, secure document management, and seamless team collaboration</p>
       </div>
 
-      {data && (
-        <div className="status">
-          <h3>Server Status</h3>
-          <p>✅ Connected to backend API</p>
-          <p>Message: {data.message || 'Server is running'}</p>
-        </div>
-      )}
-
       {/* Announcements Section */}
       <div className="announcements-section">
         <h2>📢 Announcements</h2>

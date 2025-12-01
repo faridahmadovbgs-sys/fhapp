@@ -1,6 +1,62 @@
 .App {
   min-height: 100vh;
   background-color: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+}
+
+.app-layout {
+  display: flex;
+  flex: 1;
+  min-height: calc(100vh - 80px);
+}
+
+.sidebar-nav {
+  width: 250px;
+  background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  padding: 2rem 0;
+  position: sticky;
+  top: 80px;
+  height: calc(100vh - 80px);
+  overflow-y: auto;
+}
+
+.sidebar-nav nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar-nav nav a {
+  display: block;
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.75rem 1.5rem;
+  transition: all var(--transition-fast);
+  border-left: 3px solid transparent;
+}
+
+.sidebar-nav nav a:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-left-color: var(--secondary-color);
+  color: white;
+}
+
+.sidebar-nav nav a:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+main.container {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+  background-color: var(--bg-secondary);
 }
 
 .loading {
@@ -30,11 +86,24 @@ header {
   margin: 0 auto;
   padding: 1rem 2rem;
   position: relative;
+  gap: 2rem;
 }
 
 .brand-section {
   flex-shrink: 0;
   z-index: 102;
+  order: 1;
+}
+
+nav {
+  flex: 1;
+  display: flex;
+  justify-content: flex-start;
+  order: 2;
+}
+
+.user-info {
+  order: 3;
 }
 
 .brand-logo {
@@ -124,6 +193,15 @@ header {
   transform: rotate(-45deg) translate(7px, -7px);
 }
 
+/* Hide header navigation - now in sidebar */
+header nav {
+  display: none !important;
+}
+
+.menu-toggle {
+  display: none;
+}
+
 nav {
   flex: 1;
   display: flex;
@@ -136,10 +214,9 @@ nav ul {
   padding: 0;
   margin: 0;
   display: flex;
+  flex-direction: column;
   gap: 0.25rem;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
 }
 
 nav ul li {
@@ -151,13 +228,13 @@ nav a {
   color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
   font-weight: 500;
-  font-size: 0.95rem;
-  padding: 0.75rem 1.25rem;
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
   transition: all var(--transition-fast);
   border-radius: var(--radius-md);
   letter-spacing: 0.3px;
-  white-space: nowrap;
   background: rgba(255, 255, 255, 0.05);
+  text-align: left;
 }
 
 nav a:hover {
@@ -260,46 +337,57 @@ nav a:hover {
 }
 
 /* Responsive Design */
+/* Mobile overlay for menu */
+.mobile-overlay {
+  display: none;
+}
+
 @media (max-width: 1200px) {
-  .menu-toggle {
-    display: flex;
+  .app-layout {
+    flex-direction: column;
   }
 
-  nav {
+  .mobile-overlay {
+    display: block;
     position: fixed;
     top: 0;
-    right: -100%;
-    height: 100vh;
-    width: 320px;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: stretch;
-    margin: 0;
-    padding: 5rem 2rem 2rem;
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
-    transition: right 0.3s ease-in-out;
-    z-index: 101;
-    overflow-y: auto;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 100;
   }
 
-  nav.nav-open {
-    right: 0;
+  .sidebar-nav {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    height: 100vh;
+    width: 280px;
+    z-index: 101;
+    transition: left 0.3s ease-in-out;
+    padding-top: 5rem;
+  }
+
+  .sidebar-nav.nav-open {
+    left: 0;
+  }
+
+  .menu-toggle {
+    display: flex !important;
+  }
+
+  main.container {
+    padding: 1.5rem;
   }
 
   nav ul {
-    flex-direction: column;
-    align-items: stretch;
     gap: 0.5rem;
-    width: 100%;
   }
 
-  nav a {
+  .sidebar-nav nav a {
     padding: 1rem 1.5rem;
     font-size: 1rem;
-    border-radius: var(--radius-md);
-    width: 100%;
-    text-align: left;
   }
 
   .brand-name {
