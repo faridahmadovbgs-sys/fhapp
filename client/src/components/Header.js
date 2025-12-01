@@ -69,6 +69,8 @@ const Header = ({ user, isMenuOpen, toggleMenu }) => {
           </span>
         </button>
 
+        <div style={{ flex: 1 }}></div>
+
         {user && (
           <div className="user-info">
             <div className="user-profile-section" onClick={handleProfileClick}>

@@ -80,30 +80,29 @@ header {
 
 .header-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   max-width: 1600px;
   margin: 0 auto;
   padding: 1rem 2rem;
   position: relative;
-  gap: 2rem;
+  gap: 1rem;
 }
 
 .brand-section {
   flex-shrink: 0;
   z-index: 102;
-  order: 1;
+  margin-right: 1rem;
+}
+
+.menu-toggle {
+  flex-shrink: 0;
 }
 
 nav {
   flex: 1;
   display: flex;
   justify-content: flex-start;
-  order: 2;
-}
-
-.user-info {
-  order: 3;
 }
 
 .brand-logo {
@@ -147,7 +146,7 @@ nav {
 }
 
 .menu-toggle {
-  display: none;
+  display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -244,11 +243,12 @@ nav a:hover {
 }
 
 .user-info {
-  display: flex;
+  display: flex !important;
   align-items: center;
   gap: 0.75rem;
   flex-shrink: 0;
-  margin-left: 0.5rem;
+  margin-left: auto !important;
+  order: 999;
 }
 
 .user-profile-section {
@@ -340,6 +340,12 @@ nav a:hover {
 /* Mobile overlay for menu */
 .mobile-overlay {
   display: none;
+}
+
+@media (min-width: 1201px) {
+  .menu-toggle {
+    display: none !important;
+  }
 }
 
 @media (max-width: 1200px) {
