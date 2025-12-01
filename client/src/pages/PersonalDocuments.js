@@ -151,6 +151,20 @@ const PersonalDocuments = () => {
     try {
       setUploading(true);
 
+      // Get user's organization to find account owner
+      let accountOwnerId = null;
+      try {
+        const { getUserMemberOrganizations } = await import('../services/organizationService');
+        const orgsResult = await getUserMemberOrganizations(user.id);
+        if (orgsResult.success && orgsResult.organizations.length > 0) {
+          const userOrg = orgsResult.organizations[0];
+          accountOwnerId = userOrg.ownerId;
+          console.log('📤 Document will be shared with account owner:', accountOwnerId);
+        }
+      } catch (orgError) {
+        console.warn('Could not find organization owner:', orgError);
+      }
+
       const docData = {
         userId: user.id,
         userEmail: user.email,
@@ -162,13 +176,19 @@ const PersonalDocuments = () => {
         fileSize: formData.fileSize,
         fileType: formData.fileType,
         fileData: formData.fileData,
+        sharedWith: accountOwnerId ? [accountOwnerId] : [], // Automatically share with account owner
+        sharedWithAccountOwner: !!accountOwnerId, // Flag to indicate it's shared
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
 
       await addDoc(collection(db, 'personalDocuments'), docData);
 
-      setSuccess('✅ Document uploaded successfully!');
+      if (accountOwnerId) {
+        setSuccess('✅ Document uploaded and shared with account owner!');
+      } else {
+        setSuccess('✅ Document uploaded successfully!');
+      }
       setShowUploadForm(false);
       setFormData({
         title: '',

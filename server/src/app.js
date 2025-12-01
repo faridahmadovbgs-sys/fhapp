@@ -37,7 +37,7 @@ app.use(helmet()); // Security headers
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true
-})); // Enable CORS
+})); // Enable CORSFa
 app.use(morgan('combined')); // Logging
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
