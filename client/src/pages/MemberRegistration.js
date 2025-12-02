@@ -23,6 +23,7 @@ const MemberRegistration = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    subAccountName: '',
     acceptTerms: false
   });
 
@@ -115,6 +116,10 @@ const MemberRegistration = () => {
       setError('Full name is required');
       return false;
     }
+    if (isSubOwnerInvite && !formData.subAccountName.trim()) {
+      setError('Sub Account Name is required');
+      return false;
+    }
     if (!formData.email.trim()) {
       setError('Email is required');
       return false;
@@ -168,6 +173,7 @@ const MemberRegistration = () => {
           ownerUserId: invitation.accountOwnerId,
           organizationName: invitation.organizationName,
           organizationId: invitation.organizationId,
+          subAccountName: isSubOwnerInvite ? formData.subAccountName : undefined,
           invitedBy: invitation.accountOwnerId,
           invitedAt: new Date()
         }
@@ -297,6 +303,25 @@ const MemberRegistration = () => {
               disabled={registering}
             />
           </div>
+
+          {isSubOwnerInvite && (
+            <div className="form-group">
+              <label htmlFor="subAccountName">Sub Account Name *</label>
+              <input
+                type="text"
+                id="subAccountName"
+                name="subAccountName"
+                value={formData.subAccountName}
+                onChange={handleChange}
+                placeholder="Enter your sub account name (e.g., your department or team name)"
+                required
+                disabled={registering}
+              />
+              <small style={{color: '#666', fontSize: '12px', marginTop: '5px', display: 'block'}}>
+                This name will be associated with members you invite
+              </small>
+            </div>
+          )}
 
           <div className="form-group">
             <label htmlFor="password">Password *</label>

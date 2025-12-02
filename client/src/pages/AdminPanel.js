@@ -130,6 +130,9 @@ const AdminPanel = () => {
                 lastSignIn: userData.lastSignIn?.toDate?.()?.toISOString() || userData.lastLoginAt?.toDate?.()?.toISOString() || null,
                 photoURL: userData.photoURL || userData.profilePictureUrl || null,
                 organizationId: userData.organizationId || currentOrg.id,
+                subAccountName: userData.subAccountName || null,
+                invitedBy: userData.invitedBy || null,
+                ownerUserId: userData.ownerUserId || null,
                 permissions: rolePermissions[userData.role || 'user'] || rolePermissions.user
               });
             }
@@ -157,6 +160,9 @@ const AdminPanel = () => {
             createdAt: userData.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
             lastSignIn: userData.lastSignIn?.toDate?.()?.toISOString() || userData.lastLoginAt?.toDate?.()?.toISOString() || null,
             photoURL: userData.photoURL || userData.profilePictureUrl || null,
+            subAccountName: userData.subAccountName || null,
+            invitedBy: userData.invitedBy || null,
+            ownerUserId: userData.ownerUserId || null,
             permissions: rolePermissions[userData.role || 'user'] || rolePermissions.user
           });
         });
@@ -472,6 +478,7 @@ const AdminPanel = () => {
                 <th>User Info</th>
                 <th>Email & Verification</th>
                 <th>Role & Status</th>
+                <th>Hierarchy</th>
                 <th>Activity</th>
                 <th>Quick Permissions</th>
                 <th>Actions</th>
@@ -497,6 +504,34 @@ const AdminPanel = () => {
                         </div>
                         <div className="user-details">
                           <strong className="user-name">{user.name}</strong>
+                          {user.role === 'sub_account_owner' && user.subAccountName && (
+                            <span style={{
+                              display: 'block',
+                              fontSize: '12px',
+                              color: '#0078d4',
+                              fontWeight: '600',
+                              marginTop: '2px'
+                            }}>
+                              📋 {user.subAccountName}
+                            </span>
+                          )}
+                          {user.role === 'user' && user.invitedBy && (() => {
+                            const inviter = firebaseUsers.find(u => u.id === user.invitedBy);
+                            if (inviter?.subAccountName) {
+                              return (
+                                <span style={{
+                                  display: 'block',
+                                  fontSize: '11px',
+                                  color: '#666',
+                                  fontStyle: 'italic',
+                                  marginTop: '2px'
+                                }}>
+                                  Under: {inviter.subAccountName}
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                           {isCurrentUser && <span className="current-user-badge">You</span>}
                           <small className="user-id">ID: {user.id}</small>
                         </div>
@@ -545,6 +580,87 @@ const AdminPanel = () => {
                         )}
                         {user.role === 'account_owner' && userRole !== 'admin' && !isCurrentUser && (
                           <small className="role-note">Only admins can modify account owners</small>
+                        )}
+                      </div>
+                    </td>
+                    
+                    <td>
+                      <div className="hierarchy-info" style={{
+                        fontSize: '13px',
+                        color: '#605e5c'
+                      }}>
+                        {user.role === 'account_owner' ? (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 10px',
+                            backgroundColor: '#fff4e5',
+                            borderRadius: '6px',
+                            border: '1px solid #ffd700',
+                            fontWeight: '600'
+                          }}>
+                            <span style={{ fontSize: '16px' }}>👑</span>
+                            <span>Organization Owner</span>
+                          </div>
+                        ) : user.role === 'sub_account_owner' ? (
+                          <div>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '6px 10px',
+                              backgroundColor: '#e3f2fd',
+                              borderRadius: '6px',
+                              border: '1px solid #2196f3',
+                              fontWeight: '600',
+                              marginBottom: '6px'
+                            }}>
+                              <span style={{ fontSize: '14px' }}>👤</span>
+                              <span>Sub Account Owner</span>
+                            </div>
+                            {user.invitedBy && (
+                              <div style={{ paddingLeft: '8px', fontSize: '12px' }}>
+                                <span style={{ color: '#999' }}>Invited by:</span>
+                                <br />
+                                <span style={{ fontWeight: '500' }}>
+                                  {(() => {
+                                    const inviter = firebaseUsers.find(u => u.id === user.invitedBy);
+                                    return inviter ? inviter.name : 'Account Owner';
+                                  })()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '6px 10px',
+                              backgroundColor: '#f5f5f5',
+                              borderRadius: '6px',
+                              border: '1px solid #ddd',
+                              marginBottom: '6px'
+                            }}>
+                              <span style={{ fontSize: '14px' }}>👥</span>
+                              <span>Member</span>
+                            </div>
+                            {user.invitedBy && (
+                              <div style={{ paddingLeft: '8px', fontSize: '12px' }}>
+                                <span style={{ color: '#999' }}>Invited by:</span>
+                                <br />
+                                <span style={{ fontWeight: '500' }}>
+                                  {(() => {
+                                    const inviter = firebaseUsers.find(u => u.id === user.invitedBy);
+                                    if (!inviter) return 'Account Owner';
+                                    return inviter.subAccountName || inviter.name;
+                                  })()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </td>

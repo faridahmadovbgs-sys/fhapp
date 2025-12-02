@@ -43,13 +43,22 @@ export const setUserRoleInDatabase = async (userId, email, role = 'admin', metad
     console.log('✅ Database and userId available, creating user document...');
 
     const userDocRef = doc(db, 'users', userId);
+    
+    // Filter out undefined values from metadata to avoid Firestore errors
+    const cleanMetadata = {};
+    Object.keys(metadata).forEach(key => {
+      if (metadata[key] !== undefined) {
+        cleanMetadata[key] = metadata[key];
+      }
+    });
+    
     const userData = {
       uid: userId,
       email: email,
       role: role,
       updatedAt: new Date(),
       createdAt: new Date(),
-      ...metadata
+      ...cleanMetadata
     };
 
     await setDoc(userDocRef, userData, { merge: true });
