@@ -9,6 +9,8 @@ import {
   updateBillMembers,
   recordPayment
 } from '../services/billingService';
+import { doc as firestoreDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import './BillingManagement.css';
 
 const BillingManagement = () => {
@@ -101,12 +103,35 @@ const BillingManagement = () => {
         
         // Load members for each bill
         await loadBillMembers(result.bills);
+        
+        // Mark recent payments as viewed
+        result.bills.forEach(bill => {
+          if (bill.payments) {
+            bill.payments.forEach(payment => {
+              if (!payment.viewedBy?.includes(user.id)) {
+                markPaymentAsViewed(payment.id);
+              }
+            });
+          }
+        });
       }
     } catch (error) {
       console.error('Error loading bills:', error);
       setError('Failed to load bills');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const markPaymentAsViewed = async (paymentId) => {
+    try {
+      const paymentRef = firestoreDoc(db, 'payments', paymentId);
+      await updateDoc(paymentRef, {
+        viewedBy: arrayUnion(user.id)
+      });
+      console.log('Marked payment as viewed:', paymentId);
+    } catch (error) {
+      console.error('Error marking payment as viewed:', error);
     }
   };
 

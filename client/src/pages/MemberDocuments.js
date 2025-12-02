@@ -6,7 +6,9 @@ import {
   where, 
   getDocs,
   getDoc,
-  doc
+  doc,
+  updateDoc,
+  arrayUnion
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import './PersonalDocuments.css';
@@ -80,6 +82,18 @@ const MemberDocuments = () => {
     }
   };
 
+  const markDocumentAsViewed = async (docId) => {
+    try {
+      const docRef = doc(db, 'documents', docId);
+      await updateDoc(docRef, {
+        viewedBy: arrayUnion(user.id)
+      });
+      console.log('Marked document as viewed:', docId);
+    } catch (error) {
+      console.error('Error marking document as viewed:', error);
+    }
+  };
+
   const fetchMemberDocuments = async () => {
     try {
       setLoading(true);
@@ -116,6 +130,11 @@ const MemberDocuments = () => {
           docs.push(docData);
           if (docData.userEmail) {
             uniqueMembers.add(JSON.stringify({ id: docData.userId, email: docData.userEmail }));
+          }
+          
+          // Mark document as viewed by current user
+          if (!docData.viewedBy?.includes(user.id)) {
+            markDocumentAsViewed(doc.id);
           }
         }
       });

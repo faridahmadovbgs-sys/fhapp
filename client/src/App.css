@@ -222,6 +222,47 @@ nav ul li {
   position: relative;
 }
 
+.nav-item-with-badge {
+  position: relative;
+}
+
+.nav-item-with-badge a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-notification-badge {
+  position: absolute;
+  top: -6px;
+  right: -10px;
+  background: #dc2626;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 12px;
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.4);
+  animation: pulse-badge 2s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.4);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 3px 8px rgba(220, 38, 38, 0.6);
+  }
+}
+
 nav a {
   display: block;
   color: rgba(255, 255, 255, 0.9);

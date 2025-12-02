@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import './App.css';
 import Header from './components/Header';
 import Login from './components/Login';
@@ -27,13 +27,22 @@ import AnnouncementManager from './pages/AnnouncementManager';
 import apiService from './services/apiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthorizationProvider } from './contexts/AuthorizationContext';
+import { collection, query, where, onSnapshot, getDocs, orderBy } from 'firebase/firestore';
+import { db } from './config/firebase';
 
 // Main app content when user is authenticated
 function MainApp() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [newDocumentsCount, setNewDocumentsCount] = useState(0);
+  const [newAnnouncementsCount, setNewAnnouncementsCount] = useState(0);
+  const [pendingBillsCount, setPendingBillsCount] = useState(0);
+  const [newPaymentsCount, setNewPaymentsCount] = useState(0);
+  const [unreadChatsCount, setUnreadChatsCount] = useState(0);
+  const [newOrgDocsCount, setNewOrgDocsCount] = useState(0);
   const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -49,6 +58,166 @@ function MainApp() {
         });
     }
   }, [isAuthenticated]);
+
+  // Listen for new documents shared with user
+  useEffect(() => {
+    if (!user?.id || !db) return;
+
+    // Query documents where user is in sharedWith array
+    const documentsQuery = query(
+      collection(db, 'documents'),
+      where('sharedWith', 'array-contains', user.id)
+    );
+
+    const unsubscribe = onSnapshot(documentsQuery, (snapshot) => {
+      const newDocs = [];
+      snapshot.forEach((doc) => {
+        const docData = doc.data();
+        // Only count if not created by current user and not viewed
+        if (docData.userId !== user.id && !docData.viewedBy?.includes(user.id)) {
+          newDocs.push(doc.id);
+        }
+      });
+      setNewDocumentsCount(newDocs.length);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Listen for new announcements
+  useEffect(() => {
+    if (!user?.id || !db) return;
+
+    const announcementsQuery = query(
+      collection(db, 'messages'),
+      where('organizationId', '!=', null),
+      where('isAnnouncement', '==', true),
+      where('active', '==', true)
+    );
+
+    const unsubscribe = onSnapshot(announcementsQuery, (snapshot) => {
+      const newAnnouncements = [];
+      snapshot.forEach((doc) => {
+        const announcementData = doc.data();
+        // Count if not viewed by current user
+        if (!announcementData.viewedBy?.includes(user.id)) {
+          newAnnouncements.push(doc.id);
+        }
+      });
+      setNewAnnouncementsCount(newAnnouncements.length);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Listen for pending bills (for members)
+  useEffect(() => {
+    if (!user?.id || !db) return;
+
+    const billsQuery = query(
+      collection(db, 'bills'),
+      where('status', '==', 'active')
+    );
+
+    const unsubscribe = onSnapshot(billsQuery, async (snapshot) => {
+      let pendingCount = 0;
+      for (const docSnap of snapshot.docs) {
+        const billData = docSnap.data();
+        // Check if bill is for this user and not paid
+        if (billData.memberIds?.includes(user.id)) {
+          // Check payment status
+          const paymentsQuery = query(
+            collection(db, 'payments'),
+            where('billId', '==', docSnap.id),
+            where('memberId', '==', user.id)
+          );
+          const paymentsSnap = await getDocs(paymentsQuery);
+          if (paymentsSnap.empty) {
+            pendingCount++;
+          }
+        }
+      }
+      setPendingBillsCount(pendingCount);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Listen for new payments (for account owners/sub account owners)
+  useEffect(() => {
+    if (!user?.id || !db) return;
+
+    const paymentsQuery = query(
+      collection(db, 'payments'),
+      orderBy('paidAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(paymentsQuery, (snapshot) => {
+      const newPayments = [];
+      snapshot.forEach((doc) => {
+        const paymentData = doc.data();
+        // Count if not viewed by current user and created recently (within last 7 days)
+        const paymentDate = paymentData.paidAt?.toDate();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        
+        if (paymentDate && paymentDate > sevenDaysAgo && !paymentData.viewedBy?.includes(user.id)) {
+          newPayments.push(doc.id);
+        }
+      });
+      setNewPaymentsCount(newPayments.length);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Listen for organization documents
+  useEffect(() => {
+    if (!user?.id || !db) return;
+
+    const orgDocsQuery = query(
+      collection(db, 'documents'),
+      where('isOrganizationDocument', '==', true)
+    );
+
+    const unsubscribe = onSnapshot(orgDocsQuery, (snapshot) => {
+      const newDocs = [];
+      snapshot.forEach((doc) => {
+        const docData = doc.data();
+        // Count if not viewed by current user and not uploaded by current user
+        if (docData.userId !== user.id && !docData.viewedBy?.includes(user.id)) {
+          newDocs.push(doc.id);
+        }
+      });
+      setNewOrgDocsCount(newDocs.length);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Clear notification counts when viewing respective pages
+  useEffect(() => {
+    if (location.pathname === '/member-documents' && newDocumentsCount > 0) {
+      const timer = setTimeout(() => setNewDocumentsCount(0), 1000);
+      return () => clearTimeout(timer);
+    }
+    if (location.pathname === '/' && newAnnouncementsCount > 0) {
+      const timer = setTimeout(() => setNewAnnouncementsCount(0), 1000);
+      return () => clearTimeout(timer);
+    }
+    if (location.pathname === '/payments' && pendingBillsCount > 0) {
+      const timer = setTimeout(() => setPendingBillsCount(0), 1000);
+      return () => clearTimeout(timer);
+    }
+    if (location.pathname === '/billing' && newPaymentsCount > 0) {
+      const timer = setTimeout(() => setNewPaymentsCount(0), 1000);
+      return () => clearTimeout(timer);
+    }
+    if (location.pathname === '/org-documents' && newOrgDocsCount > 0) {
+      const timer = setTimeout(() => setNewOrgDocsCount(0), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname, newDocumentsCount, newAnnouncementsCount, pendingBillsCount, newPaymentsCount, newOrgDocsCount]);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -66,12 +235,40 @@ function MainApp() {
         <aside className={isMenuOpen ? 'sidebar-nav nav-open' : 'sidebar-nav'}>
           <nav>
             <ul>
-              <li><Link to="/" onClick={closeMenu}>Home</Link></li>
-              <li><Link to="/chat" onClick={closeMenu}>Chat</Link></li>
+              <li className="nav-item-with-badge">
+                <Link to="/" onClick={closeMenu}>
+                  Home
+                  {newAnnouncementsCount > 0 && (
+                    <span className="nav-notification-badge">{newAnnouncementsCount > 99 ? '99+' : newAnnouncementsCount}</span>
+                  )}
+                </Link>
+              </li>
+              <li className="nav-item-with-badge">
+                <Link to="/chat" onClick={closeMenu}>
+                  Chat
+                  {unreadChatsCount > 0 && (
+                    <span className="nav-notification-badge">{unreadChatsCount > 99 ? '99+' : unreadChatsCount}</span>
+                  )}
+                </Link>
+              </li>
               <li><Link to="/documents" onClick={closeMenu}>My Documents</Link></li>
-              <li><Link to="/org-documents" onClick={closeMenu}>Org Documents</Link></li>
+              <li className="nav-item-with-badge">
+                <Link to="/org-documents" onClick={closeMenu}>
+                  Org Documents
+                  {newOrgDocsCount > 0 && (
+                    <span className="nav-notification-badge">{newOrgDocsCount > 99 ? '99+' : newOrgDocsCount}</span>
+                  )}
+                </Link>
+              </li>
               <PermissionGuard requiredRoles={['account_owner', 'sub_account_owner']}>
-                <li><Link to="/member-documents" onClick={closeMenu}>Member Documents</Link></li>
+                <li className="nav-item-with-badge">
+                  <Link to="/member-documents" onClick={closeMenu}>
+                    Member Documents
+                    {newDocumentsCount > 0 && (
+                      <span className="nav-notification-badge">{newDocumentsCount > 99 ? '99+' : newDocumentsCount}</span>
+                    )}
+                  </Link>
+                </li>
               </PermissionGuard>
               <li><Link to="/demo-permissions" onClick={closeMenu}>Permissions Demo</Link></li>
               <PermissionGuard requiredPage="admin">
@@ -90,9 +287,23 @@ function MainApp() {
                 <li><Link to="/members" onClick={closeMenu}>Members</Link></li>
               </PermissionGuard>
               <PermissionGuard requiredPage="billing">
-                <li><Link to="/billing" onClick={closeMenu}>Billing</Link></li>
+                <li className="nav-item-with-badge">
+                  <Link to="/billing" onClick={closeMenu}>
+                    Billing
+                    {newPaymentsCount > 0 && (
+                      <span className="nav-notification-badge">{newPaymentsCount > 99 ? '99+' : newPaymentsCount}</span>
+                    )}
+                  </Link>
+                </li>
               </PermissionGuard>
-              <li><Link to="/payments" onClick={closeMenu}>Payments</Link></li>
+              <li className="nav-item-with-badge">
+                <Link to="/payments" onClick={closeMenu}>
+                  Payments
+                  {pendingBillsCount > 0 && (
+                    <span className="nav-notification-badge">{pendingBillsCount > 99 ? '99+' : pendingBillsCount}</span>
+                  )}
+                </Link>
+              </li>
               <li><Link to="/about" onClick={closeMenu}>About</Link></li>
             </ul>
           </nav>

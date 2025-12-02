@@ -9,7 +9,9 @@ import {
   deleteDoc,
   doc,
   serverTimestamp,
-  orderBy
+  orderBy,
+  updateDoc,
+  arrayUnion
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getUserOrganizations, getUserMemberOrganizations } from '../services/organizationService';
@@ -112,10 +114,16 @@ const OrganizationDocuments = () => {
       const docs = [];
       
       querySnapshot.forEach((doc) => {
+        const docData = doc.data();
         docs.push({
           id: doc.id,
-          ...doc.data()
+          ...docData
         });
+        
+        // Mark document as viewed if not uploaded by current user
+        if (docData.userId !== user.id && !docData.viewedBy?.includes(user.id)) {
+          markDocumentAsViewed(doc.id);
+        }
       });
 
       // Sort by createdAt in memory (newest first)
@@ -140,6 +148,18 @@ const OrganizationDocuments = () => {
     if (org) {
       setSelectedOrg(org);
       setIsOwner(org.ownerId === user.id);
+    }
+  };
+
+  const markDocumentAsViewed = async (docId) => {
+    try {
+      const docRef = doc(db, 'organizationDocuments', docId);
+      await updateDoc(docRef, {
+        viewedBy: arrayUnion(user.id)
+      });
+      console.log('Marked organization document as viewed:', docId);
+    } catch (error) {
+      console.error('Error marking document as viewed:', error);
     }
   };
 

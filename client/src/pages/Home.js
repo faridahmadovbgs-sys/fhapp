@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { doc, getDoc, collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
+import { doc, getDoc, collection, query, orderBy, limit, getDocs, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getUserMemberOrganizations } from '../services/organizationService';
 import axios from 'axios';
@@ -98,86 +98,103 @@ const Home = ({ data }) => {
       
       setLoading(true);
       console.log('📥 [Home] Fetching announcements for organization:', userOrganization.name, 'ID:', userOrganization.id);
-      
-      // Try with orderBy first
+
       try {
-        const messagesRef = collection(db, 'messages');
+        // Try to fetch with index-based query first
         const q = query(
-          messagesRef,
+          collection(db, 'messages'),
           where('organizationId', '==', userOrganization.id),
+          where('isAnnouncement', '==', true),
+          where('active', '==', true),
+          orderBy('priority', 'desc'),
           orderBy('createdAt', 'desc'),
-          limit(5)
+          limit(10)
         );
-        
-        const snapshot = await getDocs(q);
-        console.log('📊 [Home] Query result: Found', snapshot.docs.length, 'announcements');
-        
-        const announcementsList = snapshot.docs.map(doc => {
+
+        const querySnapshot = await getDocs(q);
+        const announcementsData = [];
+
+        querySnapshot.forEach((doc) => {
           const data = doc.data();
-          console.log('📄 [Home] Announcement:', doc.id, 'OrgID:', data.organizationId);
-          return {
+          announcementsData.push({
             id: doc.id,
-            ...data,
-            title: data.text?.substring(0, 50) + (data.text?.length > 50 ? '...' : ''),
-            content: data.text,
-            author: data.userName,
-            createdAt: data.createdAt || data.timestamp
-          };
+            ...data
+          });
+          
+          // Mark announcement as viewed
+          if (!data.viewedBy?.includes(user.id)) {
+            markAnnouncementAsViewed(doc.id);
+          }
         });
-        
-        setAnnouncements(announcementsList);
-        console.log('✅ [Home] Announcements loaded successfully:', announcementsList.length);
-        setLoading(false);
-      } catch (indexError) {
-        // Fallback: Query without orderBy and sort client-side
-        console.log('⚠️ [Home] Index error, trying fallback query...', indexError.message);
-        
+
+        console.log(`✅ [Home] Loaded ${announcementsData.length} announcements`);
+        setAnnouncements(announcementsData);
+      } catch (error) {
+        console.error('❌ [Home] Error fetching announcements with index query:', error);
+        console.log('🔄 [Home] Trying fallback query without orderBy...');
+
+        // Fallback query without orderBy
         try {
-          const messagesRef = collection(db, 'messages');
           const fallbackQuery = query(
-            messagesRef,
-            where('organizationId', '==', userOrganization.id)
+            collection(db, 'messages'),
+            where('organizationId', '==', userOrganization.id),
+            where('isAnnouncement', '==', true),
+            where('active', '==', true)
           );
-          
-          const snapshot = await getDocs(fallbackQuery);
-          console.log('📊 [Home] Fallback query: Found', snapshot.docs.length, 'announcements');
-          
-          let announcementsList = snapshot.docs.map(doc => {
+
+          const querySnapshot = await getDocs(fallbackQuery);
+          const announcementsData = [];
+
+          querySnapshot.forEach((doc) => {
             const data = doc.data();
-            console.log('📄 [Home] Announcement (fallback):', doc.id, 'OrgID:', data.organizationId);
-            return {
+            announcementsData.push({
               id: doc.id,
               ...data,
-              title: data.text?.substring(0, 50) + (data.text?.length > 50 ? '...' : ''),
-              content: data.text,
-              author: data.userName,
-              createdAt: data.createdAt || data.timestamp
-            };
+              priority: data.priority || 'normal' // Ensure priority field exists
+            });
+            
+            // Mark announcement as viewed
+            if (!data.viewedBy?.includes(user.id)) {
+              markAnnouncementAsViewed(doc.id);
+            }
           });
-          
-          // Sort client-side
-          announcementsList.sort((a, b) => {
-            const timeA = a.createdAt?.toMillis?.() || 0;
-            const timeB = b.createdAt?.toMillis?.() || 0;
-            return timeB - timeA;
+
+          // Sort in memory by priority and date
+          const priorityOrder = { urgent: 3, high: 2, normal: 1 };
+          announcementsData.sort((a, b) => {
+            const priorityDiff = (priorityOrder[b.priority] || 1) - (priorityOrder[a.priority] || 1);
+            if (priorityDiff !== 0) return priorityDiff;
+
+            const dateA = a.createdAt?.toDate?.() || new Date(0);
+            const dateB = b.createdAt?.toDate?.() || new Date(0);
+            return dateB - dateA;
           });
-          
-          // Limit to 5
-          announcementsList = announcementsList.slice(0, 5);
-          
-          setAnnouncements(announcementsList);
-          console.log('✅ [Home] Announcements loaded via fallback:', announcementsList.length);
+
+          console.log(`✅ [Home] Loaded ${announcementsData.length} announcements (fallback query, client-side sorted)`);
+          setAnnouncements(announcementsData);
         } catch (fallbackError) {
           console.error('❌ [Home] Fallback query also failed:', fallbackError);
           setAnnouncements([]);
-        } finally {
-          setLoading(false);
         }
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchAnnouncements();
-  }, [userOrganization]);
+  }, [userOrganization, user]);
+
+  const markAnnouncementAsViewed = async (announcementId) => {
+    try {
+      const announcementRef = doc(db, 'messages', announcementId);
+      await updateDoc(announcementRef, {
+        viewedBy: arrayUnion(user.id)
+      });
+      console.log('Marked announcement as viewed:', announcementId);
+    } catch (error) {
+      console.error('Error marking announcement as viewed:', error);
+    }
+  };
 
   return (
     <div>
