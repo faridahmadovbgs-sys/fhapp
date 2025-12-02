@@ -4,7 +4,8 @@ import {
   collection, 
   query, 
   where, 
-  getDocs, 
+  getDocs,
+  getDoc,
   addDoc, 
   deleteDoc,
   doc,
@@ -152,18 +153,50 @@ const PersonalDocuments = () => {
     try {
       setUploading(true);
 
-      // Get user's organization to find account owner
-      let accountOwnerId = null;
+      // Get user's organization and determine who to share document with
+      let shareWithUserId = null;
+      let shareWithRole = null;
       try {
-        const { getUserMemberOrganizations } = await import('../services/organizationService');
-        const orgsResult = await getUserMemberOrganizations(user.id);
-        if (orgsResult.success && orgsResult.organizations.length > 0) {
-          const userOrg = orgsResult.organizations[0];
-          accountOwnerId = userOrg.ownerId;
-          console.log('📤 Document will be shared with account owner:', accountOwnerId);
+        // First, check if user was invited by someone (has invitedBy field)
+        const userDoc = await getDoc(doc(db, 'users', user.id));
+        const userData = userDoc.data();
+        
+        if (userData && userData.invitedBy) {
+          // User was invited by someone - get the inviter's info
+          const inviterQuery = query(
+            collection(db, 'users'),
+            where('uid', '==', userData.invitedBy)
+          );
+          const inviterSnapshot = await getDocs(inviterQuery);
+          
+          if (!inviterSnapshot.empty) {
+            const inviterData = inviterSnapshot.docs[0].data();
+            const inviterId = inviterSnapshot.docs[0].id;
+            
+            console.log('📤 User invited by:', inviterData.email, 'Role:', inviterData.role);
+            
+            // If invited by sub account owner, share with them
+            if (inviterData.role === 'sub_account_owner') {
+              shareWithUserId = inviterId;
+              shareWithRole = 'sub_account_owner';
+              console.log('📤 Document will be shared with sub account owner:', inviterData.email);
+            }
+          }
+        }
+        
+        // If not invited by sub account owner, find and share with account owner
+        if (!shareWithUserId) {
+          const { getUserMemberOrganizations } = await import('../services/organizationService');
+          const orgsResult = await getUserMemberOrganizations(user.id);
+          if (orgsResult.success && orgsResult.organizations.length > 0) {
+            const userOrg = orgsResult.organizations[0];
+            shareWithUserId = userOrg.ownerId;
+            shareWithRole = 'account_owner';
+            console.log('📤 Document will be shared with account owner:', shareWithUserId);
+          }
         }
       } catch (orgError) {
-        console.warn('Could not find organization owner:', orgError);
+        console.warn('Could not find share target:', orgError);
       }
 
       const docData = {
@@ -177,16 +210,20 @@ const PersonalDocuments = () => {
         fileSize: formData.fileSize,
         fileType: formData.fileType,
         fileData: formData.fileData,
-        sharedWith: accountOwnerId ? [accountOwnerId] : [], // Automatically share with account owner
-        sharedWithAccountOwner: !!accountOwnerId, // Flag to indicate it's shared
+        sharedWith: shareWithUserId ? [shareWithUserId] : [],
+        sharedWithRole: shareWithRole,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
 
       await addDoc(collection(db, 'documents'), docData);
 
-      if (accountOwnerId) {
-        setSuccess('✅ Document uploaded and shared with account owner!');
+      if (shareWithUserId) {
+        if (shareWithRole === 'sub_account_owner') {
+          setSuccess('✅ Document uploaded and shared with sub account owner!');
+        } else {
+          setSuccess('✅ Document uploaded and shared with account owner!');
+        }
       } else {
         setSuccess('✅ Document uploaded successfully!');
       }

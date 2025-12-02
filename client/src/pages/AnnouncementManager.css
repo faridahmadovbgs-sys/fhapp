@@ -20,6 +20,58 @@
   font-size: 1.1rem;
 }
 
+.organization-selector {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 197, 253, 0.1) 100%);
+  border: 2px solid #3b82f6;
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.organization-selector label {
+  font-size: 1rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.organization-selector .org-dropdown {
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--gray-300);
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.organization-selector .org-dropdown:hover {
+  border-color: var(--primary-color);
+}
+
+.organization-selector .org-dropdown:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.organization-selector .org-info {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.organization-selector .org-info strong {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
 .message {
   padding: 1rem 1.5rem;
   border-radius: var(--radius-lg);
@@ -196,10 +248,24 @@
 
 .announcement-item {
   background: var(--bg-secondary);
-  border: 1px solid var(--gray-200);
+  border: 2px solid var(--gray-200);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   transition: all var(--transition-base);
+}
+
+.announcement-item.priority-urgent {
+  border-color: #dc2626;
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, var(--bg-secondary) 100%);
+}
+
+.announcement-item.priority-high {
+  border-color: #ea580c;
+  background: linear-gradient(135deg, rgba(234, 88, 12, 0.05) 0%, var(--bg-secondary) 100%);
+}
+
+.announcement-item.priority-normal {
+  border-color: var(--gray-200);
 }
 
 .announcement-item.inactive {
@@ -245,18 +311,21 @@
 }
 
 .priority-badge.normal {
-  background: rgba(37, 99, 235, 0.1);
-  color: var(--secondary-color);
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+  border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .priority-badge.high {
-  background: rgba(220, 38, 38, 0.1);
-  color: #dc2626;
+  background: rgba(234, 88, 12, 0.15);
+  color: #ea580c;
+  border: 1px solid rgba(234, 88, 12, 0.3);
 }
 
 .priority-badge.urgent {
-  background: rgba(234, 88, 12, 0.1);
-  color: #ea580c;
+  background: rgba(220, 38, 38, 0.15);
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, 0.3);
 }
 
 .status-badge.active {

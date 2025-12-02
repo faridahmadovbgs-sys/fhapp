@@ -94,6 +94,7 @@ export const getUserMemberOrganizations = async (userId) => {
     }
 
     console.log('🔍 Fetching member organizations for user:', userId);
+    console.log('🔍 User ID type:', typeof userId, 'Value:', userId);
 
     const q = query(
       collection(db, 'organizations'),
@@ -104,13 +105,15 @@ export const getUserMemberOrganizations = async (userId) => {
     const organizations = [];
 
     querySnapshot.forEach((doc) => {
+      const orgData = doc.data();
+      console.log('📦 Found organization:', doc.id, 'Name:', orgData.name, 'Members:', orgData.members);
       organizations.push({
         id: doc.id,
-        ...doc.data()
+        ...orgData
       });
     });
 
-    console.log(`✅ Found ${organizations.length} member organizations`);
+    console.log(`✅ Found ${organizations.length} member organizations for user:`, userId);
 
     return {
       success: true,

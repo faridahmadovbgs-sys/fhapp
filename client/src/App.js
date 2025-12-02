@@ -70,7 +70,7 @@ function MainApp() {
               <li><Link to="/chat" onClick={closeMenu}>Chat</Link></li>
               <li><Link to="/documents" onClick={closeMenu}>My Documents</Link></li>
               <li><Link to="/org-documents" onClick={closeMenu}>Org Documents</Link></li>
-              <PermissionGuard requiredRole="account_owner">
+              <PermissionGuard requiredRoles={['account_owner', 'sub_account_owner']}>
                 <li><Link to="/member-documents" onClick={closeMenu}>Member Documents</Link></li>
               </PermissionGuard>
               <li><Link to="/demo-permissions" onClick={closeMenu}>Permissions Demo</Link></li>
@@ -187,7 +187,7 @@ function MainApp() {
             <Route 
               path="/member-documents" 
               element={
-                <PermissionProtectedRoute requiredRole="account_owner">
+                <PermissionProtectedRoute requiredRoles={['account_owner', 'sub_account_owner']}>
                   <MemberDocuments />
                 </PermissionProtectedRoute>
               } 

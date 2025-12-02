@@ -7,6 +7,7 @@ import './AnnouncementManager.css';
 
 const AnnouncementManager = () => {
   const { user } = useAuth();
+  const [userOrganizations, setUserOrganizations] = useState([]);
   const [userOrganization, setUserOrganization] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,21 +21,42 @@ const AnnouncementManager = () => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const fetchOrganization = async () => {
-      if (!user?.id) return;
+    const fetchOrganizations = async () => {
+      const userId = user?.id || user?.uid;
+      if (!userId) {
+        console.log('⚠️ No user ID available for fetching organization');
+        return;
+      }
       
       try {
-        const result = await getUserMemberOrganizations(user.id);
+        console.log('🔍 [AnnouncementManager] Fetching organizations for user:', userId);
+        const result = await getUserMemberOrganizations(userId);
+        console.log('📦 [AnnouncementManager] Organizations result:', result);
+        
         if (result.organizations.length > 0) {
+          setUserOrganizations(result.organizations);
           setUserOrganization(result.organizations[0]);
+          console.log('✅ [AnnouncementManager] User organizations loaded:', result.organizations.length);
+          console.log('✅ [AnnouncementManager] Selected organization:', result.organizations[0].name, 'ID:', result.organizations[0].id);
+        } else {
+          console.log('⚠️ [AnnouncementManager] No organizations found for user:', userId);
         }
       } catch (error) {
-        console.error('Error fetching user organization:', error);
+        console.error('❌ [AnnouncementManager] Error fetching user organizations:', error);
       }
     };
     
-    fetchOrganization();
+    fetchOrganizations();
   }, [user]);
+
+  const handleOrganizationChange = (e) => {
+    const selectedOrgId = e.target.value;
+    const selectedOrg = userOrganizations.find(org => org.id === selectedOrgId);
+    if (selectedOrg) {
+      setUserOrganization(selectedOrg);
+      console.log('🔄 [AnnouncementManager] Switched to organization:', selectedOrg.name, 'ID:', selectedOrg.id);
+    }
+  };
 
   useEffect(() => {
     if (userOrganization) {
@@ -43,11 +65,16 @@ const AnnouncementManager = () => {
   }, [userOrganization]);
 
   const loadAnnouncements = async () => {
-    if (!userOrganization) return;
+    if (!userOrganization) {
+      console.log('⚠️ Cannot load announcements - no organization set');
+      return;
+    }
     
     try {
       setLoading(true);
       setMessage(''); // Clear any previous messages
+      
+      console.log('📥 Loading announcements for organization:', userOrganization.id, userOrganization.name);
       
       const q = query(
         collection(db, 'messages'),
@@ -56,25 +83,29 @@ const AnnouncementManager = () => {
       );
       
       const snapshot = await getDocs(q);
-      const announcementsList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        title: doc.data().text?.substring(0, 50) + (doc.data().text?.length > 50 ? '...' : ''),
-        content: doc.data().text,
-        author: doc.data().userName,
-        active: true // Messages are always active
-      }));
+      console.log('📊 Query result: Found', snapshot.docs.length, 'announcements');
+      
+      const announcementsList = snapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log('📄 Announcement:', doc.id, 'OrgID:', data.organizationId, 'Text:', data.text?.substring(0, 30));
+        return {
+          id: doc.id,
+          ...data,
+          title: data.text?.substring(0, 50) + (data.text?.length > 50 ? '...' : ''),
+          content: data.text,
+          author: data.userName,
+          active: true // Messages are always active
+        };
+      });
       setAnnouncements(announcementsList);
+      console.log('✅ Announcements loaded successfully');
     } catch (error) {
-      console.error('Error loading announcements:', error);
+      console.error('❌ Error loading announcements:', error);
       
       // Check if it's an index error
       if (error.code === 'failed-precondition' || error.message?.includes('index')) {
-        console.error('Firestore index required. Creating index URL...');
+        console.error('Firestore index required. Using fallback query...');
         console.error('Index URL:', error.message);
-        setMessage('⚠️ Database index required. Check console for index creation link.');
-      } else {
-        setMessage(`Error loading announcements: ${error.message || 'Unknown error'}`);
       }
       
       // Try loading without orderBy as fallback
@@ -85,14 +116,21 @@ const AnnouncementManager = () => {
           where('organizationId', '==', userOrganization.id)
         );
         const fallbackSnapshot = await getDocs(fallbackQuery);
-        const fallbackList = fallbackSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          title: doc.data().text?.substring(0, 50) + (doc.data().text?.length > 50 ? '...' : ''),
-          content: doc.data().text,
-          author: doc.data().userName,
-          active: true
-        }));
+        console.log('📊 [AnnouncementManager] Fallback query: Found', fallbackSnapshot.docs.length, 'announcements');
+        
+        const fallbackList = fallbackSnapshot.docs.map(doc => {
+          const data = doc.data();
+          console.log('📄 [AnnouncementManager] Announcement:', doc.id, 'Priority:', data.priority, 'Text:', data.text?.substring(0, 30));
+          return {
+            id: doc.id,
+            ...data,
+            title: doc.data().text?.substring(0, 50) + (doc.data().text?.length > 50 ? '...' : ''),
+            content: doc.data().text,
+            author: doc.data().userName,
+            priority: data.priority || 'normal',
+            active: true
+          };
+        });
         
         // Sort client-side
         fallbackList.sort((a, b) => {
@@ -102,10 +140,11 @@ const AnnouncementManager = () => {
         });
         
         setAnnouncements(fallbackList);
-        setMessage('✅ Announcements loaded (sorted client-side)');
+        console.log('✅ [AnnouncementManager] Announcements loaded via fallback:', fallbackList.length);
       } catch (fallbackError) {
-        console.error('Fallback query also failed:', fallbackError);
+        console.error('❌ [AnnouncementManager] Fallback query also failed:', fallbackError);
         setMessage(`Error: ${fallbackError.message}`);
+        setAnnouncements([]);
       }
     } finally {
       setLoading(false);
@@ -127,22 +166,28 @@ const AnnouncementManager = () => {
         // Update existing message
         await updateDoc(doc(db, 'messages', editingId), {
           text: formData.content,
+          priority: formData.priority,
           updatedAt: serverTimestamp(),
           updatedBy: user.name || user.email
         });
         setMessage('Announcement updated successfully!');
       } else {
         // Create new message (announcement)
-        await addDoc(collection(db, 'messages'), {
+        console.log('📢 Creating announcement for organization:', userOrganization.id, userOrganization.name);
+        const newAnnouncement = {
           text: formData.content,
+          priority: formData.priority,
           createdAt: serverTimestamp(),
           timestamp: serverTimestamp(),
           userName: user.name || user.email.split('@')[0],
-          userId: user.id,
+          userId: user.id || user.uid,
           userEmail: user.email,
           organizationId: userOrganization.id,
           reactions: {}
-        });
+        };
+        console.log('📝 Announcement data:', newAnnouncement);
+        await addDoc(collection(db, 'messages'), newAnnouncement);
+        console.log('✅ Announcement saved successfully!');
         setMessage('Announcement created successfully!');
       }
 
@@ -206,6 +251,29 @@ const AnnouncementManager = () => {
         <h1>📢 Announcement Manager</h1>
         <p>Create and manage announcements for your organization</p>
       </div>
+
+      {userOrganizations.length > 1 && (
+        <div className="organization-selector">
+          <label htmlFor="org-select">
+            <strong>Select Organization:</strong>
+          </label>
+          <select
+            id="org-select"
+            value={userOrganization?.id || ''}
+            onChange={handleOrganizationChange}
+            className="org-dropdown"
+          >
+            {userOrganizations.map((org) => (
+              <option key={org.id} value={org.id}>
+                {org.name}
+              </option>
+            ))}
+          </select>
+          <p className="org-info">
+            Posting announcements to: <strong>{userOrganization?.name}</strong>
+          </p>
+        </div>
+      )}
 
       {message && (
         <div className={`message ${message.includes('Error') ? 'error' : 'success'}`}>
@@ -291,10 +359,13 @@ const AnnouncementManager = () => {
         ) : (
           <div className="announcements-table">
             {announcements.map((announcement) => (
-              <div key={announcement.id} className="announcement-item">
+              <div key={announcement.id} className={`announcement-item priority-${announcement.priority || 'normal'}`}>
                 <div className="announcement-item-header">
                   <div className="announcement-title-section">
                     <h3>{announcement.title || 'Announcement'}</h3>
+                    <span className={`priority-badge priority-${announcement.priority || 'normal'}`}>
+                      {announcement.priority === 'urgent' ? '🔴 Urgent' : announcement.priority === 'high' ? '🟠 High Priority' : '🟢 Normal'}
+                    </span>
                   </div>
                   <div className="announcement-actions">
                     <button onClick={() => handleEdit(announcement)} className="btn-edit" title="Edit">
