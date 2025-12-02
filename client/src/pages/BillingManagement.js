@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useAccount } from '../contexts/AccountContext';
 import { getUserOrganizations, getUserMemberOrganizations, getOrganizationMembers } from '../services/organizationService';
 import { 
   createBill, 
@@ -17,6 +18,7 @@ import './BillingManagement.css';
 
 const BillingManagement = () => {
   const { user } = useAuth();
+  const { activeAccount } = useAccount();
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [bills, setBills] = useState([]);
@@ -250,7 +252,12 @@ const BillingManagement = () => {
         organizationId: selectedOrg.id,
         organizationName: selectedOrg.name,
         ownerId: user.id,
-        memberIds: formData.assignToAll ? null : formData.selectedMembers
+        memberIds: formData.assignToAll ? null : formData.selectedMembers,
+        // Capture active account information
+        createdByAccountId: activeAccount?.id || null,
+        createdByAccountName: activeAccount?.accountName || null,
+        createdByAccountType: activeAccount?.accountType || null,
+        createdByEntityName: activeAccount?.entityName || null
       };
 
       await createBill(billData);
@@ -431,7 +438,12 @@ const BillingManagement = () => {
           paymentMethod: paymentMethod,
           notes: paymentNotes || 'Manually marked as paid',
           recordedBy: user.id,
-          recordedByName: user.displayName || user.email
+          recordedByName: user.displayName || user.email,
+          // Capture active account information
+          paidWithAccountId: activeAccount?.id || null,
+          paidWithAccountName: activeAccount?.accountName || null,
+          paidWithAccountType: activeAccount?.accountType || null,
+          paidWithEntityName: activeAccount?.entityName || null
         };
 
         await recordPayment(paymentData);
@@ -876,6 +888,24 @@ const BillingManagement = () => {
             <div className="modal-body">
               <p className="bill-description">{selectedBill.description}</p>
               
+              {/* Account Information if available */}
+              {(selectedBill.createdByAccountName || selectedBill.createdByEntityName) && (
+                <div className="bill-profile-info">
+                  <span className="profile-label">Created with account:</span>
+                  <span className="profile-value">
+                    {selectedBill.createdByAccountType === 'personal' && '👤'}
+                    {selectedBill.createdByAccountType === 'llc' && '🏢'}
+                    {selectedBill.createdByAccountType === 'trust' && '🏛️'}
+                    {selectedBill.createdByAccountType === 'corporation' && '🏭'}
+                    {selectedBill.createdByAccountType === 'partnership' && '🤝'}
+                    {selectedBill.createdByAccountType === 'nonprofit' && '❤️'}
+                    {selectedBill.createdByAccountType === 'other' && '📋'}
+                    {' '}
+                    {selectedBill.createdByEntityName || selectedBill.createdByAccountName}
+                  </span>
+                </div>
+              )}
+              
               <div className="bill-stats">
                 <div className="stat">
                   <span className="stat-label">Amount</span>
@@ -943,6 +973,19 @@ const BillingManagement = () => {
                         {payment.paymentMethod && (
                           <span className="payment-method-badge">
                             {getPaymentMethodIcon(payment.paymentMethod)} {formatPaymentMethod(payment.paymentMethod)}
+                          </span>
+                        )}
+                        {(payment.paidWithAccountName || payment.paidWithEntityName) && (
+                          <span className="payment-profile-badge">
+                            {payment.paidWithAccountType === 'personal' && '👤'}
+                            {payment.paidWithAccountType === 'llc' && '🏢'}
+                            {payment.paidWithAccountType === 'trust' && '🏛️'}
+                            {payment.paidWithAccountType === 'corporation' && '🏭'}
+                            {payment.paidWithAccountType === 'partnership' && '🤝'}
+                            {payment.paidWithAccountType === 'nonprofit' && '❤️'}
+                            {payment.paidWithAccountType === 'other' && '📋'}
+                            {' '}
+                            {payment.paidWithEntityName || payment.paidWithAccountName}
                           </span>
                         )}
                         {payment.notes && (

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useProfile } from '../contexts/ProfileContext';
 import { 
   collection, 
   query, 
@@ -16,9 +17,15 @@ import './ProfileManager.css';
 
 const ProfileManager = () => {
   const { user } = useAuth();
-  const [profiles, setProfiles] = useState([]);
-  const [activeProfile, setActiveProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { 
+    profiles, 
+    activeProfile, 
+    loading: loadingProfiles, 
+    switchProfile,
+    setAsDefault,
+    refreshProfiles 
+  } = useProfile();
+  const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -47,56 +54,6 @@ const ProfileManager = () => {
     { value: 'nonprofit', label: '❤️ Non-Profit', icon: '❤️' },
     { value: 'other', label: '📋 Other', icon: '📋' }
   ];
-
-  useEffect(() => {
-    fetchProfiles();
-  }, [user]);
-
-  const fetchProfiles = async () => {
-    if (!user?.id || !db) return;
-
-    try {
-      setLoading(true);
-      const profilesQuery = query(
-        collection(db, 'userProfiles'),
-        where('userId', '==', user.id)
-      );
-
-      const querySnapshot = await getDocs(profilesQuery);
-      const profilesList = [];
-      
-      querySnapshot.forEach((doc) => {
-        const profileData = { id: doc.id, ...doc.data() };
-        profilesList.push(profileData);
-        
-        // Set active profile if it's marked as default
-        if (profileData.isDefault) {
-          setActiveProfile(profileData);
-        }
-      });
-
-      // Sort profiles: default first, then by creation date
-      profilesList.sort((a, b) => {
-        if (a.isDefault) return -1;
-        if (b.isDefault) return 1;
-        return (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0);
-      });
-
-      setProfiles(profilesList);
-
-      // If no active profile but profiles exist, set the first one as active
-      if (!activeProfile && profilesList.length > 0) {
-        setActiveProfile(profilesList[0]);
-      }
-
-      setError('');
-    } catch (err) {
-      console.error('Error fetching profiles:', err);
-      setError('Failed to load profiles: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -128,7 +85,7 @@ const ProfileManager = () => {
       setSuccess('Profile added successfully!');
       setShowAddForm(false);
       resetForm();
-      await fetchProfiles();
+      await refreshProfiles();
 
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -139,21 +96,16 @@ const ProfileManager = () => {
     }
   };
 
-  const setAsDefault = async (profileId) => {
+  const handleSetAsDefault = async (profileId) => {
     try {
       setLoading(true);
-
-      // Unset all other defaults
-      const updatePromises = profiles.map(profile => 
-        updateDoc(doc(db, 'userProfiles', profile.id), { 
-          isDefault: profile.id === profileId 
-        })
-      );
-      await Promise.all(updatePromises);
-
-      setSuccess('Default profile updated!');
-      await fetchProfiles();
-      setTimeout(() => setSuccess(''), 3000);
+      const success = await setAsDefault(profileId);
+      if (success) {
+        setSuccess('Default profile updated!');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError('Failed to set default profile');
+      }
     } catch (err) {
       console.error('Error setting default:', err);
       setError('Failed to set default profile: ' + err.message);
@@ -170,7 +122,7 @@ const ProfileManager = () => {
       await deleteDoc(doc(db, 'userProfiles', profileId));
       
       setSuccess('Profile deleted successfully!');
-      await fetchProfiles();
+      await refreshProfiles();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Error deleting profile:', err);
@@ -202,7 +154,7 @@ const ProfileManager = () => {
     return profile ? profile.icon : '📋';
   };
 
-  if (loading && profiles.length === 0) {
+  if (loadingProfiles && profiles.length === 0) {
     return (
       <div className="profile-manager-container">
         <div className="loading">Loading profiles...</div>
@@ -396,7 +348,7 @@ const ProfileManager = () => {
               <div 
                 key={profile.id} 
                 className={`profile-card ${profile.isDefault ? 'default' : ''} ${activeProfile?.id === profile.id ? 'active' : ''}`}
-                onClick={() => setActiveProfile(profile)}
+                onClick={() => switchProfile(profile)}
               >
                 {profile.isDefault && (
                   <div className="default-badge">Default</div>
@@ -458,7 +410,7 @@ const ProfileManager = () => {
                       className="btn-small btn-secondary"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setAsDefault(profile.id);
+                        handleSetAsDefault(profile.id);
                       }}
                     >
                       Set as Default

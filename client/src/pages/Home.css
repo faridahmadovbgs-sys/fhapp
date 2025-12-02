@@ -55,6 +55,37 @@
   line-height: 1.6;
 }
 
+.active-account-welcome {
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem 0;
+  opacity: 1 !important;
+  position: relative;
+  z-index: 1;
+  color: white !important;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.active-account-welcome strong {
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.active-account-entity {
+  font-size: 1.2rem;
+  margin: 0 0 1rem 0;
+  opacity: 0.9 !important;
+  position: relative;
+  z-index: 1;
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-style: italic;
+}
+
 /* Organization Selector on Home Page */
 .organization-selector-home {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 197, 253, 0.1) 100%);
@@ -239,6 +270,102 @@
   box-shadow: 0 2px 6px rgba(76, 175, 80, 0.4);
 }
 
+/* Operating Mode Toggle */
+.operating-mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.mode-btn {
+  background: white;
+  border: 2px solid var(--gray-300);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  text-align: left;
+}
+
+.mode-btn:hover {
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.mode-btn.active {
+  border-color: #4CAF50;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.05) 100%);
+  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+}
+
+.mode-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.mode-info {
+  flex: 1;
+}
+
+.mode-label {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.mode-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Current Mode Status */
+.current-mode-status {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.current-mode-status.user-mode {
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 4px solid #3b82f6;
+  color: var(--text-primary);
+}
+
+.current-mode-status.account-mode {
+  background: rgba(76, 175, 80, 0.1);
+  border-left: 4px solid #4CAF50;
+  color: var(--text-primary);
+}
+
+.current-mode-status.no-account {
+  background: rgba(251, 146, 60, 0.1);
+  border-left: 4px solid #fb923c;
+  color: var(--text-primary);
+}
+
+.current-mode-status strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.current-mode-status .entity-name {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.current-mode-status p {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
 .active-profile-summary {
   background: rgba(76, 175, 80, 0.1);
   padding: 1rem;
@@ -263,12 +390,43 @@
   gap: 1rem;
 }
 
+.organization-selector-home .org-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
 .organization-selector-home label {
   font-size: 1rem;
   color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  margin: 0;
+}
+
+.organization-selector-home .btn-manage-orgs {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.organization-selector-home .btn-manage-orgs:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.organization-selector-home .btn-manage-orgs:active {
+  transform: translateY(0);
 }
 
 .organization-selector-home .org-dropdown-home {

@@ -97,7 +97,7 @@ export const getOrganizationBills = async (organizationId) => {
 };
 
 // Get bills for member
-export const getMemberBills = async (memberId, organizationId) => {
+export const getMemberBills = async (memberId, organizationId, userRole = null) => {
   try {
     if (!db) {
       throw new Error('Firebase Firestore not available');
@@ -114,8 +114,12 @@ export const getMemberBills = async (memberId, organizationId) => {
 
     querySnapshot.forEach((doc) => {
       const billData = doc.data();
-      // Include bills where member is in memberIds or bill is for all members
-      if (!billData.memberIds || billData.memberIds.includes(memberId)) {
+      // Sub account owners can see all organization bills
+      // Regular members only see bills assigned to them
+      const isSubAccountOwner = userRole === 'sub_account_owner';
+      const isAccountOwner = userRole === 'account_owner';
+      
+      if (isSubAccountOwner || isAccountOwner || !billData.memberIds || billData.memberIds.includes(memberId)) {
         bills.push({
           id: doc.id,
           ...billData
@@ -129,7 +133,7 @@ export const getMemberBills = async (memberId, organizationId) => {
       bill.paymentStatus = paymentStatus;
     }
 
-    console.log(`✅ Found ${bills.length} bills for member`);
+    console.log(`✅ Found ${bills.length} bills for member (role: ${userRole || 'user'})`);
 
     return {
       success: true,

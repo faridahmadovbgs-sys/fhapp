@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useAccount } from '../contexts/AccountContext';
 import { getUserMemberOrganizations } from '../services/organizationService';
 import { 
   getMemberBills, 
   recordPayment, 
   getMemberPaymentHistory 
 } from '../services/billingService';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import './MemberPayments.css';
 
 const MemberPayments = () => {
   const { user, loading: authLoading } = useAuth();
+  const { activeAccount } = useAccount();
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [bills, setBills] = useState([]);
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState(null);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
   const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
@@ -44,6 +49,17 @@ const MemberPayments = () => {
       
       try {
         setLoading(true);
+        
+        // Fetch user role
+        if (user?.id && db) {
+          const userDoc = await getDoc(doc(db, 'users', user.id));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserRole(userData.role || 'user');
+            console.log('✅ User role fetched:', userData.role);
+          }
+        }
+        
         const result = await getUserMemberOrganizations(user.id);
         setOrganizations(result.organizations);
         
@@ -76,8 +92,8 @@ const MemberPayments = () => {
     try {
       setLoading(true);
       
-      // Load bills
-      const billsResult = await getMemberBills(user.id, selectedOrg.id);
+      // Load bills with user role
+      const billsResult = await getMemberBills(user.id, selectedOrg.id, userRole);
       if (billsResult.success) {
         setBills(billsResult.bills);
       }
@@ -136,7 +152,12 @@ const MemberPayments = () => {
         organizationName: selectedOrg.name,
         paymentMethod: paymentForm.paymentMethod,
         billTitle: selectedBill.title,
-        billType: selectedBill.billType
+        billType: selectedBill.billType,
+        // Capture active account information
+        paidWithAccountId: activeAccount?.id || null,
+        paidWithAccountName: activeAccount?.accountName || null,
+        paidWithAccountType: activeAccount?.accountType || null,
+        paidWithEntityName: activeAccount?.entityName || null
       };
 
       await recordPayment(paymentData);
@@ -203,7 +224,12 @@ const MemberPayments = () => {
         paymentMethod: manualPaymentMethod,
         notes: manualPaymentNotes || 'Manually marked as paid by member',
         recordedBy: user.id,
-        recordedByName: user.displayName || user.email
+        recordedByName: user.displayName || user.email,
+        // Capture active account information
+        paidWithAccountId: activeAccount?.id || null,
+        paidWithAccountName: activeAccount?.accountName || null,
+        paidWithAccountType: activeAccount?.accountType || null,
+        paidWithEntityName: activeAccount?.entityName || null
       };
 
       await recordPayment(paymentData);
@@ -448,6 +474,21 @@ const MemberPayments = () => {
                     {payment.paymentMethod && (
                       <p className="history-method">
                         {getPaymentMethodIcon(payment.paymentMethod)} {formatPaymentMethod(payment.paymentMethod)}
+                      </p>
+                    )}
+                    {(payment.paidWithAccountName || payment.paidWithEntityName) && (
+                      <p className="history-profile">
+                        <span className="profile-badge">
+                          {payment.paidWithAccountType === 'personal' && '👤'}
+                          {payment.paidWithAccountType === 'llc' && '🏢'}
+                          {payment.paidWithAccountType === 'trust' && '🏛️'}
+                          {payment.paidWithAccountType === 'corporation' && '🏭'}
+                          {payment.paidWithAccountType === 'partnership' && '🤝'}
+                          {payment.paidWithAccountType === 'nonprofit' && '❤️'}
+                          {payment.paidWithAccountType === 'other' && '📋'}
+                          {' '}
+                          {payment.paidWithEntityName || payment.paidWithAccountName}
+                        </span>
                       </p>
                     )}
                     {payment.notes && (

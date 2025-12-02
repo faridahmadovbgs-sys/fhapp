@@ -24,11 +24,12 @@ import PersonalDocuments from './pages/PersonalDocuments';
 import OrganizationDocuments from './pages/OrganizationDocuments';
 import MemberDocuments from './pages/MemberDocuments';
 import AnnouncementManager from './pages/AnnouncementManager';
-import ProfileManager from './pages/ProfileManager';
+import AccountManager from './pages/AccountManager';
 import ChatNotificationBadge from './components/ChatNotificationBadge';
 import apiService from './services/apiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthorizationProvider } from './contexts/AuthorizationContext';
+import { AccountProvider } from './contexts/AccountContext';
 import { collection, query, where, onSnapshot, getDocs, orderBy } from 'firebase/firestore';
 import { db } from './config/firebase';
 
@@ -259,7 +260,7 @@ function MainApp() {
                 </Link>
               </li>
               <li><Link to="/documents" onClick={closeMenu}>My Documents</Link></li>
-              <li><Link to="/profiles" onClick={closeMenu}>My Profiles</Link></li>
+              <li><Link to="/accounts" onClick={closeMenu}>My Accounts</Link></li>
               <li className="nav-item-with-badge">
                 <Link to="/org-documents" onClick={closeMenu}>
                   Org Documents
@@ -362,10 +363,10 @@ function MainApp() {
               } 
             />
             <Route 
-              path="/profiles" 
+              path="/accounts" 
               element={
-                <ProfileManager />
-              } 
+                <AccountManager />
+              }
             />
             <Route 
               path="/invitations" 
@@ -431,9 +432,11 @@ function App() {
   return (
     <AuthProvider>
       <AuthorizationProvider>
-        <Router>
-          <AppContent />
-        </Router>
+        <AccountProvider>
+          <Router>
+            <AppContent />
+          </Router>
+        </AccountProvider>
       </AuthorizationProvider>
     </AuthProvider>
   );

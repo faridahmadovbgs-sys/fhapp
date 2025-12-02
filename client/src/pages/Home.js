@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useAccount } from '../contexts/AccountContext';
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getUserMemberOrganizations } from '../services/organizationService';
@@ -11,15 +12,34 @@ import './Home.css';
 
 const Home = ({ data }) => {
   const { user } = useAuth();
+  const { 
+    accounts, 
+    activeAccount, 
+    operatingAsUser,
+    loading: loadingAccounts, 
+    switchAccount,
+    switchToUserMode,
+    switchToAccountMode
+  } = useAccount();
   const navigate = useNavigate();
   const [userRole, setUserRole] = useState(null);
   const [userOrganizations, setUserOrganizations] = useState([]);
   const [userOrganization, setUserOrganization] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [profiles, setProfiles] = useState([]);
-  const [activeProfile, setActiveProfile] = useState(null);
-  const [loadingProfiles, setLoadingProfiles] = useState(true);
+
+  const getAccountIcon = (type) => {
+    const icons = {
+      'personal': '👤',
+      'llc': '🏢',
+      'trust': '🏛️',
+      'corporation': '🏭',
+      'partnership': '🤝',
+      'nonprofit': '❤️',
+      'other': '📋'
+    };
+    return icons[type] || '📋';
+  };
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -84,51 +104,6 @@ const Home = ({ data }) => {
     };
     
     fetchOrganization();
-  }, [user]);
-
-  // Fetch user profiles
-  useEffect(() => {
-    const fetchProfiles = async () => {
-      if (!user?.id || !db) return;
-
-      try {
-        setLoadingProfiles(true);
-        const profilesQuery = query(
-          collection(db, 'userProfiles'),
-          where('userId', '==', user.id)
-        );
-
-        const querySnapshot = await getDocs(profilesQuery);
-        const profilesList = [];
-        
-        querySnapshot.forEach((doc) => {
-          const profileData = { id: doc.id, ...doc.data() };
-          profilesList.push(profileData);
-          
-          if (profileData.isDefault) {
-            setActiveProfile(profileData);
-          }
-        });
-
-        profilesList.sort((a, b) => {
-          if (a.isDefault) return -1;
-          if (b.isDefault) return 1;
-          return (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0);
-        });
-
-        setProfiles(profilesList);
-
-        if (!activeProfile && profilesList.length > 0) {
-          setActiveProfile(profilesList[0]);
-        }
-      } catch (err) {
-        console.error('Error fetching profiles:', err);
-      } finally {
-        setLoadingProfiles(false);
-      }
-    };
-
-    fetchProfiles();
   }, [user]);
 
   const handleOrganizationChange = (e) => {
@@ -252,81 +227,143 @@ const Home = ({ data }) => {
     <div>
       <div className="hero">
         <h1>Welcome to Integrant Platform</h1>
-        <p>Enterprise Organization Management</p>
+        {operatingAsUser ? (
+          <p className="active-account-welcome">
+            👤 Operating as: <strong>{user?.displayName || user?.email}</strong>
+          </p>
+        ) : activeAccount ? (
+          <>
+            <p className="active-account-welcome">
+              {getAccountIcon(activeAccount.accountType)} Operating as: <strong>{activeAccount.accountName}</strong>
+            </p>
+            {activeAccount.entityName && (
+              <p className="active-account-entity">{activeAccount.entityName}</p>
+            )}
+          </>
+        ) : (
+          <p>Enterprise Organization Management</p>
+        )}
         <p className="hero-subtitle">Streamline your business operations with automated billing, secure document management, and seamless team collaboration</p>
       </div>
 
-      {/* Profile Switcher */}
-      {!loadingProfiles && (
+      {/* Account Switcher */}
+      {!loadingAccounts && (
         <div className="profile-switcher-home">
           <div className="profile-switcher-header">
-            <h3>👤 Active Profile</h3>
+            <h3>💼 Operating Mode</h3>
             <button 
               className="btn-manage-profiles"
-              onClick={() => navigate('/profiles')}
+              onClick={() => navigate('/accounts')}
             >
-              Manage Profiles
+              Manage Accounts
             </button>
           </div>
           
-          {profiles.length === 0 ? (
-            <div className="no-profiles-card">
-              <p>📋 No profiles yet.</p>
-              <button 
-                className="btn-add-profile"
-                onClick={() => navigate('/profiles')}
-              >
-                + Create Your First Profile
-              </button>
+          {/* User Mode / Account Mode Toggle */}
+          <div className="operating-mode-toggle">
+            <button
+              className={`mode-btn ${operatingAsUser ? 'active' : ''}`}
+              onClick={switchToUserMode}
+            >
+              <span className="mode-icon">👤</span>
+              <div className="mode-info">
+                <div className="mode-label">User Mode</div>
+                <div className="mode-desc">Operate as yourself</div>
+              </div>
+            </button>
+            <button
+              className={`mode-btn ${!operatingAsUser && activeAccount ? 'active' : ''}`}
+              onClick={() => switchToAccountMode()}
+            >
+              <span className="mode-icon">🏢</span>
+              <div className="mode-info">
+                <div className="mode-label">Account Mode</div>
+                <div className="mode-desc">Operate as an account</div>
+              </div>
+            </button>
+          </div>
+
+          {/* Show active mode status */}
+          {operatingAsUser ? (
+            <div className="current-mode-status user-mode">
+              <strong>👤 Operating as:</strong> {user?.displayName || user?.email}
+            </div>
+          ) : activeAccount ? (
+            <div className="current-mode-status account-mode">
+              <strong>{getAccountIcon(activeAccount.accountType)} Operating as:</strong> {activeAccount.accountName}
+              {activeAccount.entityName && <span className="entity-name"> ({activeAccount.entityName})</span>}
             </div>
           ) : (
-            <div className="profiles-quick-switch">
-              {profiles.map((profile) => (
-                <div
-                  key={profile.id}
-                  className={`profile-quick-card ${activeProfile?.id === profile.id ? 'active' : ''}`}
-                  onClick={() => setActiveProfile(profile)}
-                >
-                  <div className="profile-quick-icon">
-                    {profile.profileType === 'personal' && '👤'}
-                    {profile.profileType === 'llc' && '🏢'}
-                    {profile.profileType === 'trust' && '🏛️'}
-                    {profile.profileType === 'corporation' && '🏭'}
-                    {profile.profileType === 'partnership' && '🤝'}
-                    {profile.profileType === 'nonprofit' && '❤️'}
-                    {profile.profileType === 'other' && '📋'}
-                  </div>
-                  <div className="profile-quick-info">
-                    <div className="profile-quick-name">{profile.profileName}</div>
-                    <div className="profile-quick-type">
-                      {profile.entityName || profile.profileType}
-                    </div>
-                  </div>
-                  {profile.isDefault && (
-                    <span className="profile-default-tag">Default</span>
-                  )}
-                  {activeProfile?.id === profile.id && (
-                    <span className="profile-active-check">✓</span>
-                  )}
-                </div>
-              ))}
+            <div className="current-mode-status no-account">
+              <strong>⚠️ No account selected</strong>
+              <p>Please select an account or switch to user mode</p>
             </div>
           )}
           
-          {activeProfile && (
-            <div className="active-profile-summary">
-              <strong>Currently active:</strong> {activeProfile.profileName}
-              {activeProfile.entityName && ` (${activeProfile.entityName})`}
-            </div>
+          {/* Show account selection only when in account mode */}
+          {!operatingAsUser && (
+            <>
+              {accounts.length === 0 ? (
+                <div className="no-profiles-card">
+                  <p>📋 No accounts yet.</p>
+                  <button 
+                    className="btn-add-profile"
+                    onClick={() => navigate('/accounts')}
+                  >
+                    + Create Your First Account
+                  </button>
+                </div>
+              ) : (
+                <div className="profiles-quick-switch">
+                  {accounts.map((account) => (
+                    <div
+                      key={account.id}
+                      className={`profile-quick-card ${activeAccount?.id === account.id ? 'active' : ''}`}
+                      onClick={() => switchAccount(account)}
+                    >
+                      <div className="profile-quick-icon">
+                        {account.accountType === 'personal' && '👤'}
+                        {account.accountType === 'llc' && '🏢'}
+                        {account.accountType === 'trust' && '🏛️'}
+                        {account.accountType === 'corporation' && '🏭'}
+                        {account.accountType === 'partnership' && '🤝'}
+                        {account.accountType === 'nonprofit' && '❤️'}
+                        {account.accountType === 'other' && '📋'}
+                      </div>
+                      <div className="profile-quick-info">
+                        <div className="profile-quick-name">{account.accountName}</div>
+                        <div className="profile-quick-type">
+                          {account.entityName || account.accountType}
+                        </div>
+                      </div>
+                      {account.isDefault && (
+                        <span className="profile-default-tag">Default</span>
+                      )}
+                      {activeAccount?.id === account.id && (
+                        <span className="profile-active-check">✓</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
 
       {userRole === 'account_owner' && userOrganizations.length > 1 && (
         <div className="organization-selector-home">
-          <label htmlFor="org-select-home">
-            <strong>📊 Select Organization:</strong>
-          </label>
+          <div className="org-selector-header">
+            <label htmlFor="org-select-home">
+              <strong>📊 Select Organization:</strong>
+            </label>
+            <button 
+              className="btn-manage-orgs"
+              onClick={() => navigate('/admin')}
+            >
+              Manage Organizations
+            </button>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <select
               id="org-select-home"
