@@ -47,11 +47,14 @@ const AnnouncementManager = () => {
     
     try {
       setLoading(true);
+      setMessage(''); // Clear any previous messages
+      
       const q = query(
         collection(db, 'messages'),
         where('organizationId', '==', userOrganization.id),
         orderBy('createdAt', 'desc')
       );
+      
       const snapshot = await getDocs(q);
       const announcementsList = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -64,7 +67,46 @@ const AnnouncementManager = () => {
       setAnnouncements(announcementsList);
     } catch (error) {
       console.error('Error loading announcements:', error);
-      setMessage('Error loading announcements');
+      
+      // Check if it's an index error
+      if (error.code === 'failed-precondition' || error.message?.includes('index')) {
+        console.error('Firestore index required. Creating index URL...');
+        console.error('Index URL:', error.message);
+        setMessage('⚠️ Database index required. Check console for index creation link.');
+      } else {
+        setMessage(`Error loading announcements: ${error.message || 'Unknown error'}`);
+      }
+      
+      // Try loading without orderBy as fallback
+      try {
+        console.log('Attempting to load without orderBy...');
+        const fallbackQuery = query(
+          collection(db, 'messages'),
+          where('organizationId', '==', userOrganization.id)
+        );
+        const fallbackSnapshot = await getDocs(fallbackQuery);
+        const fallbackList = fallbackSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          title: doc.data().text?.substring(0, 50) + (doc.data().text?.length > 50 ? '...' : ''),
+          content: doc.data().text,
+          author: doc.data().userName,
+          active: true
+        }));
+        
+        // Sort client-side
+        fallbackList.sort((a, b) => {
+          const timeA = a.createdAt?.toMillis?.() || 0;
+          const timeB = b.createdAt?.toMillis?.() || 0;
+          return timeB - timeA;
+        });
+        
+        setAnnouncements(fallbackList);
+        setMessage('✅ Announcements loaded (sorted client-side)');
+      } catch (fallbackError) {
+        console.error('Fallback query also failed:', fallbackError);
+        setMessage(`Error: ${fallbackError.message}`);
+      }
     } finally {
       setLoading(false);
     }
