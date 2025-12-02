@@ -13,7 +13,7 @@ import './MemberPayments.css';
 
 const MemberPayments = () => {
   const { user, loading: authLoading } = useAuth();
-  const { activeAccount } = useAccount();
+  const { activeAccount, operatingAsUser } = useAccount();
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [bills, setBills] = useState([]);
@@ -120,9 +120,29 @@ const MemberPayments = () => {
   };
 
   const initiatePayment = (bill) => {
-    setSelectedBill(bill);
-    setShowPaymentForm(true);
-    setError('');
+    // Show confirmation with operating mode
+    let payingAs;
+    if (operatingAsUser) {
+      payingAs = `yourself (${user?.displayName || user?.email})`;
+    } else if (activeAccount) {
+      payingAs = `${activeAccount.accountName}${activeAccount.entityName ? ' (' + activeAccount.entityName + ')' : ''}`;
+    } else {
+      payingAs = 'yourself (no account selected)';
+    }
+
+    const confirmed = window.confirm(
+      `You are about to make a payment:\n\n` +
+      `Bill: ${bill.title}\n` +
+      `Amount: $${bill.amount.toFixed(2)}\n\n` +
+      `Paying as: ${payingAs}\n\n` +
+      `Is this correct?`
+    );
+
+    if (confirmed) {
+      setSelectedBill(bill);
+      setShowPaymentForm(true);
+      setError('');
+    }
   };
 
   const handlePaymentSubmit = async (e) => {
@@ -184,11 +204,31 @@ const MemberPayments = () => {
   };
 
   const openMarkPaidModal = (bill) => {
-    setMarkPaidBill(bill);
-    setManualPaymentAmount(bill.amount.toString());
-    setManualPaymentNotes('');
-    setManualPaymentMethod('cash');
-    setShowMarkPaidModal(true);
+    // Show confirmation with operating mode
+    let payingAs;
+    if (operatingAsUser) {
+      payingAs = `yourself (${user?.displayName || user?.email})`;
+    } else if (activeAccount) {
+      payingAs = `${activeAccount.accountName}${activeAccount.entityName ? ' (' + activeAccount.entityName + ')' : ''}`;
+    } else {
+      payingAs = 'yourself (no account selected)';
+    }
+
+    const confirmed = window.confirm(
+      `You are about to mark this bill as paid:\n\n` +
+      `Bill: ${bill.title}\n` +
+      `Amount: $${bill.amount.toFixed(2)}\n\n` +
+      `Recording payment as: ${payingAs}\n\n` +
+      `Is this correct?`
+    );
+
+    if (confirmed) {
+      setMarkPaidBill(bill);
+      setManualPaymentAmount(bill.amount.toString());
+      setManualPaymentNotes('');
+      setManualPaymentMethod('cash');
+      setShowMarkPaidModal(true);
+    }
   };
 
   const closeMarkPaidModal = () => {

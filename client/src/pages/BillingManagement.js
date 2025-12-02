@@ -18,7 +18,7 @@ import './BillingManagement.css';
 
 const BillingManagement = () => {
   const { user } = useAuth();
-  const { activeAccount } = useAccount();
+  const { activeAccount, operatingAsUser } = useAccount();
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [bills, setBills] = useState([]);
@@ -234,6 +234,27 @@ const BillingManagement = () => {
 
     const totalAmount = validLineItems.reduce((sum, item) => sum + parseFloat(item.amount), 0);
 
+    // Show confirmation with operating mode
+    let creatingAs;
+    if (operatingAsUser) {
+      creatingAs = `yourself (${user?.displayName || user?.email})`;
+    } else if (activeAccount) {
+      creatingAs = `${activeAccount.accountName}${activeAccount.entityName ? ' (' + activeAccount.entityName + ')' : ''}`;
+    } else {
+      creatingAs = 'yourself (no account selected)';
+    }
+
+    const confirmed = window.confirm(
+      `You are about to create a bill:\n\n` +
+      `Title: ${formData.title}\n` +
+      `Amount: $${totalAmount.toFixed(2)}\n` +
+      `Organization: ${selectedOrg.name}\n\n` +
+      `Creating as: ${creatingAs}\n\n` +
+      `Is this correct?`
+    );
+
+    if (!confirmed) return;
+
     try {
       const billData = {
         title: formData.title.trim(),
@@ -421,6 +442,27 @@ const BillingManagement = () => {
         setError('Please enter a valid payment amount');
         return;
       }
+
+      // Show confirmation with operating mode
+      let recordingAs;
+      if (operatingAsUser) {
+        recordingAs = `yourself (${user?.displayName || user?.email})`;
+      } else if (activeAccount) {
+        recordingAs = `${activeAccount.accountName}${activeAccount.entityName ? ' (' + activeAccount.entityName + ')' : ''}`;
+      } else {
+        recordingAs = 'yourself (no account selected)';
+      }
+
+      const confirmed = window.confirm(
+        `You are about to record a payment:\n\n` +
+        `Bill: ${markPaidBill.title}\n` +
+        `Amount: $${amount.toFixed(2)}\n` +
+        `Members: ${selectedPayerIds.length}\n\n` +
+        `Recording payment as: ${recordingAs}\n\n` +
+        `Is this correct?`
+      );
+
+      if (!confirmed) return;
 
       // Record payment for each selected member
       for (const memberId of selectedPayerIds) {

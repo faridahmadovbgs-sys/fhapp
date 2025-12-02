@@ -255,16 +255,6 @@ const AccountManager = () => {
                   placeholder="XX-XXXXXXX"
                 />
               </div>
-              <div className="form-group">
-                <label>Tax ID</label>
-                <input
-                  type="text"
-                  name="taxId"
-                  value={formData.taxId}
-                  onChange={handleChange}
-                  placeholder="Tax ID Number"
-                />
-              </div>
             </div>
 
             <div className="form-group">
