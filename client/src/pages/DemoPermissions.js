@@ -119,11 +119,11 @@ const DemoPermissions = () => {
         <h2>👤 Your Role</h2>
         <div className="role-display">
           <div className={`role-badge role-${userRole}`}>
-            {userRole === 'admin' && '👑 Admin'}
-            {userRole === 'account_owner' && '🏢 Account Owner'}
+            {userRole === 'admin' && '⚙️ Admin'}
+            {userRole === 'account_owner' && '👑 Account Owner'}
             {userRole === 'sub_account_owner' && '👑 Sub Account Owner'}
             {userRole === 'moderator' && '🛡️ Moderator'}
-            {userRole === 'user' && '👤 User'}
+            {(userRole === 'user' || !userRole) && '👤 Member'}
           </div>
         </div>
         

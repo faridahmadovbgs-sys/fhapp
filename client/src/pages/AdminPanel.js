@@ -3,7 +3,7 @@ import { useAuthorization } from '../contexts/AuthorizationContext';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/apiService';
 import { getUserOrganizations, createOrganization } from '../services/organizationService';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import '../components/AdminPanel.css';
 
@@ -34,6 +34,7 @@ const AdminPanel = () => {
   const [organizations, setOrganizations] = useState([]);
   const [orgLoading, setOrgLoading] = useState(false);
   const [newOrgName, setNewOrgName] = useState('');
+  const [selectedOrg, setSelectedOrg] = useState(null);
 
   // Fetch all users
   useEffect(() => {
@@ -88,7 +89,59 @@ const AdminPanel = () => {
           throw new Error('Firestore not available');
         }
 
-        // Fetch all users directly from Firestore
+        // For account owners, fetch their organizations first
+        if (userRole === 'account_owner' || userRole === 'sub_account_owner') {
+          const orgsResult = await getUserOrganizations(currentUser.id);
+          const orgs = orgsResult.organizations || [];
+          setOrganizations(orgs);
+          
+          // Auto-select first organization if not selected
+          if (orgs.length > 0 && !selectedOrg) {
+            setSelectedOrg(orgs[0]);
+          }
+          
+          // If no organizations, show empty list
+          if (orgs.length === 0) {
+            setFirebaseUsers([]);
+            setFirebaseLoading(false);
+            return;
+          }
+          
+          // Get the current selected organization or first one
+          const currentOrg = selectedOrg || orgs[0];
+          const memberIds = currentOrg.members || [];
+          
+          // Fetch only organization members
+          const usersList = [];
+          const usersSnapshot = await getDocs(collection(db, 'users'));
+          
+          usersSnapshot.forEach((doc) => {
+            const userData = doc.data();
+            // Only include users who are members of the selected organization
+            if (memberIds.includes(userData.uid)) {
+              usersList.push({
+                id: doc.id,
+                email: userData.email || 'N/A',
+                name: userData.name || userData.fullName || userData.email?.split('@')[0] || 'Unknown',
+                emailVerified: userData.emailVerified || false,
+                role: userData.role || 'user',
+                isActive: true,
+                createdAt: userData.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+                lastSignIn: userData.lastSignIn?.toDate?.()?.toISOString() || userData.lastLoginAt?.toDate?.()?.toISOString() || null,
+                photoURL: userData.photoURL || userData.profilePictureUrl || null,
+                organizationId: userData.organizationId || currentOrg.id,
+                permissions: rolePermissions[userData.role || 'user'] || rolePermissions.user
+              });
+            }
+          });
+          
+          setFirebaseUsers(usersList);
+          setError('');
+          setFirebaseLoading(false);
+          return;
+        }
+
+        // For admins, fetch all users
         const usersSnapshot = await getDocs(collection(db, 'users'));
         const usersList = [];
         
@@ -162,7 +215,7 @@ const AdminPanel = () => {
     } else if (activeTab === 'organizations') {
       fetchOrganizations();
     }
-  }, [activeTab, currentUser, rolePermissions]);
+  }, [activeTab, currentUser, rolePermissions, selectedOrg]);
 
   // Fetch user's organizations
   const fetchOrganizations = async () => {
@@ -235,11 +288,23 @@ const AdminPanel = () => {
         return;
       }
       
-      await updateUserRole(userId, newRole);
-      setSuccess(`User role updated to ${newRole}`);
+      // Update role directly in Firestore
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, {
+        role: newRole
+      });
+      
+      setSuccess(`User role updated to ${newRole.replace('_', ' ')}`);
       setTimeout(() => setSuccess(''), 3000);
+      
+      // Reload users list to reflect changes
+      const updatedUsers = firebaseUsers.map(u => 
+        u.id === userId ? { ...u, role: newRole, permissions: rolePermissions[newRole] || rolePermissions.user } : u
+      );
+      setFirebaseUsers(updatedUsers);
     } catch (err) {
-      setError('Failed to update user role');
+      console.error('Error updating role:', err);
+      setError('Failed to update user role: ' + err.message);
       setTimeout(() => setError(''), 3000);
     }
   };
@@ -325,6 +390,44 @@ const AdminPanel = () => {
         </p>
       </div>
 
+      {/* Organization Selector for Account Owners */}
+      {(userRole === 'account_owner' || userRole === 'sub_account_owner') && organizations.length > 0 && (
+        <div className="organization-selector" style={{
+          marginBottom: '20px',
+          padding: '15px',
+          background: '#f5f5f5',
+          borderRadius: '8px',
+          border: '1px solid #e0e0e0'
+        }}>
+          <label style={{fontWeight: '600', marginRight: '10px', color: '#252423'}}>
+            Select Organization:
+          </label>
+          <select
+            value={selectedOrg?.id || ''}
+            onChange={(e) => {
+              const org = organizations.find(o => o.id === e.target.value);
+              setSelectedOrg(org);
+            }}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: '1px solid #d0d0d0',
+              fontSize: '14px',
+              minWidth: '250px'
+            }}
+          >
+            {organizations.map(org => (
+              <option key={org.id} value={org.id}>
+                {org.name} ({org.members?.length || 0} members)
+              </option>
+            ))}
+          </select>
+          <span style={{marginLeft: '15px', color: '#605e5c', fontSize: '14px'}}>
+            Managing users in: <strong>{selectedOrg?.name}</strong>
+          </span>
+        </div>
+      )}
+
       {/* Search and Filter Controls */}
       <div className="user-controls">
         <div className="search-controls">
@@ -343,7 +446,7 @@ const AdminPanel = () => {
             <option value="all">All Roles</option>
             {getAllRoles().map(role => (
               <option key={role} value={role}>
-                {role.charAt(0).toUpperCase() + role.slice(1)}
+                {role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')}
               </option>
             ))}
           </select>
@@ -419,11 +522,20 @@ const AdminPanel = () => {
                           className="role-select"
                           disabled={isCurrentUser || (user.role === 'account_owner' && userRole !== 'admin')}
                         >
-                          {getAllRoles().map(role => (
-                            <option key={role} value={role}>
-                              {role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')}
-                            </option>
-                          ))}
+                          {(userRole === 'account_owner' || userRole === 'sub_account_owner') ? (
+                            // Account owners can only set member or sub_account_owner
+                            <>
+                              <option value="user">Member</option>
+                              <option value="sub_account_owner">Sub Account Owner</option>
+                            </>
+                          ) : (
+                            // Admins see all roles
+                            getAllRoles().map(role => (
+                              <option key={role} value={role}>
+                                {role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')}
+                              </option>
+                            ))
+                          )}
                         </select>
                         <span className={`status ${user.isActive ? 'active' : 'inactive'}`}>
                           {user.isActive ? 'Active' : 'Inactive'}

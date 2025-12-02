@@ -287,7 +287,7 @@ const InvitationManager = () => {
                 </div>
               )}
               <div style={{padding: '1rem', background: '#f0fff4', borderRadius: '8px', border: '1px solid #c6f6d5'}}>
-                <div style={{fontSize: '0.85rem', color: '#555', marginBottom: '0.25rem'}}>Regular Members</div>
+                <div style={{fontSize: '0.85rem', color: '#555', marginBottom: '0.25rem'}}>Members</div>
                 <div style={{fontSize: '1.75rem', fontWeight: '600', color: '#38a169'}}>
                   {invitedUsers.filter(u => u.role === 'user' || !u.role).length}
                 </div>

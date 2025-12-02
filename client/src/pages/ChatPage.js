@@ -150,6 +150,8 @@ const ChatPage = () => {
   useEffect(() => {
     if (!db || !selectedOrganization) return;
 
+    console.log('📊 Fetching messages for organization:', selectedOrganization.id, selectedOrganization.name);
+
     const messagesQuery = query(
       collection(db, 'messages'),
       where('organizationId', '==', selectedOrganization.id),
@@ -159,10 +161,14 @@ const ChatPage = () => {
     const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
       const messagesData = [];
       snapshot.forEach((doc) => {
-        messagesData.push({
-          id: doc.id,
-          ...doc.data()
-        });
+        const data = doc.data();
+        // Additional safety check: only include messages that match the selected organization
+        if (data.organizationId === selectedOrganization.id) {
+          messagesData.push({
+            id: doc.id,
+            ...data
+          });
+        }
       });
       // Sort by createdAt in memory
       messagesData.sort((a, b) => {
@@ -186,6 +192,7 @@ const ChatPage = () => {
       }
       previousMessageCountRef.current.public = messagesData.length;
       
+      console.log(`✅ Loaded ${messagesData.length} messages for organization: ${selectedOrganization.name}`);
       setPublicMessages(messagesData);
     }, (error) => {
       console.error('Error fetching messages:', error);

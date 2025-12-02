@@ -300,6 +300,11 @@
   color: #92400e;
 }
 
+.role-badge.sub-owner {
+  background: #e9d5ff;
+  color: #6b21a8;
+}
+
 .role-badge.member {
   background: #dbeafe;
   color: #1e40af;
@@ -313,8 +318,30 @@
 }
 
 .actions-cell {
-  width: 120px;
+  width: 180px;
   text-align: center;
+}
+
+.promote-btn {
+  background: #6264a7;
+  color: white;
+  border: 1px solid #5558a0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.promote-btn:hover {
+  background: #5558a0;
+  transform: translateY(-1px);
+}
+
+.promote-btn:active {
+  transform: translateY(0);
 }
 
 .delete-btn {

@@ -9,10 +9,12 @@ import {
   serverTimestamp,
   doc,
   getDoc,
-  updateDoc
+  updateDoc,
+  where
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { getUserMemberOrganizations } from '../services/organizationService';
 import './ChatPopup.css';
 
 const ChatPopup = () => {
@@ -23,6 +25,7 @@ const ChatPopup = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [userOrganization, setUserOrganization] = useState(null);
   const { user } = useAuth();
   const messagesEndRef = useRef(null);
 
@@ -35,15 +38,38 @@ const ChatPopup = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Fetch user's organization
+  useEffect(() => {
+    const fetchOrganization = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const result = await getUserMemberOrganizations(user.id);
+        if (result.organizations.length > 0) {
+          setUserOrganization(result.organizations[0]);
+        }
+      } catch (error) {
+        console.error('Error fetching user organization:', error);
+      }
+    };
+    
+    fetchOrganization();
+  }, [user]);
+
   // Listen for messages
   useEffect(() => {
-    if (!db || !user) return;
+    if (!db || !user || !userOrganization) return;
 
     setLoading(true);
     setError('');
 
     const messagesRef = collection(db, 'messages');
-    const messagesQuery = query(messagesRef, orderBy('timestamp', 'asc'), limit(100));
+    const messagesQuery = query(
+      messagesRef, 
+      where('organizationId', '==', userOrganization.id),
+      orderBy('timestamp', 'asc'), 
+      limit(100)
+    );
 
     const unsubscribe = onSnapshot(
       messagesQuery,
@@ -85,13 +111,13 @@ const ChatPopup = () => {
     );
 
     return () => unsubscribe();
-  }, [user, isOpen]);
+  }, [user, isOpen, userOrganization]);
 
   // Send message
   const sendMessage = async (e) => {
     e.preventDefault();
     
-    if (!newMessage.trim() || !user || !db) return;
+    if (!newMessage.trim() || !user || !db || !userOrganization) return;
 
     try {
       // Process emoji shortcuts before sending
@@ -102,6 +128,7 @@ const ChatPopup = () => {
         userId: user.id,
         userEmail: user.email,
         userName: user.name || user.email.split('@')[0],
+        organizationId: userOrganization.id,
         timestamp: serverTimestamp(),
         reactions: {},
         createdAt: serverTimestamp()

@@ -141,7 +141,7 @@ const rolePermissions = {
       reports: false,
       settings: false,
       invitations: true,
-      billing: false,
+      billing: true,
       account_owner: false
     },
     actions: {
@@ -154,7 +154,7 @@ const rolePermissions = {
       view_analytics: false,
       system_settings: false,
       manage_invitations: true,
-      manage_billing: false,
+      manage_billing: true,
       delete_account: false,
       transfer_ownership: false
     }

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, where, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { getUserMemberOrganizations } from '../services/organizationService';
 import './AnnouncementManager.css';
 
 const AnnouncementManager = () => {
   const { user } = useAuth();
+  const [userOrganization, setUserOrganization] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
@@ -18,17 +20,46 @@ const AnnouncementManager = () => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    loadAnnouncements();
-  }, []);
+    const fetchOrganization = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const result = await getUserMemberOrganizations(user.id);
+        if (result.organizations.length > 0) {
+          setUserOrganization(result.organizations[0]);
+        }
+      } catch (error) {
+        console.error('Error fetching user organization:', error);
+      }
+    };
+    
+    fetchOrganization();
+  }, [user]);
+
+  useEffect(() => {
+    if (userOrganization) {
+      loadAnnouncements();
+    }
+  }, [userOrganization]);
 
   const loadAnnouncements = async () => {
+    if (!userOrganization) return;
+    
     try {
       setLoading(true);
-      const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
+      const q = query(
+        collection(db, 'messages'),
+        where('organizationId', '==', userOrganization.id),
+        orderBy('createdAt', 'desc')
+      );
       const snapshot = await getDocs(q);
       const announcementsList = snapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
+        title: doc.data().text?.substring(0, 50) + (doc.data().text?.length > 50 ? '...' : ''),
+        content: doc.data().text,
+        author: doc.data().userName,
+        active: true // Messages are always active
       }));
       setAnnouncements(announcementsList);
     } catch (error) {
@@ -42,39 +73,34 @@ const AnnouncementManager = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.title.trim() || !formData.content.trim()) {
-      setMessage('Please fill in all required fields');
+    if (!formData.content.trim() || !userOrganization) {
+      setMessage('Please fill in the announcement text');
       return;
     }
 
     try {
       console.log('Submitting announcement...', formData);
-      console.log('User:', user);
-      console.log('DB:', db);
       
       if (editingId) {
-        // Update existing announcement
-        await updateDoc(doc(db, 'announcements', editingId), {
-          ...formData,
-          updatedAt: Timestamp.now(),
+        // Update existing message
+        await updateDoc(doc(db, 'messages', editingId), {
+          text: formData.content,
+          updatedAt: serverTimestamp(),
           updatedBy: user.name || user.email
         });
         setMessage('Announcement updated successfully!');
       } else {
-        // Create new announcement
-        console.log('Creating new announcement with data:', {
-          ...formData,
-          createdAt: Timestamp.now(),
-          author: user.name || user.email,
-          authorId: user.id || user.uid
+        // Create new message (announcement)
+        await addDoc(collection(db, 'messages'), {
+          text: formData.content,
+          createdAt: serverTimestamp(),
+          timestamp: serverTimestamp(),
+          userName: user.name || user.email.split('@')[0],
+          userId: user.id,
+          userEmail: user.email,
+          organizationId: userOrganization.id,
+          reactions: {}
         });
-        const docRef = await addDoc(collection(db, 'announcements'), {
-          ...formData,
-          createdAt: Timestamp.now(),
-          author: user.name || user.email,
-          authorId: user.id || user.uid
-        });
-        console.log('Announcement created with ID:', docRef.id);
         setMessage('Announcement created successfully!');
       }
 
@@ -91,16 +117,14 @@ const AnnouncementManager = () => {
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('Error saving announcement:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
       setMessage(`Error saving announcement: ${error.message}`);
     }
   };
 
   const handleEdit = (announcement) => {
     setFormData({
-      title: announcement.title,
-      content: announcement.content,
+      title: announcement.title || '',
+      content: announcement.content || announcement.text || '',
       priority: announcement.priority || 'normal',
       active: announcement.active !== false
     });
@@ -114,29 +138,13 @@ const AnnouncementManager = () => {
     }
 
     try {
-      await deleteDoc(doc(db, 'announcements', id));
+      await deleteDoc(doc(db, 'messages', id));
       setMessage('Announcement deleted successfully!');
       loadAnnouncements();
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('Error deleting announcement:', error);
       setMessage('Error deleting announcement');
-    }
-  };
-
-  const handleToggleActive = async (announcement) => {
-    try {
-      await updateDoc(doc(db, 'announcements', announcement.id), {
-        active: !announcement.active,
-        updatedAt: Timestamp.now(),
-        updatedBy: user.name || user.email
-      });
-      loadAnnouncements();
-      setMessage(`Announcement ${!announcement.active ? 'activated' : 'deactivated'}`);
-      setTimeout(() => setMessage(''), 3000);
-    } catch (error) {
-      console.error('Error toggling announcement:', error);
-      setMessage('Error updating announcement');
     }
   };
 
@@ -241,21 +249,12 @@ const AnnouncementManager = () => {
         ) : (
           <div className="announcements-table">
             {announcements.map((announcement) => (
-              <div key={announcement.id} className={`announcement-item ${!announcement.active ? 'inactive' : ''}`}>
+              <div key={announcement.id} className="announcement-item">
                 <div className="announcement-item-header">
                   <div className="announcement-title-section">
-                    <h3>{announcement.title}</h3>
-                    <span className={`priority-badge ${announcement.priority || 'normal'}`}>
-                      {announcement.priority || 'normal'}
-                    </span>
-                    <span className={`status-badge ${announcement.active ? 'active' : 'inactive'}`}>
-                      {announcement.active ? 'Active' : 'Inactive'}
-                    </span>
+                    <h3>{announcement.title || 'Announcement'}</h3>
                   </div>
                   <div className="announcement-actions">
-                    <button onClick={() => handleToggleActive(announcement)} className="btn-toggle" title={announcement.active ? 'Deactivate' : 'Activate'}>
-                      {announcement.active ? '👁️' : '👁️‍🗨️'}
-                    </button>
                     <button onClick={() => handleEdit(announcement)} className="btn-edit" title="Edit">
                       ✏️
                     </button>
@@ -268,9 +267,6 @@ const AnnouncementManager = () => {
                 <div className="announcement-meta">
                   <span>By: {announcement.author}</span>
                   <span>Created: {announcement.createdAt?.toDate?.()?.toLocaleDateString() || 'Unknown'}</span>
-                  {announcement.updatedAt && (
-                    <span>Updated: {announcement.updatedAt?.toDate?.()?.toLocaleDateString()}</span>
-                  )}
                 </div>
               </div>
             ))}

@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { getUserMemberOrganizations } from '../services/organizationService';
 import axios from 'axios';
 import './Home.css';
 
 const Home = ({ data }) => {
   const { user } = useAuth();
   const [userRole, setUserRole] = useState(null);
+  const [userOrganization, setUserOrganization] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,73 +48,70 @@ const Home = ({ data }) => {
     fetchUserRole();
   }, [user]);
 
+  // Fetch user's organization
+  useEffect(() => {
+    const fetchOrganization = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const result = await getUserMemberOrganizations(user.id);
+        if (result.organizations.length > 0) {
+          setUserOrganization(result.organizations[0]);
+          console.log('✅ User organization fetched:', result.organizations[0].name);
+        }
+      } catch (error) {
+        console.error('Error fetching user organization:', error);
+      }
+    };
+    
+    fetchOrganization();
+  }, [user]);
+
   useEffect(() => {
     const fetchAnnouncements = async () => {
-      if (!db) {
-        console.log('No db instance available');
+      if (!db || !userOrganization) {
+        console.log('No db instance or organization available');
+        setLoading(false);
         return;
       }
       
       try {
         setLoading(true);
-        console.log('Fetching announcements...');
-        const announcementsRef = collection(db, 'announcements');
+        console.log('Fetching announcements for organization:', userOrganization.name);
         
-        // First try a simple query without composite index requirement
-        console.log('Trying simple query first...');
-        const simpleQuery = query(
-          announcementsRef,
+        // Fetch messages (announcements) from the messages collection filtered by organization
+        const messagesRef = collection(db, 'messages');
+        const q = query(
+          messagesRef,
+          where('organizationId', '==', userOrganization.id),
           orderBy('createdAt', 'desc'),
-          limit(10)
+          limit(5)
         );
         
-        const simpleSnapshot = await getDocs(simpleQuery);
-        console.log('Simple query result:', simpleSnapshot.docs.length, 'docs');
+        const snapshot = await getDocs(q);
+        console.log('✅ Found', snapshot.docs.length, 'announcements for organization');
         
-        // Filter active announcements in memory
-        const allAnnouncements = simpleSnapshot.docs.map(doc => ({
+        const announcementsList = snapshot.docs.map(doc => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
+          title: doc.data().text?.substring(0, 50) + (doc.data().text?.length > 50 ? '...' : ''),
+          content: doc.data().text,
+          author: doc.data().userName,
+          createdAt: doc.data().createdAt || doc.data().timestamp
         }));
         
-        const activeAnnouncements = allAnnouncements.filter(ann => ann.active === true);
-        console.log('Active announcements after filtering:', activeAnnouncements.length);
-        
-        // If simple query works, try the composite query
-        try {
-          console.log('Trying composite query...');
-          const q = query(
-            announcementsRef,
-            where('active', '==', true),
-            orderBy('createdAt', 'desc'),
-            limit(5)
-          );
-          
-          const snapshot = await getDocs(q);
-          console.log('Composite query successful:', snapshot.docs.length, 'docs');
-          
-          const announcementsList = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          
-          setAnnouncements(announcementsList);
-        } catch (compositeError) {
-          console.warn('Composite query failed, using filtered results:', compositeError.message);
-          setAnnouncements(activeAnnouncements.slice(0, 5));
-        }
+        setAnnouncements(announcementsList);
         
       } catch (error) {
         console.error('Error fetching announcements:', error);
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
+        setAnnouncements([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchAnnouncements();
-  }, []);
+  }, [userOrganization]);
 
   return (
     <div>
@@ -178,8 +177,7 @@ const Home = ({ data }) => {
                  userRole === 'sub_account_owner' ? '👑 Sub Account Owner' : 
                  userRole === 'admin' ? '⚙️ Administrator' : 
                  userRole === 'moderator' ? '🛡️ Moderator' : 
-                 userRole === 'member' ? '👤 Member' : 
-                 '👤 User'}
+                 '👤 Member'}
               </strong>
             </p>
           )}

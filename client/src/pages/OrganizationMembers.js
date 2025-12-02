@@ -20,6 +20,8 @@ const OrganizationMembers = () => {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState('');
   const [importSuccess, setImportSuccess] = useState('');
+  const [promotingMember, setPromotingMember] = useState(null);
+  const [roleChangeLoading, setRoleChangeLoading] = useState(false);
   const membersPerPage = 20;
 
   useEffect(() => {
@@ -70,7 +72,9 @@ const OrganizationMembers = () => {
             email: userData.email,
             name: userData.name || userData.email?.split('@')[0] || 'User',
             photoURL: userData.photoURL || userData.profilePictureUrl || null,
-            role: userData.uid === selectedOrg.ownerId ? 'Account Owner' : 'Member',
+            role: userData.role || 'user',
+            displayRole: userData.uid === selectedOrg.ownerId ? 'Account Owner' : 
+                        userData.role === 'sub_account_owner' ? 'Sub Account Owner' : 'Member',
             joinedAt: userData.invitedAt,
             isOwner: userData.uid === selectedOrg.ownerId
           });
@@ -165,6 +169,54 @@ const OrganizationMembers = () => {
 
   const cancelDelete = () => {
     setDeleteConfirm(null);
+  };
+
+  const handlePromoteToSubOwner = async (member) => {
+    if (!selectedOrg || !user) return;
+
+    // Check if current user is the owner
+    const isOwner = selectedOrg.ownerId === user.uid || selectedOrg.ownerId === user.id;
+    if (!isOwner) {
+      alert('Only the organization owner can change member roles.');
+      return;
+    }
+
+    if (member.isOwner) {
+      alert('Cannot change the owner\'s role.');
+      return;
+    }
+
+    setPromotingMember(member);
+  };
+
+  const confirmRoleChange = async (newRole) => {
+    if (!promotingMember || !selectedOrg) return;
+
+    try {
+      setRoleChangeLoading(true);
+
+      // Update user's role in Firestore
+      const userRef = doc(db, 'users', promotingMember.id);
+      await updateDoc(userRef, {
+        role: newRole
+      });
+
+      setPromotingMember(null);
+      
+      // Reload members to reflect the change
+      await loadMembers();
+      
+      alert(`Successfully updated ${promotingMember.name}'s role!`);
+    } catch (error) {
+      console.error('Error updating role:', error);
+      alert('Failed to update role: ' + error.message);
+    } finally {
+      setRoleChangeLoading(false);
+    }
+  };
+
+  const cancelRoleChange = () => {
+    setPromotingMember(null);
   };
 
   const formatDate = (date) => {
@@ -431,6 +483,8 @@ const OrganizationMembers = () => {
                     <td className="role-cell">
                       {member.isOwner ? (
                         <span className="role-badge owner">👑 Owner</span>
+                      ) : member.role === 'sub_account_owner' ? (
+                        <span className="role-badge sub-owner">👑 Sub Account Owner</span>
                       ) : (
                         <span className="role-badge member">👤 Member</span>
                       )}
@@ -439,13 +493,34 @@ const OrganizationMembers = () => {
                     {(selectedOrg?.ownerId === user?.uid || selectedOrg?.ownerId === user?.id) && (
                       <td className="actions-cell">
                         {!member.isOwner && (
-                          <button
-                            onClick={() => handleDeleteMember(member)}
-                            className="delete-btn"
-                            title="Remove member"
-                          >
-                            🗑️ Remove
-                          </button>
+                          <div style={{display: 'flex', gap: '0.5rem'}}>
+                            {member.role === 'sub_account_owner' ? (
+                              <button
+                                onClick={() => handlePromoteToSubOwner(member)}
+                                className="promote-btn"
+                                title="Demote to Member"
+                                style={{background: '#f59e0b', color: 'white'}}
+                              >
+                                👤 Demote
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handlePromoteToSubOwner(member)}
+                                className="promote-btn"
+                                title="Promote to Sub Account Owner"
+                                style={{background: '#6264a7', color: 'white'}}
+                              >
+                                👑 Promote
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteMember(member)}
+                              className="delete-btn"
+                              title="Remove member"
+                            >
+                              🗑️ Remove
+                            </button>
+                          </div>
                         )}
                       </td>
                     )}
@@ -533,6 +608,44 @@ const OrganizationMembers = () => {
                 disabled={deleting}
               >
                 {deleting ? 'Removing...' : 'Remove Member'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Role Change Confirmation Modal */}
+      {promotingMember && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>👑 Change Member Role</h3>
+            <p>
+              Change role for <strong>{promotingMember.name}</strong> ({promotingMember.email})?
+            </p>
+            <div style={{margin: '20px 0', padding: '15px', background: '#f5f5f5', borderRadius: '8px'}}>
+              <p><strong>Current Role:</strong> {promotingMember.displayRole}</p>
+              <p><strong>New Role:</strong> {promotingMember.role === 'sub_account_owner' ? 'Member' : 'Sub Account Owner'}</p>
+            </div>
+            {promotingMember.role !== 'sub_account_owner' && (
+              <p className="info-text" style={{color: '#6264a7', fontSize: '14px'}}>
+                ℹ️ Sub Account Owners can invite and manage members.
+              </p>
+            )}
+            <div className="modal-actions">
+              <button
+                onClick={cancelRoleChange}
+                className="cancel-btn"
+                disabled={roleChangeLoading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => confirmRoleChange(promotingMember.role === 'sub_account_owner' ? 'user' : 'sub_account_owner')}
+                className="confirm-btn"
+                disabled={roleChangeLoading}
+                style={{background: promotingMember.role === 'sub_account_owner' ? '#f59e0b' : '#6264a7'}}
+              >
+                {roleChangeLoading ? 'Updating...' : promotingMember.role === 'sub_account_owner' ? 'Demote to Member' : 'Promote to Sub Owner'}
               </button>
             </div>
           </div>

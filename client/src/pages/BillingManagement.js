@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserOrganizations, getOrganizationMembers } from '../services/organizationService';
+import { getUserOrganizations, getUserMemberOrganizations, getOrganizationMembers } from '../services/organizationService';
 import { 
   createBill, 
   getOrganizationBills, 
@@ -53,15 +53,30 @@ const BillingManagement = () => {
       if (!user?.id) return;
       
       try {
-        const result = await getUserOrganizations(user.id);
-        setOrganizations(result.organizations);
+        // Fetch both owned and member organizations
+        const ownerResult = await getUserOrganizations(user.id);
+        const memberResult = await getUserMemberOrganizations(user.id);
         
-        if (result.organizations.length > 0 && !selectedOrg) {
-          setSelectedOrg(result.organizations[0]);
+        // Combine and deduplicate organizations
+        const allOrgs = [...ownerResult.organizations];
+        memberResult.organizations.forEach(memberOrg => {
+          if (!allOrgs.find(org => org.id === memberOrg.id)) {
+            allOrgs.push(memberOrg);
+          }
+        });
+        
+        console.log('Fetched organizations for billing:', allOrgs);
+        setOrganizations(allOrgs);
+        
+        if (allOrgs.length > 0 && !selectedOrg) {
+          setSelectedOrg(allOrgs[0]);
+        } else if (allOrgs.length === 0) {
+          setLoading(false);
         }
       } catch (error) {
         console.error('Error fetching organizations:', error);
         setError('Failed to load organizations');
+        setLoading(false);
       }
     };
     
