@@ -24,6 +24,7 @@ import PersonalDocuments from './pages/PersonalDocuments';
 import OrganizationDocuments from './pages/OrganizationDocuments';
 import MemberDocuments from './pages/MemberDocuments';
 import AnnouncementManager from './pages/AnnouncementManager';
+import ProfileManager from './pages/ProfileManager';
 import ChatNotificationBadge from './components/ChatNotificationBadge';
 import apiService from './services/apiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -258,6 +259,7 @@ function MainApp() {
                 </Link>
               </li>
               <li><Link to="/documents" onClick={closeMenu}>My Documents</Link></li>
+              <li><Link to="/profiles" onClick={closeMenu}>My Profiles</Link></li>
               <li className="nav-item-with-badge">
                 <Link to="/org-documents" onClick={closeMenu}>
                   Org Documents
@@ -357,6 +359,12 @@ function MainApp() {
               path="/profile" 
               element={
                 <UserProfileForm />
+              } 
+            />
+            <Route 
+              path="/profiles" 
+              element={
+                <ProfileManager />
               } 
             />
             <Route 

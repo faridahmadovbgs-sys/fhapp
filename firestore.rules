@@ -15,6 +15,14 @@ service cloud.firestore {
       allow delete: if isSignedIn() && request.auth.uid == userId;
     }
     
+    // User Profiles - users can manage multiple entity profiles
+    match /userProfiles/{profileId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow update: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+    }
+    
     // Organizations collection
     match /organizations/{orgId} {
       // Allow reading if user is authenticated
