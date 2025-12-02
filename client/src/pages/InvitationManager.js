@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useAuthorization } from '../contexts/AuthorizationContext';
 import { getAccountOwnerInvitationLink, getInvitedUsers } from '../services/invitationService';
-import { getUserOrganizations } from '../services/organizationService';
+import { getUserOrganizations, getUserMemberOrganizations } from '../services/organizationService';
 import './InvitationManager.css';
 
 const InvitationManager = () => {
   const { user } = useAuth();
+  const { userRole } = useAuthorization();
+  const isSubAccountOwner = userRole === 'sub_account_owner';
   const [invitation, setInvitation] = useState(null);
   const [invitedUsers, setInvitedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,13 +26,31 @@ const InvitationManager = () => {
       }
       
       try {
-        const result = await getUserOrganizations(user.id);
-        setOrganizations(result.organizations);
+        console.log('🔍 Fetching organizations for user:', user.id);
+        
+        // Get organizations where user is owner
+        const ownerResult = await getUserOrganizations(user.id);
+        console.log('👑 Owner organizations:', ownerResult.organizations.length);
+        
+        // Get organizations where user is a member
+        const memberResult = await getUserMemberOrganizations(user.id);
+        console.log('👥 Member organizations:', memberResult.organizations.length);
+        
+        // Combine both (remove duplicates by id)
+        const allOrgs = [...ownerResult.organizations];
+        memberResult.organizations.forEach(org => {
+          if (!allOrgs.find(o => o.id === org.id)) {
+            allOrgs.push(org);
+          }
+        });
+        
+        console.log('✅ Total organizations:', allOrgs.length);
+        setOrganizations(allOrgs);
         
         // Auto-select first organization
-        if (result.organizations.length > 0 && !selectedOrg) {
-          setSelectedOrg(result.organizations[0]);
-        } else if (result.organizations.length === 0) {
+        if (allOrgs.length > 0 && !selectedOrg) {
+          setSelectedOrg(allOrgs[0]);
+        } else if (allOrgs.length === 0) {
           // No organizations found
           setLoading(false);
           setError('No organizations found. Please create an organization first.');
@@ -148,8 +169,8 @@ const InvitationManager = () => {
       <div className="invitation-container">
         <div className="invitation-header">
           <div>
-            <h2>📤 Invite Team Members</h2>
-            <p className="subtitle">Share your unique invitation link with team members to add them to your organization.</p>
+            <h2>📤 Invite Members</h2>
+            <p className="subtitle">Share your unique invitation link with members to add them to your organization.</p>
           </div>
           
           {/* Organization Selector */}
@@ -178,8 +199,9 @@ const InvitationManager = () => {
 
         {invitation ? (
           <div className="invitation-section">
+            {/* Member Invitation Link */}
             <div className="invitation-box">
-              <h3>Your Invitation Link</h3>
+              <h3>👤 Member Invitation Link</h3>
               
               <div className="organization-info">
                 <p><strong>Organization:</strong> {invitation.organizationName}</p>
@@ -201,21 +223,82 @@ const InvitationManager = () => {
                     disabled={copying}
                     className="btn btn-primary"
                   >
-                    {copying ? 'Copying...' : 'Copy Link'}
+                    {copying ? 'Copying...' : '📋 Copy Link'}
                   </button>
                 </div>
 
                 <p className="link-description">
-                  Share this link with team members. They can use it to register and join your organization.
+                  Share this link to invite regular members who can access and upload documents.
                 </p>
               </div>
             </div>
 
+            {/* Sub Account Owner Invitation Link - Only visible to account owners */}
+            {!isSubAccountOwner && (
+              <div className="invitation-box">
+                <h3>👑 Sub Account Owner Invitation Link</h3>
+                
+                <div className="organization-info">
+                  <p><strong>Organization:</strong> {invitation.organizationName}</p>
+                  <p><strong>Permissions:</strong> Can invite members and manage team</p>
+                </div>
+
+                <div className="link-display">
+                  <div className="link-input-group">
+                    <input 
+                      type="text" 
+                      value={invitation.link.replace('/register/member?', '/register/sub-owner?')} 
+                      readOnly 
+                      className="link-input"
+                    />
+                    <button 
+                      onClick={() => {
+                        const subOwnerLink = invitation.link.replace('/register/member?', '/register/sub-owner?');
+                        navigator.clipboard.writeText(subOwnerLink);
+                        setCopying(true);
+                        setSuccess('✅ Sub Account Owner link copied to clipboard!');
+                        setTimeout(() => {
+                          setCopying(false);
+                          setSuccess('');
+                        }, 2000);
+                      }}
+                      disabled={copying}
+                      className="btn btn-primary"
+                    >
+                      {copying ? 'Copying...' : '📋 Copy Link'}
+                    </button>
+                  </div>
+
+                  <p className="link-description">
+                    Share this link to invite Sub Account Owners who can invite members and help manage the team.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Member Statistics */}
+            <div className="member-stats-section" style={{marginTop: '1.5rem', display: 'grid', gridTemplateColumns: isSubAccountOwner ? '1fr' : '1fr 1fr', gap: '1rem'}}>
+              {!isSubAccountOwner && (
+                <div style={{padding: '1rem', background: '#f0f7ff', borderRadius: '8px', border: '1px solid #d0e7ff'}}>
+                  <div style={{fontSize: '0.85rem', color: '#555', marginBottom: '0.25rem'}}>Sub Account Owners</div>
+                  <div style={{fontSize: '1.75rem', fontWeight: '600', color: '#6264a7'}}>
+                    {invitedUsers.filter(u => u.role === 'sub_account_owner').length}
+                  </div>
+                </div>
+              )}
+              <div style={{padding: '1rem', background: '#f0fff4', borderRadius: '8px', border: '1px solid #c6f6d5'}}>
+                <div style={{fontSize: '0.85rem', color: '#555', marginBottom: '0.25rem'}}>Regular Members</div>
+                <div style={{fontSize: '1.75rem', fontWeight: '600', color: '#38a169'}}>
+                  {invitedUsers.filter(u => u.role === 'user' || !u.role).length}
+                </div>
+              </div>
+            </div>
+
             <div className="invited-users-section">
-              <h3>👥 Team Members ({invitedUsers.length})</h3>
+              <h3>👥 Members ({invitedUsers.length})</h3>
               
               {invitedUsers.length === 0 ? (
-                <p className="no-users">No team members yet. Share your invitation link to get started!</p>
+                <p className="no-users">No members yet. Share your invitation link to get started!</p>
               ) : (
                 <div className="users-list">
                   {invitedUsers.map((invitedUser) => (

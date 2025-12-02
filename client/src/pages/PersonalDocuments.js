@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   collection, 
@@ -16,6 +16,7 @@ import './PersonalDocuments.css';
 
 const PersonalDocuments = () => {
   const { user } = useAuth();
+  const fileInputRef = useRef(null);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showUploadForm, setShowUploadForm] = useState(false);
@@ -58,7 +59,7 @@ const PersonalDocuments = () => {
     try {
       setLoading(true);
       const docsQuery = query(
-        collection(db, 'personalDocuments'),
+        collection(db, 'documents'),
         where('userId', '==', user.id)
       );
 
@@ -182,14 +183,15 @@ const PersonalDocuments = () => {
         updatedAt: serverTimestamp()
       };
 
-      await addDoc(collection(db, 'personalDocuments'), docData);
+      await addDoc(collection(db, 'documents'), docData);
 
       if (accountOwnerId) {
         setSuccess('✅ Document uploaded and shared with account owner!');
       } else {
         setSuccess('✅ Document uploaded successfully!');
       }
-      setShowUploadForm(false);
+      
+      // Reset form
       setFormData({
         title: '',
         description: '',
@@ -199,6 +201,14 @@ const PersonalDocuments = () => {
         fileSize: 0,
         fileType: ''
       });
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
 
       // Reload documents
       await loadDocuments();
@@ -216,7 +226,7 @@ const PersonalDocuments = () => {
     }
 
     try {
-      await deleteDoc(doc(db, 'personalDocuments', docId));
+      await deleteDoc(doc(db, 'documents', docId));
       setSuccess('✅ Document deleted successfully!');
       await loadDocuments();
     } catch (error) {
@@ -279,14 +289,6 @@ const PersonalDocuments = () => {
     return matchesSearch && matchesCategory;
   });
 
-  if (loading) {
-    return (
-      <div className="personal-documents">
-        <div className="loading">Loading your documents...</div>
-      </div>
-    );
-  }
-
   return (
     <div className="personal-documents">
       <div className="page-header">
@@ -294,16 +296,70 @@ const PersonalDocuments = () => {
           <h1>📁 My Personal Documents</h1>
           <p>Securely store and manage your personal documents</p>
         </div>
-        <button 
-          className="btn btn-primary"
-          onClick={() => setShowUploadForm(!showUploadForm)}
-        >
-          {showUploadForm ? '❌ Cancel' : '📤 Upload Document'}
-        </button>
       </div>
 
       {error && <div className="error-message">{error}</div>}
       {success && <div className="success-message">{success}</div>}
+
+      <div className="documents-filters">
+        <input
+          type="text"
+          placeholder="🔍 Search documents..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="search-input"
+        />
+
+        <select
+          value={filterCategory}
+          onChange={(e) => setFilterCategory(e.target.value)}
+          className="category-filter"
+        >
+          <option value="all">All Categories</option>
+          {categories.map(cat => (
+            <option key={cat.value} value={cat.value}>
+              {cat.label}
+            </option>
+          ))}
+        </select>
+        
+        <button 
+          type="button"
+          className="btn btn-primary"
+          onClick={(e) => {
+            e.preventDefault();
+            setShowUploadForm(!showUploadForm);
+          }}
+          style={{ 
+            cursor: 'pointer',
+            padding: '0.75rem 1.5rem',
+            fontSize: '1rem',
+            fontWeight: '600',
+            border: 'none',
+            borderRadius: '8px',
+            backgroundColor: showUploadForm ? '#dc3545' : '#4CAF50',
+            color: 'white',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            whiteSpace: 'nowrap'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+            e.currentTarget.style.backgroundColor = showUploadForm ? '#c82333' : '#45a049';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            e.currentTarget.style.backgroundColor = showUploadForm ? '#dc3545' : '#4CAF50';
+          }}
+        >
+          {showUploadForm ? '❌ Close Form' : '📤 Upload Document'}
+        </button>
+      </div>
 
       {showUploadForm && (
         <div className="upload-form-card">
@@ -347,6 +403,7 @@ const PersonalDocuments = () => {
             <div className="form-group">
               <label>File * (Max 1MB)</label>
               <input
+                ref={fileInputRef}
                 type="file"
                 onChange={handleFileSelect}
                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
@@ -371,35 +428,17 @@ const PersonalDocuments = () => {
                 className="btn btn-secondary"
                 onClick={() => setShowUploadForm(false)}
               >
-                Cancel
+                ✅ Done
               </button>
             </div>
+            {documents.length > 0 && (
+              <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666', textAlign: 'center' }}>
+                💡 You can upload multiple documents. Click "Done" when finished.
+              </p>
+            )}
           </form>
         </div>
       )}
-
-      <div className="documents-filters">
-        <input
-          type="text"
-          placeholder="🔍 Search documents..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
-        />
-
-        <select
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          className="category-filter"
-        >
-          <option value="all">All Categories</option>
-          {categories.map(cat => (
-            <option key={cat.value} value={cat.value}>
-              {cat.label}
-            </option>
-          ))}
-        </select>
-      </div>
 
       <div className="documents-stats">
         <div className="stat-card">
@@ -414,7 +453,9 @@ const PersonalDocuments = () => {
         </div>
       </div>
 
-      {filteredDocuments.length === 0 ? (
+      {loading ? (
+        <div className="loading">Loading your documents...</div>
+      ) : filteredDocuments.length === 0 ? (
         <div className="empty-state">
           <p>📭 {searchTerm || filterCategory !== 'all' ? 'No documents match your search' : 'No documents uploaded yet'}</p>
           {!showUploadForm && (

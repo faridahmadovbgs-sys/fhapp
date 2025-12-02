@@ -395,15 +395,6 @@ const OrganizationMembers = () => {
         </div>
       ) : (
         <>
-          {/* Debug info - remove after testing */}
-          {process.env.NODE_ENV === 'development' && (
-            <div style={{padding: '10px', background: '#f0f0f0', marginBottom: '10px', fontSize: '12px'}}>
-              <strong>Debug:</strong> User UID: {user?.uid || 'null'} | Owner ID: {selectedOrg?.ownerId || 'null'} | 
-              Match: {(selectedOrg?.ownerId === user?.uid) ? 'YES ✅' : 'NO ❌'} |
-              User ID: {user?.id || 'null'}
-            </div>
-          )}
-          
           <div className="table-container">
             <table className="members-table">
               <thead>

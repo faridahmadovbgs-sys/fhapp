@@ -22,6 +22,7 @@ import MemberRegistration from './pages/MemberRegistration';
 import StorageTest from './components/StorageTest';
 import PersonalDocuments from './pages/PersonalDocuments';
 import OrganizationDocuments from './pages/OrganizationDocuments';
+import MemberDocuments from './pages/MemberDocuments';
 import AnnouncementManager from './pages/AnnouncementManager';
 import apiService from './services/apiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -69,6 +70,9 @@ function MainApp() {
               <li><Link to="/chat" onClick={closeMenu}>Chat</Link></li>
               <li><Link to="/documents" onClick={closeMenu}>My Documents</Link></li>
               <li><Link to="/org-documents" onClick={closeMenu}>Org Documents</Link></li>
+              <PermissionGuard requiredRole="account_owner">
+                <li><Link to="/member-documents" onClick={closeMenu}>Member Documents</Link></li>
+              </PermissionGuard>
               <li><Link to="/demo-permissions" onClick={closeMenu}>Permissions Demo</Link></li>
               <PermissionGuard requiredPage="admin">
                 <li><Link to="/registered-users" onClick={closeMenu}>Users</Link></li>
@@ -180,6 +184,14 @@ function MainApp() {
                 <OrganizationDocuments />
               } 
             />
+            <Route 
+              path="/member-documents" 
+              element={
+                <PermissionProtectedRoute requiredRole="account_owner">
+                  <MemberDocuments />
+                </PermissionProtectedRoute>
+              } 
+            />
             <Route path="/unauthorized" element={<Unauthorized />} />
           </Routes>
         )}
@@ -226,6 +238,10 @@ function AppContent() {
       />
       <Route 
         path="/register/member" 
+        element={<MemberRegistration />} 
+      />
+      <Route 
+        path="/register/sub-owner" 
         element={<MemberRegistration />} 
       />
       <Route 

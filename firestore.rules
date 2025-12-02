@@ -10,8 +10,8 @@ service cloud.firestore {
     // Users collection - allow authenticated users to create/update their own document
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
       allow delete: if isSignedIn() && request.auth.uid == userId;
     }
     
@@ -21,8 +21,8 @@ service cloud.firestore {
       allow read: if isSignedIn();
       // Allow creation by any authenticated user
       allow create: if isSignedIn();
-      // Allow updates only by organization owner
-      allow update: if isSignedIn() && request.auth.uid == resource.data.ownerId;
+      // Allow updates by any authenticated user (for adding members)
+      allow update: if isSignedIn();
       // Only owner can delete
       allow delete: if isSignedIn() && request.auth.uid == resource.data.ownerId;
     }
@@ -51,11 +51,11 @@ service cloud.firestore {
       }
     }
     
-    // Invitations - allow anyone to read (for registration validation)
+    // Invitations - allow anyone to read (for registration validation) and update (for acceptance)
     match /invitations/{invitationId} {
       allow read: if true;
       allow create: if isSignedIn();
-      allow update: if isSignedIn();
+      allow update: if true;
       allow delete: if isSignedIn();
     }
     
@@ -77,6 +77,17 @@ service cloud.firestore {
     match /personalDocuments/{documentId} {
       allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow update: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+    }
+    
+    // Documents collection - users can access their own documents or documents shared with them
+    match /documents/{documentId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.userId ||
+        request.auth.uid in resource.data.sharedWith
+      );
+      allow create: if isSignedIn();
       allow update: if isSignedIn() && request.auth.uid == resource.data.userId;
       allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
     }

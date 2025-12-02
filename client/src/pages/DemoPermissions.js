@@ -121,6 +121,7 @@ const DemoPermissions = () => {
           <div className={`role-badge role-${userRole}`}>
             {userRole === 'admin' && '👑 Admin'}
             {userRole === 'account_owner' && '🏢 Account Owner'}
+            {userRole === 'sub_account_owner' && '👑 Sub Account Owner'}
             {userRole === 'moderator' && '🛡️ Moderator'}
             {userRole === 'user' && '👤 User'}
           </div>
@@ -172,7 +173,9 @@ const DemoPermissions = () => {
                 >
                   {getAllRoles().map(role => (
                     <option key={role} value={role}>
-                      {role === 'account_owner' ? 'Account Owner' : role.charAt(0).toUpperCase() + role.slice(1)}
+                      {role === 'account_owner' ? 'Account Owner' : 
+                       role === 'sub_account_owner' ? 'Sub Account Owner' : 
+                       role.charAt(0).toUpperCase() + role.slice(1)}
                     </option>
                   ))}
                 </select>

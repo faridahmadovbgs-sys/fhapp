@@ -130,6 +130,34 @@ const rolePermissions = {
       delete_account: false,
       transfer_ownership: false
     }
+  },
+  sub_account_owner: {
+    pages: {
+      home: true,
+      about: true,
+      profile: true,
+      admin: false,
+      users: false,
+      reports: false,
+      settings: false,
+      invitations: true,
+      billing: false,
+      account_owner: false
+    },
+    actions: {
+      create_user: false,
+      edit_user: false,
+      delete_user: false,
+      view_users: false,
+      manage_roles: false,
+      export_data: false,
+      view_analytics: false,
+      system_settings: false,
+      manage_invitations: true,
+      manage_billing: false,
+      delete_account: false,
+      transfer_ownership: false
+    }
   }
 };
 

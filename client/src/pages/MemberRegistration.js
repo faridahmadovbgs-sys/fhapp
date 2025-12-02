@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { setUserRoleInDatabase } from '../services/roleService';
 import { updateDoc, query, collection, where, getDocs, doc } from 'firebase/firestore';
@@ -9,6 +9,7 @@ import '../components/Login.css';
 const MemberRegistration = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { register } = useAuth();
   const [invitation, setInvitation] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,6 +27,7 @@ const MemberRegistration = () => {
   });
 
   const token = searchParams.get('token');
+  const isSubOwnerInvite = location.pathname.includes('/register/sub-owner');
 
   useEffect(() => {
     if (token) {
@@ -153,11 +155,15 @@ const MemberRegistration = () => {
       
       console.log('✅ User registered with ID:', userId);
       
+      // Determine role based on URL path or invitation role
+      const assignedRole = isSubOwnerInvite ? 'sub_account_owner' : (invitation.role || 'user');
+      console.log('👤 Assigning role:', assignedRole);
+      
       // Set the role from the invitation and add ownerUserId
       await setUserRoleInDatabase(
         userId, 
         formData.email, 
-        invitation.role || 'member',
+        assignedRole,
         {
           ownerUserId: invitation.accountOwnerId,
           organizationName: invitation.organizationName,

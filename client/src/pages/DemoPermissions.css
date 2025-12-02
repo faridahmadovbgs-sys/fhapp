@@ -65,6 +65,11 @@
   color: white;
 }
 
+.role-badge.role-sub_account_owner {
+  background: linear-gradient(135deg, #fccb90 0%, #d57eeb 100%);
+  color: white;
+}
+
 .role-badge.role-moderator {
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: white;

@@ -27,6 +27,7 @@ export const createInvitationLink = async (userId, email, organizationName, orga
       organizationName: organizationName,
       organizationId: organizationId,
       token: token,
+      role: 'user', // Default role for member invitations
       status: 'active',
       createdAt: serverTimestamp(),
       expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year expiry

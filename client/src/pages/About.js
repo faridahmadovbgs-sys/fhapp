@@ -40,8 +40,8 @@ const About = () => {
           const orgs = orgResult.organizations;
           setUserOrganizations(orgs);
 
-          // For account owners, select their organization
-          if (role === 'account_owner' && orgs.length > 0) {
+          // For account owners and sub account owners, select their organization
+          if ((role === 'account_owner' || role === 'sub_account_owner') && orgs.length > 0) {
             setSelectedOrg(orgs[0]);
             // Load organization info
             await loadOrganizationInfo(orgs[0].id);

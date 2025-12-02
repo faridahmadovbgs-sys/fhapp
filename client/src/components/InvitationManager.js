@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
+import { useAuthorization } from '../contexts/AuthorizationContext';
 import { collection, addDoc, query, where, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getUserOrganizations } from '../services/organizationService';
@@ -8,6 +9,7 @@ import { getUserOrganizations } from '../services/organizationService';
 const InvitationManager = () => {
   const { user } = useAuth();
   const { hasActionPermission } = usePermissions();
+  const { userRole } = useAuthorization();
   const [invitations, setInvitations] = useState([]);
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrg, setSelectedOrg] = useState(null);
@@ -22,6 +24,7 @@ const InvitationManager = () => {
 
   // Check if user can manage invitations
   const canManageInvitations = hasActionPermission('manage_invitations');
+  const isSubAccountOwner = userRole === 'sub_account_owner';
 
   useEffect(() => {
     const loadData = async () => {
@@ -110,8 +113,11 @@ const InvitationManager = () => {
 
       await addDoc(collection(db, 'invitations'), inviteData);
       
-      // In a real app, you'd send an email here with the invite link
-      const inviteLink = `${window.location.origin}/register/member?token=${inviteToken}`;
+      // Generate appropriate invite link based on role
+      const inviteLink = inviteForm.role === 'sub_account_owner'
+        ? `${window.location.origin}/register/sub-owner?token=${inviteToken}`
+        : `${window.location.origin}/register/member?token=${inviteToken}`;
+      
       console.log('Invitation sent! Link:', inviteLink);
       
       setStatus(`✅ Invitation sent to ${inviteForm.email}`);
@@ -208,9 +214,14 @@ const InvitationManager = () => {
                 onChange={(e) => setInviteForm({...inviteForm, role: e.target.value})}
                 disabled={loading}
               >
-                <option value="user">User</option>
-                <option value="moderator">Moderator</option>
-                <option value="admin">Admin</option>
+                <option value="user">👤 Member</option>
+                {!isSubAccountOwner && (
+                  <>
+                    <option value="sub_account_owner">👑 Sub Account Owner (Can invite members)</option>
+                    <option value="moderator">🛡️ Moderator</option>
+                    <option value="admin">⚙️ Admin</option>
+                  </>
+                )}
               </select>
             </div>
           </div>
@@ -247,7 +258,12 @@ const InvitationManager = () => {
                 <div className="invite-info">
                   <div className="invite-email">{invite.email}</div>
                   <div className="invite-details">
-                    <span className="invite-role">{invite.role}</span>
+                    <span className="invite-role">
+                      {invite.role === 'sub_account_owner' ? '👑 Sub Account Owner' : 
+                       invite.role === 'user' ? '👤 Member' :
+                       invite.role === 'moderator' ? '🛡️ Moderator' :
+                       invite.role === 'admin' ? '⚙️ Admin' : invite.role}
+                    </span>
                     <span className="invite-date">
                       Sent: {new Date(invite.createdAt.seconds * 1000).toLocaleDateString()}
                     </span>
@@ -264,13 +280,15 @@ const InvitationManager = () => {
                   {invite.status === 'pending' && (
                     <button 
                       onClick={() => {
-                        const inviteLink = `${window.location.origin}/register/member?token=${invite.token}`;
+                        const inviteLink = invite.role === 'sub_account_owner'
+                          ? `${window.location.origin}/register/sub-owner?token=${invite.token}`
+                          : `${window.location.origin}/register/member?token=${invite.token}`;
                         navigator.clipboard.writeText(inviteLink);
-                        setStatus('✅ Invite link copied to clipboard');
+                        setStatus(`✅ ${invite.role === 'sub_account_owner' ? 'Sub Account Owner' : 'Member'} invite link copied to clipboard`);
                       }}
                       className="action-button copy"
                     >
-                      Copy Link
+                      📋 Copy Link
                     </button>
                   )}
                   <button 

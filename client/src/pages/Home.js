@@ -175,6 +175,7 @@ const Home = ({ data }) => {
             <p className="user-role">
               Account Type: <strong className={`role-${userRole}`}>
                 {userRole === 'account_owner' ? '👑 Account Owner' : 
+                 userRole === 'sub_account_owner' ? '👑 Sub Account Owner' : 
                  userRole === 'admin' ? '⚙️ Administrator' : 
                  userRole === 'moderator' ? '🛡️ Moderator' : 
                  userRole === 'member' ? '👤 Member' : 

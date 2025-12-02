@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   collection, 
@@ -12,11 +12,12 @@ import {
   orderBy
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { getUserOrganizations } from '../services/organizationService';
+import { getUserOrganizations, getUserMemberOrganizations } from '../services/organizationService';
 import './OrganizationDocuments.css';
 
 const OrganizationDocuments = () => {
   const { user } = useAuth();
+  const fileInputRef = useRef(null);
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [documents, setDocuments] = useState([]);
@@ -58,17 +59,32 @@ const OrganizationDocuments = () => {
       if (!user?.id) return;
       
       try {
-        const result = await getUserOrganizations(user.id);
-        setOrganizations(result.organizations);
+        setLoading(true);
         
-        if (result.organizations.length > 0 && !selectedOrg) {
-          const org = result.organizations[0];
+        // Try to get organizations where user is owner first
+        let result = await getUserOrganizations(user.id);
+        let orgs = result.organizations || [];
+        
+        // If no owned organizations, try to get organizations where user is a member
+        if (orgs.length === 0) {
+          result = await getUserMemberOrganizations(user.id);
+          orgs = result.organizations || [];
+        }
+        
+        setOrganizations(orgs);
+        
+        if (orgs.length > 0 && !selectedOrg) {
+          const org = orgs[0];
           setSelectedOrg(org);
           setIsOwner(org.ownerId === user.id);
+        } else if (orgs.length === 0) {
+          setError('No organizations found. Please contact your account owner.');
         }
       } catch (error) {
         console.error('Error fetching organizations:', error);
-        setError('Failed to load organizations');
+        setError('Failed to load organizations: ' + error.message);
+      } finally {
+        setLoading(false);
       }
     };
     
@@ -214,7 +230,8 @@ const OrganizationDocuments = () => {
       await addDoc(collection(db, 'organizationDocuments'), docData);
 
       setSuccess('✅ Document uploaded successfully and shared with organization!');
-      setShowUploadForm(false);
+      
+      // Reset form
       setFormData({
         title: '',
         description: '',
@@ -224,6 +241,14 @@ const OrganizationDocuments = () => {
         fileSize: 0,
         fileType: ''
       });
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
 
       // Reload documents
       await loadDocuments();
@@ -336,12 +361,6 @@ const OrganizationDocuments = () => {
           <h1>🏢 Organization Documents</h1>
           <p>Shared documents for all organization members</p>
         </div>
-        <button 
-          className="btn btn-primary"
-          onClick={() => setShowUploadForm(!showUploadForm)}
-        >
-          {showUploadForm ? '❌ Cancel' : '📤 Upload Document'}
-        </button>
       </div>
 
       {/* Organization Selector */}
@@ -407,6 +426,7 @@ const OrganizationDocuments = () => {
             <div className="form-group">
               <label>File * (Max 1MB)</label>
               <input
+                ref={fileInputRef}
                 type="file"
                 onChange={handleFileSelect}
                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
@@ -431,9 +451,14 @@ const OrganizationDocuments = () => {
                 className="btn btn-secondary"
                 onClick={() => setShowUploadForm(false)}
               >
-                Cancel
+                ✅ Done
               </button>
             </div>
+            {documents.length > 0 && (
+              <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666', textAlign: 'center' }}>
+                💡 You can upload multiple documents. Click "Done" when finished.
+              </p>
+            )}
           </form>
         </div>
       )}
@@ -459,6 +484,45 @@ const OrganizationDocuments = () => {
             </option>
           ))}
         </select>
+
+        {isOwner && (
+          <button 
+            type="button"
+            className="btn btn-primary"
+            onClick={(e) => {
+              e.preventDefault();
+              setShowUploadForm(!showUploadForm);
+            }}
+            style={{ 
+              cursor: 'pointer',
+              padding: '0.75rem 1.5rem',
+              fontSize: '1rem',
+              fontWeight: '600',
+              border: 'none',
+              borderRadius: '8px',
+              backgroundColor: showUploadForm ? '#dc3545' : '#4CAF50',
+              color: 'white',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              whiteSpace: 'nowrap'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+              e.currentTarget.style.backgroundColor = showUploadForm ? '#c82333' : '#45a049';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+              e.currentTarget.style.backgroundColor = showUploadForm ? '#dc3545' : '#4CAF50';
+            }}
+          >
+            {showUploadForm ? '❌ Close Form' : '📤 Upload Document'}
+          </button>
+        )}
       </div>
 
       <div className="documents-stats">
@@ -483,7 +547,7 @@ const OrganizationDocuments = () => {
       ) : filteredDocuments.length === 0 ? (
         <div className="empty-state">
           <p>📭 {searchTerm || filterCategory !== 'all' ? 'No documents match your search' : 'No documents uploaded yet'}</p>
-          {!showUploadForm && (
+          {!showUploadForm && isOwner && (
             <button 
               className="btn btn-primary"
               onClick={() => setShowUploadForm(true)}
