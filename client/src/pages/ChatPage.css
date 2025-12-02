@@ -251,6 +251,34 @@
   text-overflow: ellipsis;
 }
 
+.user-unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 8px;
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 9px;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.3);
+  animation: pulseGently 2s ease-in-out infinite;
+}
+
+@keyframes pulseGently {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 1px 3px rgba(220, 38, 38, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.5);
+  }
+}
+
 .chat-item-preview,
 .user-status,
 .group-members {

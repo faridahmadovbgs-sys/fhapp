@@ -31,7 +31,12 @@ service cloud.firestore {
     match /messages/{messageId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+      // Allow update if user created the message OR if they're only updating the viewedBy array
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.userId ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewedBy'])
+      );
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
     }
     
     // Private conversations
@@ -70,7 +75,12 @@ service cloud.firestore {
     match /payments/{paymentId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.memberId;
+      // Allow update if user is payment member OR if they're only updating the viewedBy array
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.memberId ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewedBy'])
+      );
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.memberId;
     }
     
     // Personal Documents - users can only access their own documents
@@ -88,7 +98,12 @@ service cloud.firestore {
         request.auth.uid in resource.data.sharedWith
       );
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && request.auth.uid == resource.data.userId;
+      // Allow update if user owns the document OR if they're updating only the viewedBy array
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.userId ||
+        (request.auth.uid in resource.data.sharedWith && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewedBy']))
+      );
       allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
     }
     
@@ -96,7 +111,11 @@ service cloud.firestore {
     match /organizationDocuments/{documentId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && request.auth.uid == resource.data.uploadedBy;
+      // Allow update if user is uploader OR if they're only updating the viewedBy array
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.uploadedBy ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewedBy'])
+      );
       allow delete: if isSignedIn() && (request.auth.uid == resource.data.uploadedBy);
     }
     

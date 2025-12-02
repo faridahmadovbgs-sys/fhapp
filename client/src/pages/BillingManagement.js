@@ -11,6 +11,8 @@ import {
 } from '../services/billingService';
 import { doc as firestoreDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import OrganizationNotificationBadge from '../components/OrganizationNotificationBadge';
+import '../components/OrganizationNotificationBadge.css';
 import './BillingManagement.css';
 
 const BillingManagement = () => {
@@ -536,17 +538,25 @@ const BillingManagement = () => {
         {organizations.length > 0 && (
           <div className="org-selector">
             <label>Organization:</label>
-            <select
-              value={selectedOrg?.id || ''}
-              onChange={(e) => {
-                const org = organizations.find(o => o.id === e.target.value);
-                setSelectedOrg(org);
-              }}
-            >
-              {organizations.map(org => (
-                <option key={org.id} value={org.id}>{org.name}</option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <select
+                value={selectedOrg?.id || ''}
+                onChange={(e) => {
+                  const org = organizations.find(o => o.id === e.target.value);
+                  setSelectedOrg(org);
+                }}
+              >
+                {organizations.map(org => (
+                  <option key={org.id} value={org.id}>{org.name}</option>
+                ))}
+              </select>
+              {selectedOrg && (
+                <OrganizationNotificationBadge 
+                  organizationId={selectedOrg.id} 
+                  userId={user?.id || user?.uid}
+                />
+              )}
+            </div>
           </div>
         )}
       </div>

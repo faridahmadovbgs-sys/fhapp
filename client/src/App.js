@@ -24,6 +24,7 @@ import PersonalDocuments from './pages/PersonalDocuments';
 import OrganizationDocuments from './pages/OrganizationDocuments';
 import MemberDocuments from './pages/MemberDocuments';
 import AnnouncementManager from './pages/AnnouncementManager';
+import ChatNotificationBadge from './components/ChatNotificationBadge';
 import apiService from './services/apiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthorizationProvider } from './contexts/AuthorizationContext';
@@ -217,7 +218,11 @@ function MainApp() {
       const timer = setTimeout(() => setNewOrgDocsCount(0), 1000);
       return () => clearTimeout(timer);
     }
-  }, [location.pathname, newDocumentsCount, newAnnouncementsCount, pendingBillsCount, newPaymentsCount, newOrgDocsCount]);
+    if (location.pathname === '/chat' && unreadChatsCount > 0) {
+      // Clear the count immediately when navigating to chat
+      setUnreadChatsCount(0);
+    }
+  }, [location.pathname, newDocumentsCount, newAnnouncementsCount, pendingBillsCount, newPaymentsCount, newOrgDocsCount, unreadChatsCount]);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -246,9 +251,10 @@ function MainApp() {
               <li className="nav-item-with-badge">
                 <Link to="/chat" onClick={closeMenu}>
                   Chat
-                  {unreadChatsCount > 0 && (
-                    <span className="nav-notification-badge">{unreadChatsCount > 99 ? '99+' : unreadChatsCount}</span>
-                  )}
+                  <ChatNotificationBadge 
+                    userId={user?.id} 
+                    onCountChange={(count) => setUnreadChatsCount(count)}
+                  />
                 </Link>
               </li>
               <li><Link to="/documents" onClick={closeMenu}>My Documents</Link></li>

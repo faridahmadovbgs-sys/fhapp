@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getUserMemberOrganizations } from '../services/organizationService';
+import OrganizationNotificationBadge from '../components/OrganizationNotificationBadge';
+import '../components/OrganizationNotificationBadge.css';
 import axios from 'axios';
 import './Home.css';
 
@@ -209,18 +211,29 @@ const Home = ({ data }) => {
           <label htmlFor="org-select-home">
             <strong>📊 Select Organization:</strong>
           </label>
-          <select
-            id="org-select-home"
-            value={userOrganization?.id || ''}
-            onChange={handleOrganizationChange}
-            className="org-dropdown-home"
-          >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <select
+              id="org-select-home"
+              value={userOrganization?.id || ''}
+              onChange={handleOrganizationChange}
+              className="org-dropdown-home"
+            >
+              {userOrganizations.map((org) => (
+                <option key={org.id} value={org.id}>
+                  {org.name}
+                </option>
+              ))}
+            </select>
             {userOrganizations.map((org) => (
-              <option key={org.id} value={org.id}>
-                {org.name}
-              </option>
+              userOrganization?.id === org.id && (
+                <OrganizationNotificationBadge 
+                  key={org.id}
+                  organizationId={org.id} 
+                  userId={user?.id || user?.uid}
+                />
+              )
             ))}
-          </select>
+          </div>
           <p className="org-info-home">
             Viewing announcements for: <strong>{userOrganization?.name}</strong>
           </p>

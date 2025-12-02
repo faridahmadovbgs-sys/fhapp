@@ -15,6 +15,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getUserOrganizations, getUserMemberOrganizations } from '../services/organizationService';
+import OrganizationNotificationBadge from '../components/OrganizationNotificationBadge';
+import '../components/OrganizationNotificationBadge.css';
 import './OrganizationDocuments.css';
 
 const OrganizationDocuments = () => {
@@ -387,16 +389,24 @@ const OrganizationDocuments = () => {
       {organizations.length > 1 && (
         <div className="org-selector">
           <label>Organization:</label>
-          <select 
-            value={selectedOrg?.id || ''} 
-            onChange={(e) => handleOrgChange(e.target.value)}
-          >
-            {organizations.map(org => (
-              <option key={org.id} value={org.id}>
-                {org.name} {org.ownerId === user.id ? '(Owner)' : ''}
-              </option>
-            ))}
-          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <select 
+              value={selectedOrg?.id || ''} 
+              onChange={(e) => handleOrgChange(e.target.value)}
+            >
+              {organizations.map(org => (
+                <option key={org.id} value={org.id}>
+                  {org.name} {org.ownerId === user.id ? '(Owner)' : ''}
+                </option>
+              ))}
+            </select>
+            {selectedOrg && (
+              <OrganizationNotificationBadge 
+                organizationId={selectedOrg.id} 
+                userId={user?.id || user?.uid}
+              />
+            )}
+          </div>
         </div>
       )}
 

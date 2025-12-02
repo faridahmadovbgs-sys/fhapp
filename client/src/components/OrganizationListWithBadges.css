@@ -1,0 +1,129 @@
+.organization-list-with-badges {
+  margin: 20px 0;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.organization-list-with-badges h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #252423;
+}
+
+.org-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.org-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f9f9f9;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.org-list-item:hover {
+  background: #f0f0f0;
+  border-color: #8b5cf6;
+  transform: translateX(4px);
+}
+
+.org-list-item.selected {
+  background: #f3e8ff;
+  border-color: #8b5cf6;
+  box-shadow: 0 2px 6px rgba(139, 92, 246, 0.2);
+}
+
+.org-icon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.org-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.org-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #252423;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.org-role {
+  font-size: 12px;
+  color: #8b5cf6;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.org-list-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+  animation: pulseBadge 2s ease-in-out infinite;
+}
+
+@keyframes pulseBadge {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 3px 8px rgba(220, 38, 38, 0.5);
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .organization-list-with-badges {
+    padding: 15px;
+  }
+
+  .org-list-item {
+    padding: 10px 12px;
+  }
+
+  .org-icon {
+    width: 35px;
+    height: 35px;
+    font-size: 20px;
+  }
+
+  .org-name {
+    font-size: 14px;
+  }
+
+  .org-role {
+    font-size: 11px;
+  }
+}

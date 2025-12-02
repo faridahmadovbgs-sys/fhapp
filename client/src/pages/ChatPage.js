@@ -11,11 +11,14 @@ import {
   getDoc,
   updateDoc,
   where,
-  getDocs
+  getDocs,
+  arrayUnion
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserMemberOrganizations } from '../services/organizationService';
+import OrganizationNotificationBadge from '../components/OrganizationNotificationBadge';
+import '../components/OrganizationNotificationBadge.css';
 import './ChatPage.css';
 
 const EMOJI_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '😸'];
@@ -40,12 +43,47 @@ const ChatPage = () => {
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [reactionTarget, setReactionTarget] = useState(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [unreadCounts, setUnreadCounts] = useState({}); // Track unread messages per user
   const messagesEndRef = useRef(null);
   const previousMessageCountRef = useRef({
     public: 0,
     private: 0,
     group: 0
   });
+  const markedAsViewedRef = useRef(new Set());
+
+  // Function to mark message as viewed
+  const markMessageAsViewed = async (messageId) => {
+    if (!currentUser?.id || !messageId) return;
+    
+    try {
+      const messageRef = doc(db, 'messages', messageId);
+      await updateDoc(messageRef, {
+        viewedBy: arrayUnion(currentUser.id)
+      });
+    } catch (error) {
+      // Silently handle permission errors - they're expected for some messages
+      if (error.code !== 'permission-denied') {
+        console.error('❌ Error marking message as viewed:', error);
+      }
+    }
+  };
+
+  // Batch mark messages as viewed with debounce
+  const markMessagesAsViewedBatch = async (messageIds) => {
+    if (!messageIds || messageIds.length === 0) return;
+    
+    // Process in smaller batches to avoid overwhelming Firestore
+    const batchSize = 5;
+    for (let i = 0; i < messageIds.length; i += batchSize) {
+      const batch = messageIds.slice(i, i + batchSize);
+      await Promise.all(batch.map(id => markMessageAsViewed(id)));
+      // Small delay between batches
+      if (i + batchSize < messageIds.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+  };
 
   // Request notification permission
   useEffect(() => {
@@ -99,11 +137,18 @@ const ChatPage = () => {
           const snapshot = await getDocs(usersQuery);
           snapshot.forEach((doc) => {
             const userData = doc.data();
+            const fullName = userData.name || userData.fullName || userData.email?.split('@')[0] || 'User';
+            const nameParts = fullName.split(' ');
+            const firstName = nameParts[0] || 'User';
+            const lastName = nameParts.slice(1).join(' ') || '';
+            
             usersList.push({
               id: doc.id,
               uid: userData.uid,
               email: userData.email,
-              name: userData.name || userData.email?.split('@')[0] || 'User',
+              name: fullName,
+              firstName: firstName,
+              lastName: lastName,
               photoURL: userData.photoURL || userData.profilePictureUrl || null,
               role: userData.uid === selectedOrganization.ownerId ? 'Account Owner' : 'Member'
             });
@@ -118,6 +163,50 @@ const ChatPage = () => {
 
     fetchOrgMembers();
   }, [currentUser, selectedOrganization]);
+
+  // Calculate unread message counts for each user
+  useEffect(() => {
+    if (!db || !currentUser || !selectedOrganization || users.length === 0) return;
+
+    console.log('📊 Setting up unread counts listener');
+
+    // Listen to all private conversations for this user
+    const counts = {};
+    const unsubscribers = [];
+
+    users.forEach((user) => {
+      if (user.uid === currentUser.id) return; // Skip self
+
+      const conversationId = [currentUser.id, user.uid].sort().join('-');
+      const privateQuery = query(
+        collection(db, `conversations/${conversationId}/messages`),
+        limit(50)
+      );
+
+      const unsubscribe = onSnapshot(privateQuery, (snapshot) => {
+        let unreadCount = 0;
+        snapshot.forEach((doc) => {
+          const msgData = doc.data();
+          // Count messages sent by the other user that current user hasn't viewed
+          if (msgData.senderId === user.uid && !msgData.viewedBy?.includes(currentUser.id)) {
+            unreadCount++;
+          }
+        });
+
+        setUnreadCounts(prev => ({
+          ...prev,
+          [user.uid]: unreadCount
+        }));
+      });
+
+      unsubscribers.push(unsubscribe);
+    });
+
+    return () => {
+      console.log('📊 Cleaning up unread counts listeners');
+      unsubscribers.forEach(unsub => unsub());
+    };
+  }, [currentUser, selectedOrganization, users]);
 
   // Fetch organization's groups
   useEffect(() => {
@@ -151,6 +240,9 @@ const ChatPage = () => {
     if (!db || !selectedOrganization) return;
 
     console.log('📊 Fetching messages for organization:', selectedOrganization.id, selectedOrganization.name);
+    
+    // Clear the marked as viewed cache when switching organizations
+    markedAsViewedRef.current.clear();
 
     const messagesQuery = query(
       collection(db, 'messages'),
@@ -158,8 +250,10 @@ const ChatPage = () => {
       limit(100)
     );
 
-    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+    const unsubscribe = onSnapshot(messagesQuery, async (snapshot) => {
       const messagesData = [];
+      const toMarkAsViewed = [];
+      
       snapshot.forEach((doc) => {
         const data = doc.data();
         // Additional safety check: only include messages that match the selected organization
@@ -168,13 +262,29 @@ const ChatPage = () => {
             id: doc.id,
             ...data
           });
+          
+          // Collect messages that need to be marked as viewed
+          if (data.userId !== currentUser.id && 
+              !data.viewedBy?.includes(currentUser.id) &&
+              !markedAsViewedRef.current.has(doc.id)) {
+            toMarkAsViewed.push(doc.id);
+            markedAsViewedRef.current.add(doc.id);
+          }
         }
       });
+      
       // Sort by createdAt in memory
       messagesData.sort((a, b) => {
         if (!a.createdAt || !b.createdAt) return 0;
         return a.createdAt.toMillis() - b.createdAt.toMillis();
       });
+      
+      // Mark messages as viewed in batch (non-blocking)
+      if (toMarkAsViewed.length > 0) {
+        markMessagesAsViewedBatch(toMarkAsViewed).catch(err => {
+          console.error('Error marking messages as viewed:', err);
+        });
+      }
       
       // Show notification for new messages
       const previousCount = previousMessageCountRef.current.public;
@@ -199,8 +309,11 @@ const ChatPage = () => {
       setPublicMessages([]);
     });
 
-    return () => unsubscribe();
-  }, [selectedOrganization]);
+    return () => {
+      console.log('📊 Cleaning up messages listener for:', selectedOrganization?.name);
+      unsubscribe();
+    };
+  }, [selectedOrganization, currentUser, notificationsEnabled]);
 
   // Fetch private messages with selected user
   useEffect(() => {
@@ -371,11 +484,18 @@ const ChatPage = () => {
     setSending(true);
     try {
       console.log('💾 Adding document to Firestore...');
+      const fullName = currentUser.name || currentUser.email.split('@')[0];
+      const nameParts = fullName.split(' ');
+      const firstName = nameParts[0] || fullName;
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
       const docRef = await addDoc(collection(db, 'messages'), {
         text: newMessage.trim(),
         createdAt: serverTimestamp(),
         userId: currentUser.id,
-        userName: currentUser.name || currentUser.email.split('@')[0],
+        userName: fullName,
+        firstName: firstName,
+        lastName: lastName,
         userEmail: currentUser.email,
         organizationId: selectedOrganization.id
       });
@@ -397,11 +517,18 @@ const ChatPage = () => {
 
     setSending(true);
     try {
+      const fullName = currentUser.name || currentUser.email.split('@')[0];
+      const nameParts = fullName.split(' ');
+      const firstName = nameParts[0] || fullName;
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
       await addDoc(collection(db, `groups/${selectedGroup.id}/messages`), {
         text: newMessage.trim(),
         createdAt: serverTimestamp(),
         senderId: currentUser.id,
-        senderName: currentUser.name || currentUser.email.split('@')[0],
+        senderName: fullName,
+        firstName: firstName,
+        lastName: lastName,
         organizationId: selectedOrganization.id
       });
       setNewMessage('');
@@ -448,11 +575,18 @@ const ChatPage = () => {
     try {
       const conversationId = [currentUser.id, selectedUser.uid].sort().join('-');
       
+      const fullName = currentUser.name || currentUser.email.split('@')[0];
+      const nameParts = fullName.split(' ');
+      const firstName = nameParts[0] || fullName;
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
       await addDoc(collection(db, `conversations/${conversationId}/messages`), {
         text: newMessage.trim(),
         createdAt: serverTimestamp(),
         senderId: currentUser.id,
-        senderName: currentUser.name || currentUser.email.split('@')[0],
+        senderName: fullName,
+        firstName: firstName,
+        lastName: lastName,
         receiverId: selectedUser.uid
       });
       setNewMessage('');
@@ -563,21 +697,29 @@ const ChatPage = () => {
         {organizations.length > 0 && (
           <div className="organization-selector">
             <label htmlFor="org-select">Organization:</label>
-            <select 
-              id="org-select"
-              value={selectedOrganization?.id || ''}
-              onChange={(e) => {
-                const org = organizations.find(o => o.id === e.target.value);
-                setSelectedOrganization(org);
-              }}
-              className="org-dropdown"
-            >
-              {organizations.map(org => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <select 
+                id="org-select"
+                value={selectedOrganization?.id || ''}
+                onChange={(e) => {
+                  const org = organizations.find(o => o.id === e.target.value);
+                  setSelectedOrganization(org);
+                }}
+                className="org-dropdown"
+              >
+                {organizations.map(org => (
+                  <option key={org.id} value={org.id}>
+                    {org.name}
+                  </option>
+                ))}
+              </select>
+              {selectedOrganization && (
+                <OrganizationNotificationBadge 
+                  organizationId={selectedOrganization.id} 
+                  userId={currentUser?.id || currentUser?.uid}
+                />
+              )}
+            </div>
           </div>
         )}
         
@@ -648,6 +790,11 @@ const ChatPage = () => {
                           onClick={() => {
                             setChatTab('direct');
                             setSelectedUser(user);
+                            // Clear unread count for this user when selecting them
+                            setUnreadCounts(prev => ({
+                              ...prev,
+                              [user.uid]: 0
+                            }));
                           }}
                         >
                           <div className="chat-item-avatar">
@@ -658,7 +805,14 @@ const ChatPage = () => {
                             )}
                           </div>
                           <div className="chat-item-info">
-                            <div className="chat-item-name">{user.name}</div>
+                            <div className="chat-item-name">
+                              {user.name}
+                              {unreadCounts[user.uid] > 0 && (
+                                <span className="user-unread-badge">
+                                  {unreadCounts[user.uid] > 99 ? '99+' : unreadCounts[user.uid]}
+                                </span>
+                              )}
+                            </div>
                             <div className="chat-item-preview">{user.email}</div>
                           </div>
                         </div>
@@ -774,11 +928,13 @@ const ChatPage = () => {
                               onMouseLeave={() => { if (reactionTarget === msg.id) setReactionTarget(null); }}
                             >
                               <div className="message-avatar">
-                                {renderUserInitial(msg.userName)}
+                                {renderUserInitial(msg.firstName || msg.userName)}
                               </div>
                               <div className="message-content">
                                 <div className="message-header">
-                                  <div className="message-author">{msg.userName}</div>
+                                  <div className="message-author">
+                                    {msg.firstName && msg.lastName ? `${msg.firstName} ${msg.lastName}` : msg.userName}
+                                  </div>
                                   <div className="message-time">{formatTime(msg.createdAt)}</div>
                                 </div>
                                 <div className="message-text">{msg.text}</div>
@@ -862,11 +1018,13 @@ const ChatPage = () => {
                               onMouseLeave={() => { if (reactionTarget === msg.id) setReactionTarget(null); }}
                             >
                               <div className="message-avatar">
-                                {renderUserInitial(msg.senderName)}
+                                {renderUserInitial(msg.firstName || msg.senderName)}
                               </div>
                               <div className="message-content">
                                 <div className="message-header">
-                                  <div className="message-author">{msg.senderName}</div>
+                                  <div className="message-author">
+                                    {msg.firstName && msg.lastName ? `${msg.firstName} ${msg.lastName}` : msg.senderName}
+                                  </div>
                                   <div className="message-time">{formatTime(msg.createdAt)}</div>
                                 </div>
                                 <div className="message-text">{msg.text}</div>
@@ -953,11 +1111,13 @@ const ChatPage = () => {
                             onMouseLeave={() => { if (reactionTarget === msg.id) setReactionTarget(null); }}
                           >
                             <div className="message-avatar">
-                              {renderUserInitial(msg.senderName)}
+                              {renderUserInitial(msg.firstName || msg.senderName)}
                             </div>
                             <div className="message-content">
                               <div className="message-header">
-                                <div className="message-author">{msg.senderName}</div>
+                                <div className="message-author">
+                                  {msg.firstName && msg.lastName ? `${msg.firstName} ${msg.lastName}` : msg.senderName}
+                                </div>
                                 <div className="message-time">{formatTime(msg.createdAt)}</div>
                               </div>
                               <div className="message-text">{msg.text}</div>
