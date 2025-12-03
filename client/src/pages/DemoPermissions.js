@@ -6,7 +6,6 @@ import './DemoPermissions.css';
 const DemoPermissions = () => {
   const {
     isAdmin,
-    isModerator,
     canManageUsers,
     canViewAnalytics,
     canExportData,
@@ -122,7 +121,6 @@ const DemoPermissions = () => {
             {userRole === 'admin' && '⚙️ Admin'}
             {userRole === 'account_owner' && '👑 Account Owner'}
             {userRole === 'sub_account_owner' && '👑 Sub Account Owner'}
-            {userRole === 'moderator' && '🛡️ Moderator'}
             {(userRole === 'user' || !userRole) && '👤 Member'}
           </div>
         </div>
@@ -132,12 +130,6 @@ const DemoPermissions = () => {
             <span className="label">Admin Access:</span>
             <span className={`value ${isAdminUser ? 'yes' : 'no'}`}>
               {isAdminUser ? '✅ Yes' : '❌ No'}
-            </span>
-          </div>
-          <div className="info-item">
-            <span className="label">Moderator Access:</span>
-            <span className={`value ${isModerator() ? 'yes' : 'no'}`}>
-              {isModerator() ? '✅ Yes' : '❌ No'}
             </span>
           </div>
           <div className="info-item">

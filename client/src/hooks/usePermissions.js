@@ -71,11 +71,6 @@ export const usePermissions = () => {
     return hasRole('admin');
   };
 
-  // Check if user has moderator or admin privileges
-  const isModerator = () => {
-    return hasAnyRole(['admin', 'moderator']);
-  };
-
   // Check if user can manage other users
   const canManageUsers = () => {
     return canPerform('manage_roles') || canPerform('edit_user');
@@ -113,7 +108,6 @@ export const usePermissions = () => {
     canPerform,
     canAccess,
     isAdmin,
-    isModerator,
     canManageUsers,
     canViewAnalytics,
     canExportData,

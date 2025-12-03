@@ -182,7 +182,7 @@ const MemberPayments = () => {
 
       await recordPayment(paymentData);
       
-      setSuccess('✅ Payment processed successfully!');
+      setSuccess('Payment processed successfully!');
       setShowPaymentForm(false);
       setSelectedBill(null);
       setPaymentForm({
@@ -274,7 +274,7 @@ const MemberPayments = () => {
 
       await recordPayment(paymentData);
       
-      setSuccess('✅ Payment marked as paid!');
+      setSuccess('Payment marked as paid!');
       closeMarkPaidModal();
       
       // Reload data
@@ -398,7 +398,6 @@ const MemberPayments = () => {
       {/* Summary Cards */}
       <div className="summary-cards">
         <div className="summary-card pending">
-          <div className="summary-icon">⏳</div>
           <div className="summary-info">
             <h3>{pendingBills.length}</h3>
             <p>Pending Bills</p>
@@ -406,7 +405,6 @@ const MemberPayments = () => {
         </div>
         
         <div className="summary-card paid">
-          <div className="summary-icon">✅</div>
           <div className="summary-info">
             <h3>{paidBills.length}</h3>
             <p>Paid Bills</p>
@@ -414,7 +412,6 @@ const MemberPayments = () => {
         </div>
         
         <div className="summary-card total">
-          <div className="summary-icon">💰</div>
           <div className="summary-info">
             <h3>{formatCurrency(paymentHistory.reduce((sum, p) => sum + (p.amount || 0), 0))}</h3>
             <p>Total Paid</p>
@@ -451,7 +448,7 @@ const MemberPayments = () => {
                 <div key={bill.id} className="bill-card pending-bill">
                   <div className="bill-main">
                     <div className="bill-icon">
-                      {bill.billType === 'subscription' ? '🔄' : '💵'}
+                      {bill.billType === 'subscription' ? 'Subscription' : 'One-Time'}
                     </div>
                     <div className="bill-info">
                       <h3>{bill.title}</h3>
@@ -459,13 +456,13 @@ const MemberPayments = () => {
                       <div className="bill-meta">
                         {bill.dueDate && (
                           <span className="meta-item">
-                            📅 Due: {formatDate(bill.dueDate)}
+                            Due: {formatDate(bill.dueDate)}
                           </span>
                         )}
                         <span className="meta-item">
                           {bill.billType === 'subscription' 
-                            ? `🔄 ${bill.subscriptionInterval}` 
-                            : '💵 One-time'}
+                            ? `${bill.subscriptionInterval}` 
+                            : 'One-time'}
                         </span>
                       </div>
                     </div>
@@ -505,7 +502,7 @@ const MemberPayments = () => {
             <div className="history-list">
               {paymentHistory.map(payment => (
                 <div key={payment.id} className="history-item">
-                  <div className="history-icon">✅</div>
+                  <div className="history-icon">Paid</div>
                   <div className="history-info">
                     <h4>{payment.billTitle}</h4>
                     <p className="history-date">
@@ -702,7 +699,7 @@ const MemberPayments = () => {
                   onChange={(e) => setManualPaymentMethod(e.target.value)}
                   className="form-input"
                 >
-                  <option value="cash">💵 Cash</option>
+                  <option value="cash">Cash</option>
                   <option value="check">📝 Check</option>
                   <option value="bank_transfer">🏦 Bank Transfer</option>
                   <option value="credit_card">💳 Credit Card</option>

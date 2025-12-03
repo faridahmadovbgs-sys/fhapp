@@ -229,12 +229,12 @@ const Home = ({ data }) => {
         <h1>Welcome to Integrant Platform</h1>
         {operatingAsUser ? (
           <p className="active-account-welcome">
-            👤 Operating as: <strong>{user?.displayName || user?.email}</strong>
+            Operating as: <strong>{user?.displayName || user?.email}</strong>
           </p>
         ) : activeAccount ? (
           <>
             <p className="active-account-welcome">
-              {getAccountIcon(activeAccount.accountType)} Operating as: <strong>{activeAccount.accountName}</strong>
+              Operating as: <strong>{activeAccount.accountName}</strong>
             </p>
             {activeAccount.entityName && (
               <p className="active-account-entity">{activeAccount.entityName}</p>
@@ -250,7 +250,7 @@ const Home = ({ data }) => {
       {!loadingAccounts && (
         <div className="profile-switcher-home">
           <div className="profile-switcher-header">
-            <h3>💼 Operating Mode</h3>
+            <h3>Operating Mode</h3>
             <button 
               className="btn-manage-profiles"
               onClick={() => navigate('/accounts')}
@@ -265,7 +265,6 @@ const Home = ({ data }) => {
               className={`mode-btn ${operatingAsUser ? 'active' : ''}`}
               onClick={switchToUserMode}
             >
-              <span className="mode-icon">👤</span>
               <div className="mode-info">
                 <div className="mode-label">User Mode</div>
                 <div className="mode-desc">Operate as yourself</div>
@@ -275,7 +274,6 @@ const Home = ({ data }) => {
               className={`mode-btn ${!operatingAsUser && activeAccount ? 'active' : ''}`}
               onClick={() => switchToAccountMode()}
             >
-              <span className="mode-icon">🏢</span>
               <div className="mode-info">
                 <div className="mode-label">Account Mode</div>
                 <div className="mode-desc">Operate as an account</div>
@@ -286,16 +284,16 @@ const Home = ({ data }) => {
           {/* Show active mode status */}
           {operatingAsUser ? (
             <div className="current-mode-status user-mode">
-              <strong>👤 Operating as:</strong> {user?.displayName || user?.email}
+              <strong>Operating as:</strong> {user?.displayName || user?.email}
             </div>
           ) : activeAccount ? (
             <div className="current-mode-status account-mode">
-              <strong>{getAccountIcon(activeAccount.accountType)} Operating as:</strong> {activeAccount.accountName}
+              <strong>Operating as:</strong> {activeAccount.accountName}
               {activeAccount.entityName && <span className="entity-name"> ({activeAccount.entityName})</span>}
             </div>
           ) : (
             <div className="current-mode-status no-account">
-              <strong>⚠️ No account selected</strong>
+              <strong>No account selected</strong>
               <p>Please select an account or switch to user mode</p>
             </div>
           )}
@@ -305,7 +303,7 @@ const Home = ({ data }) => {
             <>
               {accounts.length === 0 ? (
                 <div className="no-profiles-card">
-                  <p>📋 No accounts yet.</p>
+                  <p>No accounts yet.</p>
                   <button 
                     className="btn-add-profile"
                     onClick={() => navigate('/accounts')}
@@ -321,15 +319,6 @@ const Home = ({ data }) => {
                       className={`profile-quick-card ${activeAccount?.id === account.id ? 'active' : ''}`}
                       onClick={() => switchAccount(account)}
                     >
-                      <div className="profile-quick-icon">
-                        {account.accountType === 'personal' && '👤'}
-                        {account.accountType === 'llc' && '🏢'}
-                        {account.accountType === 'trust' && '🏛️'}
-                        {account.accountType === 'corporation' && '🏭'}
-                        {account.accountType === 'partnership' && '🤝'}
-                        {account.accountType === 'nonprofit' && '❤️'}
-                        {account.accountType === 'other' && '📋'}
-                      </div>
                       <div className="profile-quick-info">
                         <div className="profile-quick-name">{account.accountName}</div>
                         <div className="profile-quick-type">
@@ -340,7 +329,7 @@ const Home = ({ data }) => {
                         <span className="profile-default-tag">Default</span>
                       )}
                       {activeAccount?.id === account.id && (
-                        <span className="profile-active-check">✓</span>
+                        <span className="profile-active-check">Active</span>
                       )}
                     </div>
                   ))}
@@ -355,7 +344,7 @@ const Home = ({ data }) => {
         <div className="organization-selector-home">
           <div className="org-selector-header">
             <label htmlFor="org-select-home">
-              <strong>📊 Select Organization:</strong>
+              <strong>Select Organization:</strong>
             </label>
             <button 
               className="btn-manage-orgs"
@@ -448,7 +437,6 @@ const Home = ({ data }) => {
                 {userRole === 'account_owner' ? '👑 Account Owner' : 
                  userRole === 'sub_account_owner' ? '👑 Sub Account Owner' : 
                  userRole === 'admin' ? '⚙️ Administrator' : 
-                 userRole === 'moderator' ? '🛡️ Moderator' : 
                  '👤 Member'}
               </strong>
             </p>

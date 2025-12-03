@@ -61,27 +61,6 @@ const rolePermissions = {
       system_settings: false
     }
   },
-  moderator: {
-    pages: {
-      home: true,
-      about: true,
-      profile: true,
-      admin: false,
-      users: true,
-      reports: true,
-      settings: false
-    },
-    actions: {
-      create_user: false,
-      edit_user: true,
-      delete_user: false,
-      view_users: true,
-      manage_roles: false,
-      export_data: true,
-      view_analytics: true,
-      system_settings: false
-    }
-  },
   admin: {
     pages: {
       home: true,

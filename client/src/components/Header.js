@@ -76,12 +76,10 @@ const Header = ({ user, isMenuOpen, toggleMenu }) => {
           </div>
           {operatingAsUser ? (
             <div className="active-account-header user-mode-header">
-              <span className="account-icon">👤</span>
               <span className="account-name">User Mode</span>
             </div>
           ) : activeAccount ? (
             <div className="active-account-header">
-              <span className="account-icon">{getAccountIcon(activeAccount.accountType)}</span>
               <span className="account-name">{activeAccount.accountName}</span>
             </div>
           ) : null}

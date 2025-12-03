@@ -43,13 +43,13 @@ const AccountManager = () => {
   });
 
   const accountTypes = [
-    { value: 'personal', label: '👤 Personal', icon: '👤' },
-    { value: 'llc', label: '🏢 LLC', icon: '🏢' },
-    { value: 'trust', label: '🏛️ Trust', icon: '🏛️' },
-    { value: 'corporation', label: '🏭 Corporation', icon: '🏭' },
-    { value: 'partnership', label: '🤝 Partnership', icon: '🤝' },
-    { value: 'nonprofit', label: '❤️ Non-Profit', icon: '❤️' },
-    { value: 'other', label: '📋 Other', icon: '📋' }
+    { value: 'personal', label: 'Personal', icon: '👤' },
+    { value: 'llc', label: 'LLC', icon: '🏢' },
+    { value: 'trust', label: 'Trust', icon: '🏛️' },
+    { value: 'corporation', label: 'Corporation', icon: '🏭' },
+    { value: 'partnership', label: 'Partnership', icon: '🤝' },
+    { value: 'nonprofit', label: 'Non-Profit', icon: '❤️' },
+    { value: 'other', label: 'Other', icon: '📋' }
   ];
 
   const handleSubmit = async (e) => {
@@ -171,7 +171,7 @@ const AccountManager = () => {
     <div className="account-manager-container">
       <div className="page-header">
         <div>
-          <h1>💼 My Accounts</h1>
+          <h1>My Accounts</h1>
           <p>Manage multiple accounts under one login (Personal, LLC, Trust, etc.)</p>
         </div>
         <button 
@@ -179,7 +179,7 @@ const AccountManager = () => {
           onClick={() => setShowAddForm(!showAddForm)}
           disabled={loading}
         >
-          {showAddForm ? '✖ Cancel' : '➕ Add Account'}
+          {showAddForm ? 'Cancel' : '+ Add Account'}
         </button>
       </div>
 
@@ -360,7 +360,7 @@ const AccountManager = () => {
         
         {accounts.length === 0 ? (
           <div className="no-accounts">
-            <p>📋 No accounts yet. Click "Add Account" to create your first account.</p>
+            <p>No accounts yet. Click "Add Account" to create your first account.</p>
           </div>
         ) : (
           <div className="accounts-grid">

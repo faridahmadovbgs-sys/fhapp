@@ -138,6 +138,13 @@ const AdminPanel = () => {
             }
           });
           
+          // Sort users: account_owner first, then others
+          usersList.sort((a, b) => {
+            if (a.role === 'account_owner' && b.role !== 'account_owner') return -1;
+            if (a.role !== 'account_owner' && b.role === 'account_owner') return 1;
+            return 0;
+          });
+          
           setFirebaseUsers(usersList);
           setError('');
           setFirebaseLoading(false);
@@ -167,6 +174,13 @@ const AdminPanel = () => {
           });
         });
 
+        // Sort users: account_owner first, then others
+        usersList.sort((a, b) => {
+          if (a.role === 'account_owner' && b.role !== 'account_owner') return -1;
+          if (a.role !== 'account_owner' && b.role === 'account_owner') return 1;
+          return 0;
+        });
+
         setFirebaseUsers(usersList);
         setError('');
       } catch (err) {
@@ -194,17 +208,6 @@ const AdminPanel = () => {
             createdAt: new Date(Date.now() - 86400000).toISOString(),
             lastSignIn: new Date(Date.now() - 3600000).toISOString(),
             permissions: rolePermissions.user
-          },
-          {
-            id: 'demo-user-2',
-            email: 'moderator@example.com',
-            name: 'Demo Moderator',
-            emailVerified: true,
-            role: 'moderator',
-            isActive: true,
-            createdAt: new Date(Date.now() - 172800000).toISOString(),
-            lastSignIn: new Date(Date.now() - 7200000).toISOString(),
-            permissions: rolePermissions.moderator
           }
         ];
         setFirebaseUsers(mockUsers);

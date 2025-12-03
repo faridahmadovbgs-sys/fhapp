@@ -313,7 +313,7 @@ const About = () => {
             </div>
             <div className="feature-item">
               <h3>🔐 Role-Based Access</h3>
-              <p>Advanced permission system with account owners, administrators, moderators, and members - ensuring the right people have the right access.</p>
+              <p>Advanced permission system with account owners, administrators, and members - ensuring the right people have the right access.</p>
             </div>
             <div className="feature-item">
               <h3>📊 Real-Time Updates</h3>

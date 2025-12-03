@@ -218,7 +218,6 @@ const InvitationManager = () => {
                 {!isSubAccountOwner && (
                   <>
                     <option value="sub_account_owner">👑 Sub Account Owner (Can invite members)</option>
-                    <option value="moderator">🛡️ Moderator</option>
                     <option value="admin">⚙️ Admin</option>
                   </>
                 )}
@@ -261,7 +260,6 @@ const InvitationManager = () => {
                     <span className="invite-role">
                       {invite.role === 'sub_account_owner' ? '👑 Sub Account Owner' : 
                        invite.role === 'user' ? '👤 Member' :
-                       invite.role === 'moderator' ? '🛡️ Moderator' :
                        invite.role === 'admin' ? '⚙️ Admin' : invite.role}
                     </span>
                     <span className="invite-date">

@@ -282,7 +282,7 @@ const BillingManagement = () => {
       };
 
       await createBill(billData);
-      setSuccess('✅ Bill created successfully!');
+      setSuccess('Bill created successfully!');
       setShowCreateForm(false);
       setFormData({
         title: '',
@@ -310,7 +310,7 @@ const BillingManagement = () => {
   const handleStatusChange = async (billId, newStatus) => {
     try {
       await updateBillStatus(billId, newStatus);
-      setSuccess('✅ Bill status updated!');
+      setSuccess('Bill status updated!');
       await loadBills();
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
@@ -375,7 +375,7 @@ const BillingManagement = () => {
       
       await updateBillMembers(managingBill.id, memberIds);
       
-      setSuccess('✅ Member assignments updated!');
+      setSuccess('Member assignments updated!');
       closeManageMembersModal();
       
       // Reload bills to reflect changes
@@ -491,7 +491,7 @@ const BillingManagement = () => {
         await recordPayment(paymentData);
       }
 
-      setSuccess(`✅ Payment recorded for ${selectedPayerIds.length} member(s)!`);
+      setSuccess(`Payment recorded for ${selectedPayerIds.length} member(s)!`);
       closeMarkPaidModal();
       
       // Reload bills to reflect changes
@@ -584,7 +584,7 @@ const BillingManagement = () => {
     <div className="billing-management">
       <div className="billing-header">
         <div>
-          <h2>💰 Billing Management</h2>
+          <h2>Billing Management</h2>
           <p>Create and manage bills for your organization members</p>
         </div>
         
@@ -837,7 +837,7 @@ const BillingManagement = () => {
                 <div className="bill-header">
                   <h4>{bill.title}</h4>
                   <span className={`bill-badge ${bill.billType}`}>
-                    {bill.billType === 'subscription' ? '🔄 Subscription' : '💵 One-Time'}
+                    {bill.billType === 'subscription' ? 'Subscription' : 'One-Time'}
                   </span>
                 </div>
                 
@@ -995,7 +995,7 @@ const BillingManagement = () => {
                       <span className={`member-status ${
                         selectedBill.payments?.some(p => p.memberId === member.uid) ? 'paid' : 'pending'
                       }`}>
-                        {selectedBill.payments?.some(p => p.memberId === member.uid) ? '✅ Paid' : '⏳ Pending'}
+                        {selectedBill.payments?.some(p => p.memberId === member.uid) ? 'Paid' : 'Pending'}
                       </span>
                     </div>
                   ))}
@@ -1169,7 +1169,7 @@ const BillingManagement = () => {
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   className="form-input"
                 >
-                  <option value="cash">💵 Cash</option>
+                  <option value="cash">Cash</option>
                   <option value="check">📝 Check</option>
                   <option value="bank_transfer">🏦 Bank Transfer</option>
                   <option value="credit_card">💳 Credit Card</option>
@@ -1231,7 +1231,7 @@ const BillingManagement = () => {
                             <div className="member-selection-info">
                               <span className="member-selection-name">
                                 {member.name || member.email}
-                                {hasPaid && <span className="paid-badge">✅ Already Paid</span>}
+                                {hasPaid && <span className="paid-badge">Already Paid</span>}
                               </span>
                               <span className="member-selection-email">{member.email}</span>
                             </div>

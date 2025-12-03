@@ -280,7 +280,7 @@ function MainApp() {
                 </li>
               </PermissionGuard>
               <li><Link to="/demo-permissions" onClick={closeMenu}>Permissions Demo</Link></li>
-              <PermissionGuard requiredPage="admin">
+              <PermissionGuard requiredRole="admin">
                 <li><Link to="/registered-users" onClick={closeMenu}>Users</Link></li>
               </PermissionGuard>
               <PermissionGuard requiredPage="admin">
@@ -329,7 +329,7 @@ function MainApp() {
             <Route 
               path="/registered-users" 
               element={
-                <PermissionProtectedRoute requiredPage="admin">
+                <PermissionProtectedRoute requiredRole="admin">
                   <RegisteredUsers />
                 </PermissionProtectedRoute>
               } 

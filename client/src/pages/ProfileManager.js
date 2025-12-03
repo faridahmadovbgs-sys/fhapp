@@ -29,6 +29,7 @@ const ProfileManager = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [expandedProfile, setExpandedProfile] = useState(null);
 
   const [formData, setFormData] = useState({
     profileType: 'personal',
@@ -343,89 +344,103 @@ const ProfileManager = () => {
             <p>📋 No profiles yet. Click "Add Profile" to create your first profile.</p>
           </div>
         ) : (
-          <div className="profiles-grid">
+          <div className="profiles-list">
             {profiles.map((profile) => (
               <div 
                 key={profile.id} 
-                className={`profile-card ${profile.isDefault ? 'default' : ''} ${activeProfile?.id === profile.id ? 'active' : ''}`}
-                onClick={() => switchProfile(profile)}
+                className={`profile-item ${profile.isDefault ? 'default' : ''} ${activeProfile?.id === profile.id ? 'active' : ''} ${expandedProfile === profile.id ? 'expanded' : ''}`}
               >
-                {profile.isDefault && (
-                  <div className="default-badge">Default</div>
-                )}
-                
-                <div className="profile-header">
-                  <div className="profile-icon">
-                    {getProfileIcon(profile.profileType)}
-                  </div>
-                  <div className="profile-info">
-                    <h3>{profile.profileName}</h3>
-                    <p className="profile-type">
-                      {profileTypes.find(t => t.value === profile.profileType)?.label || profile.profileType}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="profile-details">
-                  {profile.entityName && (
-                    <div className="detail-row">
-                      <span className="label">Entity:</span>
-                      <span className="value">{profile.entityName}</span>
-                    </div>
-                  )}
-                  {profile.ein && (
-                    <div className="detail-row">
-                      <span className="label">EIN:</span>
-                      <span className="value">{profile.ein}</span>
-                    </div>
-                  )}
-                  {profile.address && (
-                    <div className="detail-row">
-                      <span className="label">Address:</span>
-                      <span className="value">
-                        {profile.address}
-                        {profile.city && `, ${profile.city}`}
-                        {profile.state && `, ${profile.state}`}
-                        {profile.zipCode && ` ${profile.zipCode}`}
+                <div 
+                  className="profile-item-header"
+                  onClick={() => setExpandedProfile(expandedProfile === profile.id ? null : profile.id)}
+                >
+                  <div className="profile-item-info">
+                    <span className="profile-icon-small">{getProfileIcon(profile.profileType)}</span>
+                    <div>
+                      <h4>{profile.profileName}</h4>
+                      <span className="profile-type-small">
+                        {profileTypes.find(t => t.value === profile.profileType)?.label || profile.profileType}
                       </span>
                     </div>
-                  )}
-                  {profile.phone && (
-                    <div className="detail-row">
-                      <span className="label">Phone:</span>
-                      <span className="value">{profile.phone}</span>
-                    </div>
-                  )}
-                  {profile.email && (
-                    <div className="detail-row">
-                      <span className="label">Email:</span>
-                      <span className="value">{profile.email}</span>
-                    </div>
-                  )}
+                  </div>
+                  <div className="profile-item-badges">
+                    {profile.isDefault && <span className="badge badge-default">Default</span>}
+                    {activeProfile?.id === profile.id && <span className="badge badge-active">Active</span>}
+                    <span className="expand-icon">{expandedProfile === profile.id ? '▼' : '▶'}</span>
+                  </div>
                 </div>
 
-                <div className="profile-actions">
-                  {!profile.isDefault && (
-                    <button
-                      className="btn-small btn-secondary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSetAsDefault(profile.id);
-                      }}
-                    >
-                      Set as Default
-                    </button>
-                  )}
-                  <button
-                    className="btn-small btn-danger"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteProfile(profile.id);
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
+                {expandedProfile === profile.id && (
+                  <div className="profile-item-details">
+                    {profile.entityName && (
+                      <div className="detail-row">
+                        <span className="label">Entity:</span>
+                        <span className="value">{profile.entityName}</span>
+                      </div>
+                    )}
+                    {profile.ein && (
+                      <div className="detail-row">
+                        <span className="label">EIN:</span>
+                        <span className="value">{profile.ein}</span>
+                      </div>
+                    )}
+                    {profile.address && (
+                      <div className="detail-row">
+                        <span className="label">Address:</span>
+                        <span className="value">
+                          {profile.address}
+                          {profile.city && `, ${profile.city}`}
+                          {profile.state && `, ${profile.state}`}
+                          {profile.zipCode && ` ${profile.zipCode}`}
+                        </span>
+                      </div>
+                    )}
+                    {profile.phone && (
+                      <div className="detail-row">
+                        <span className="label">Phone:</span>
+                        <span className="value">{profile.phone}</span>
+                      </div>
+                    )}
+                    {profile.email && (
+                      <div className="detail-row">
+                        <span className="label">Email:</span>
+                        <span className="value">{profile.email}</span>
+                      </div>
+                    )}
+
+                    <div className="profile-item-actions">
+                      <button
+                        className="btn-small btn-primary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          switchProfile(profile);
+                        }}
+                      >
+                        Use This Profile
+                      </button>
+                      {!profile.isDefault && (
+                        <button
+                          className="btn-small btn-secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSetAsDefault(profile.id);
+                          }}
+                        >
+                          Set as Default
+                        </button>
+                      )}
+                      <button
+                        className="btn-small btn-danger"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteProfile(profile.id);
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -433,17 +448,11 @@ const ProfileManager = () => {
       </div>
 
       {activeProfile && (
-        <div className="active-profile-info">
-          <h3>📌 Currently Using Profile</h3>
-          <div className="active-profile-card">
-            <div className="profile-icon-large">
-              {getProfileIcon(activeProfile.profileType)}
-            </div>
-            <div>
-              <h4>{activeProfile.profileName}</h4>
-              <p>{activeProfile.entityName || 'Personal Profile'}</p>
-              <small>This profile will be used for documents and billing</small>
-            </div>
+        <div className="active-profile-banner">
+          <span className="profile-icon-small">{getProfileIcon(activeProfile.profileType)}</span>
+          <div>
+            <strong>Currently Using:</strong> {activeProfile.profileName}
+            <small> — {activeProfile.entityName || 'Personal Profile'}</small>
           </div>
         </div>
       )}
