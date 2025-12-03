@@ -297,6 +297,24 @@ const About = () => {
         </section>
 
         <section className="about-section">
+          <h2>✨ Key Features</h2>
+          <div className="features-grid">
+            <div className="feature-item">
+              <h3>💰 Billing Management</h3>
+              <p>Create and manage bills, track payments, and handle subscription billing for your organization members with automated payment tracking.</p>
+            </div>
+            <div className="feature-item">
+              <h3>👥 Team Collaboration</h3>
+              <p>Invite members, manage roles and permissions, share documents, and communicate in real-time with built-in chat functionality.</p>
+            </div>
+            <div className="feature-item">
+              <h3>📁 Document Storage</h3>
+              <p>Securely store and share personal and organization-wide documents with categorization, search, and easy access control.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="about-section">
           <h2>💼 What We Offer</h2>
           <div className="features-grid">
             <div className="feature-item">

@@ -229,7 +229,7 @@ const Home = ({ data }) => {
         <h1>Welcome to Integrant Platform</h1>
         {operatingAsUser ? (
           <p className="active-account-welcome">
-            Operating as: <strong>{user?.displayName || user?.email}</strong>
+            Operating as: <strong>{user?.name || user?.displayName || user?.email}</strong>
           </p>
         ) : activeAccount ? (
           <>
@@ -246,13 +246,14 @@ const Home = ({ data }) => {
         <p className="hero-subtitle">Streamline your business operations with automated billing, secure document management, and seamless team collaboration</p>
       </div>
 
-      {/* Account Switcher */}
-      {!loadingAccounts && (
-        <div className="profile-switcher-home">
-          <div className="profile-switcher-header">
-            <h3>Operating Mode</h3>
-            <button 
-              className="btn-manage-profiles"
+      <div className="home-controls-grid">
+        {/* Account Switcher */}
+        {!loadingAccounts && (
+          <div className="profile-switcher-home">
+            <div className="profile-switcher-header">
+              <h3>Operating Mode</h3>
+              <button 
+                className="btn-manage-profiles"
               onClick={() => navigate('/accounts')}
             >
               Manage Accounts
@@ -284,7 +285,7 @@ const Home = ({ data }) => {
           {/* Show active mode status */}
           {operatingAsUser ? (
             <div className="current-mode-status user-mode">
-              <strong>Operating as:</strong> {user?.displayName || user?.email}
+              <strong>Operating as:</strong> {user?.name || user?.displayName || user?.email}
             </div>
           ) : activeAccount ? (
             <div className="current-mode-status account-mode">
@@ -381,6 +382,7 @@ const Home = ({ data }) => {
           </p>
         </div>
       )}
+      </div>
 
       {/* Announcements Section */}
       <div className="announcements-section">
@@ -410,39 +412,6 @@ const Home = ({ data }) => {
           </div>
         )}
       </div>
-
-      <div className="features">
-        <div className="feature">
-          <h3>💰 Billing Management</h3>
-          <p>Create and manage bills, track payments, and handle subscription billing for your organization members with automated payment tracking.</p>
-        </div>
-        <div className="feature">
-          <h3>👥 Team Collaboration</h3>
-          <p>Invite members, manage roles and permissions, share documents, and communicate in real-time with built-in chat functionality.</p>
-        </div>
-        <div className="feature">
-          <h3>📁 Document Storage</h3>
-          <p>Securely store and share personal and organization-wide documents with categorization, search, and easy access control.</p>
-        </div>
-      </div>
-
-      {user && (
-        <div className="user-info-section">
-          <p className="user-greeting">
-            Logged in as: <strong>{user.name || user.email}</strong>
-          </p>
-          {userRole && (
-            <p className="user-role">
-              Account Type: <strong className={`role-${userRole}`}>
-                {userRole === 'account_owner' ? '👑 Account Owner' : 
-                 userRole === 'sub_account_owner' ? '👑 Sub Account Owner' : 
-                 userRole === 'admin' ? '⚙️ Administrator' : 
-                 '👤 Member'}
-              </strong>
-            </p>
-          )}
-        </div>
-      )}
     </div>
   );
 };
