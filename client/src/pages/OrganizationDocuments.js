@@ -587,61 +587,63 @@ const OrganizationDocuments = () => {
           )}
         </div>
       ) : (
-        <div className="documents-grid">
-          {filteredDocuments.map(document => (
-            <div key={document.id} className="document-card">
-              <div className="document-header">
-                <span className="document-icon">{getCategoryIcon(document.category)}</span>
-                <span className="document-category-badge">
-                  {getCategoryLabel(document.category)}
-                </span>
-              </div>
-              
-              <h3 className="document-title">{document.title}</h3>
-              
-              {document.description && (
-                <p className="document-description">{document.description}</p>
-              )}
-              
-              <div className="document-meta">
-                <div className="meta-item">
-                  <span className="meta-label">📎 File:</span>
-                  <span className="meta-value">{document.fileName}</span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">📊 Size:</span>
-                  <span className="meta-value">{formatFileSize(document.fileSize)}</span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">👤 Uploaded by:</span>
-                  <span className="meta-value">{document.uploaderName}</span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">📅 Date:</span>
-                  <span className="meta-value">{formatDate(document.createdAt)}</span>
-                </div>
-              </div>
-
-              <div className="document-actions">
-                <button
-                  className="btn-action btn-download"
-                  onClick={() => handleDownload(document)}
-                  title="Download"
-                >
-                  ⬇️ Download
-                </button>
-                {(document.uploadedBy === user.id || isOwner) && (
-                  <button
-                    className="btn-action btn-delete"
-                    onClick={() => handleDelete(document.id, document.uploadedBy)}
-                    title="Delete"
-                  >
-                    🗑️ Delete
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
+        <div className="documents-table-container">
+          <table className="documents-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Title</th>
+                <th>File</th>
+                <th>Size</th>
+                <th>Uploaded By</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredDocuments.map(document => (
+                <tr key={document.id}>
+                  <td>
+                    <span className="table-category-badge">
+                      {getCategoryIcon(document.category)} {getCategoryLabel(document.category)}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="table-title">
+                      <strong>{document.title}</strong>
+                      {document.description && (
+                        <small className="table-description">{document.description}</small>
+                      )}
+                    </div>
+                  </td>
+                  <td className="table-filename">{document.fileName}</td>
+                  <td>{formatFileSize(document.fileSize)}</td>
+                  <td>{document.uploaderName}</td>
+                  <td>{formatDate(document.createdAt)}</td>
+                  <td>
+                    <div className="table-actions">
+                      <button
+                        className="btn-table-action btn-download"
+                        onClick={() => handleDownload(document)}
+                        title="Download"
+                      >
+                        ⬇️
+                      </button>
+                      {(document.uploadedBy === user.id || isOwner) && (
+                        <button
+                          className="btn-table-action btn-delete"
+                          onClick={() => handleDelete(document.id, document.uploadedBy)}
+                          title="Delete"
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

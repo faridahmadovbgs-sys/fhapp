@@ -1,49 +1,49 @@
 .announcement-manager {
-  max-width: 1200px;
+  max-width: 1000px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 12px;
 }
 
 .manager-header {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 12px;
 }
 
 .manager-header h1 {
   color: var(--primary-color);
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 20px;
+  margin-bottom: 4px;
 }
 
 .manager-header p {
   color: var(--text-secondary);
-  font-size: 1.1rem;
+  font-size: 13px;
 }
 
 .organization-selector {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 197, 253, 0.1) 100%);
-  border: 2px solid #3b82f6;
+  background: var(--bg-primary);
+  border: 1px solid var(--gray-300);
   border-radius: var(--radius-lg);
-  padding: 1.5rem;
-  margin-bottom: 2rem;
+  padding: 10px;
+  margin-bottom: 12px;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 8px;
 }
 
 .organization-selector label {
-  font-size: 1rem;
+  font-size: 13px;
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 6px;
 }
 
 .organization-selector .org-dropdown {
-  padding: 0.75rem 1rem;
-  border: 2px solid var(--gray-300);
+  padding: 6px 10px;
+  border: 1px solid var(--gray-300);
   border-radius: var(--radius-md);
-  font-size: 1rem;
+  font-size: 13px;
   background: white;
   cursor: pointer;
   transition: all 0.2s;

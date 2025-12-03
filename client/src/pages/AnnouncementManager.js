@@ -19,6 +19,7 @@ const AnnouncementManager = () => {
   });
   const [editingId, setEditingId] = useState(null);
   const [message, setMessage] = useState('');
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     const fetchOrganizations = async () => {
@@ -216,6 +217,7 @@ const AnnouncementManager = () => {
       active: announcement.active !== false
     });
     setEditingId(announcement.id);
+    setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -243,6 +245,7 @@ const AnnouncementManager = () => {
       active: true
     });
     setEditingId(null);
+    setShowForm(false);
   };
 
   return (
@@ -281,7 +284,27 @@ const AnnouncementManager = () => {
         </div>
       )}
 
-      <div className="announcement-form-section">
+      {!showForm && (
+        <div style={{ marginBottom: '12px', textAlign: 'center' }}>
+          <button 
+            onClick={() => setShowForm(true)}
+            className="btn-primary"
+            style={{ 
+              padding: '10px 20px',
+              fontSize: '14px',
+              fontWeight: '600',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            ➕ Create New Announcement
+          </button>
+        </div>
+      )}
+
+      {showForm && (
+        <div className="announcement-form-section">
         <h2>{editingId ? 'Edit Announcement' : 'Create New Announcement'}</h2>
         <form onSubmit={handleSubmit} className="announcement-form">
           <div className="form-group">
@@ -338,14 +361,13 @@ const AnnouncementManager = () => {
             <button type="submit" className="btn-primary">
               {editingId ? 'Update Announcement' : 'Create Announcement'}
             </button>
-            {editingId && (
-              <button type="button" onClick={cancelEdit} className="btn-secondary">
-                Cancel
-              </button>
-            )}
+            <button type="button" onClick={cancelEdit} className="btn-secondary">
+              {editingId ? 'Cancel' : 'Close Form'}
+            </button>
           </div>
         </form>
       </div>
+      )}
 
       <div className="announcements-list-section">
         <h2>All Announcements ({announcements.length})</h2>

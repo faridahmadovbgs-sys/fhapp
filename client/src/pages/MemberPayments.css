@@ -1,6 +1,6 @@
 .member-payments {
-  padding: 15px;
-  max-width: 1000px;
+  padding: 10px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
@@ -8,76 +8,76 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
-  gap: 15px;
+  gap: 10px;
 }
 
 .payments-header h2 {
-  color: #6264a7;
-  margin: 0 0 3px 0;
-  font-size: 1.5rem;
+  color: var(--text-primary);
+  margin: 0 0 2px 0;
+  font-size: 20px;
 }
 
 .payments-header p {
   color: #666;
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 12px;
 }
 
 .org-selector {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .org-selector label {
   font-weight: 500;
   color: #333;
-  font-size: 0.9rem;
+  font-size: 12px;
 }
 
 .org-selector select {
-  padding: 6px 10px;
+  padding: 4px 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 13px;
+  font-size: 12px;
   background: white;
 }
 
 /* Summary Cards */
 .summary-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .summary-card {
   background: white;
-  padding: 15px;
+  padding: 10px;
   border-radius: 6px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .summary-icon {
-  font-size: 32px;
+  font-size: 24px;
   opacity: 0.9;
 }
 
 .summary-info h3 {
-  margin: 0 0 3px 0;
-  font-size: 22px;
+  margin: 0 0 2px 0;
+  font-size: 18px;
   color: #333;
 }
 
 .summary-info p {
   margin: 0;
   color: #666;
-  font-size: 13px;
+  font-size: 11px;
 }
 
 .summary-card.pending {
@@ -95,9 +95,9 @@
 /* Tabs */
 .tabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 15px;
-  border-bottom: 2px solid #e0e0e0;
+  gap: 6px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .tab {
