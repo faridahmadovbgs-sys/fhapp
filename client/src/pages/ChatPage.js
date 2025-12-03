@@ -23,6 +23,9 @@ import './ChatPage.css';
 
 const EMOJI_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '😸'];
 
+// Share the same timestamp storage with ChatNotificationBadge
+window.chatLastViewedTimes = window.chatLastViewedTimes || {};
+
 const ChatPage = () => {
   const { user: currentUser } = useAuth();
   const [organizations, setOrganizations] = useState([]);
@@ -73,16 +76,20 @@ const ChatPage = () => {
   const markMessagesAsViewedBatch = async (messageIds) => {
     if (!messageIds || messageIds.length === 0) return;
     
-    // Process in smaller batches to avoid overwhelming Firestore
-    const batchSize = 5;
+    console.log(`🔄 Batch marking ${messageIds.length} messages`);
+    
+    // Process in larger batches for faster marking
+    const batchSize = 10;
     for (let i = 0; i < messageIds.length; i += batchSize) {
       const batch = messageIds.slice(i, i + batchSize);
       await Promise.all(batch.map(id => markMessageAsViewed(id)));
-      // Small delay between batches
+      // Reduced delay for faster badge clearing
       if (i + batchSize < messageIds.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 20));
       }
     }
+    
+    console.log(`✅ Completed marking ${messageIds.length} messages`);
   };
 
   // Request notification permission
@@ -237,12 +244,9 @@ const ChatPage = () => {
 
   // Fetch organization public messages
   useEffect(() => {
-    if (!db || !selectedOrganization) return;
+    if (!db || !selectedOrganization || !currentUser) return;
 
     console.log('📊 Fetching messages for organization:', selectedOrganization.id, selectedOrganization.name);
-    
-    // Clear the marked as viewed cache when switching organizations
-    markedAsViewedRef.current.clear();
 
     const messagesQuery = query(
       collection(db, 'messages'),
@@ -264,11 +268,10 @@ const ChatPage = () => {
           });
           
           // Collect messages that need to be marked as viewed
+          // Always mark unviewed messages - arrayUnion prevents duplicates in Firestore
           if (data.userId !== currentUser.id && 
-              !data.viewedBy?.includes(currentUser.id) &&
-              !markedAsViewedRef.current.has(doc.id)) {
+              !data.viewedBy?.includes(currentUser.id)) {
             toMarkAsViewed.push(doc.id);
-            markedAsViewedRef.current.add(doc.id);
           }
         }
       });
@@ -281,9 +284,25 @@ const ChatPage = () => {
       
       // Mark messages as viewed in batch (non-blocking)
       if (toMarkAsViewed.length > 0) {
+        console.log(`📬 Marking ${toMarkAsViewed.length} messages as viewed`);
         markMessagesAsViewedBatch(toMarkAsViewed).catch(err => {
           console.error('Error marking messages as viewed:', err);
         });
+      }
+      
+      // Update shared timestamp to the LATEST message time (not current time)
+      // This ensures only NEW messages trigger the badge
+      const key = `${currentUser.id}_${selectedOrganization.id}`;
+      if (messagesData.length > 0) {
+        const latestMessage = messagesData[messagesData.length - 1];
+        if (latestMessage.createdAt) {
+          const latestTime = latestMessage.createdAt.toMillis();
+          window.chatLastViewedTimes[key] = latestTime;
+          console.log('📊 Updated timestamp to latest message:', new Date(latestTime).toISOString());
+        }
+      } else {
+        // No messages, set to current time
+        window.chatLastViewedTimes[key] = Date.now();
       }
       
       // Show notification for new messages
@@ -813,7 +832,6 @@ const ChatPage = () => {
                                 </span>
                               )}
                             </div>
-                            <div className="chat-item-preview">{user.email}</div>
                           </div>
                         </div>
                       ))
@@ -994,7 +1012,6 @@ const ChatPage = () => {
                     </div>
                     <div>
                       <div className="chat-header-title">{selectedUser.name}</div>
-                      <div className="chat-header-subtitle">{selectedUser.email}</div>
                     </div>
                   </div>
 
