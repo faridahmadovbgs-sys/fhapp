@@ -35,6 +35,7 @@ const AdminPanel = () => {
   const [orgLoading, setOrgLoading] = useState(false);
   const [newOrgName, setNewOrgName] = useState('');
   const [selectedOrg, setSelectedOrg] = useState(null);
+  const [selectedRoleTemplate, setSelectedRoleTemplate] = useState('admin');
 
   // Fetch all users
   useEffect(() => {
@@ -377,9 +378,9 @@ const AdminPanel = () => {
     }
   };
 
-  // Filter users based on search and role
+  // Filter and sort users based on search, role, and hierarchy
   const getFilteredUsers = (usersList) => {
-    return usersList.filter(user => {
+    const filtered = usersList.filter(user => {
       const matchesSearch = !searchTerm || 
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -387,6 +388,30 @@ const AdminPanel = () => {
       const matchesRole = filterRole === 'all' || user.role === filterRole;
       
       return matchesSearch && matchesRole;
+    });
+
+    // Sort by hierarchy: Account Owner → Sub Account Owners → Members, then by registration date
+    return filtered.sort((a, b) => {
+      // Define role hierarchy order
+      const roleOrder = {
+        'account_owner': 1,
+        'sub_account_owner': 2,
+        'user': 3,
+        'admin': 0 // Admins first if they exist
+      };
+
+      const aOrder = roleOrder[a.role] || 999;
+      const bOrder = roleOrder[b.role] || 999;
+
+      // First sort by role hierarchy
+      if (aOrder !== bOrder) {
+        return aOrder - bOrder;
+      }
+
+      // Within same role, sort by registration date (oldest first)
+      const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return aDate - bDate;
     });
   };
 
@@ -399,46 +424,50 @@ const AdminPanel = () => {
         </p>
       </div>
 
-      {/* Organization Selector for Account Owners */}
-      {(userRole === 'account_owner' || userRole === 'sub_account_owner') && organizations.length > 0 && (
-        <div className="organization-selector" style={{
-          marginBottom: '20px',
-          padding: '15px',
-          background: '#f5f5f5',
-          borderRadius: '8px',
-          border: '1px solid #e0e0e0'
-        }}>
-          <label style={{fontWeight: '600', marginRight: '10px', color: '#252423'}}>
-            Select Organization:
-          </label>
-          <select
-            value={selectedOrg?.id || ''}
-            onChange={(e) => {
-              const org = organizations.find(o => o.id === e.target.value);
-              setSelectedOrg(org);
-            }}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '6px',
-              border: '1px solid #d0d0d0',
-              fontSize: '14px',
-              minWidth: '250px'
-            }}
-          >
-            {organizations.map(org => (
-              <option key={org.id} value={org.id}>
-                {org.name} ({org.members?.length || 0} members)
-              </option>
-            ))}
-          </select>
-          <span style={{marginLeft: '15px', color: '#605e5c', fontSize: '14px'}}>
-            Managing users in: <strong>{selectedOrg?.name}</strong>
-          </span>
-        </div>
-      )}
-
       {/* Search and Filter Controls */}
       <div className="user-controls">
+        {/* Organization Selector for Account Owners */}
+        {(userRole === 'account_owner' || userRole === 'sub_account_owner') && organizations.length > 0 && (
+          <div className="organization-selector" style={{
+            padding: '12px 15px',
+            background: '#f8f9fa',
+            borderRadius: '6px',
+            border: '1px solid #e0e0e0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            flexWrap: 'wrap'
+          }}>
+            <label style={{fontWeight: '600', color: '#252423', fontSize: '13px'}}>
+              Select Organization:
+            </label>
+            <select
+              value={selectedOrg?.id || ''}
+              onChange={(e) => {
+                const org = organizations.find(o => o.id === e.target.value);
+                setSelectedOrg(org);
+              }}
+              style={{
+                padding: '7px 12px',
+                borderRadius: '4px',
+                border: '1px solid #d0d0d0',
+                fontSize: '13px',
+                minWidth: '220px',
+                background: 'white'
+              }}
+            >
+              {organizations.map(org => (
+                <option key={org.id} value={org.id}>
+                  {org.name} ({org.members?.length || 0} members)
+                </option>
+              ))}
+            </select>
+            <span style={{color: '#605e5c', fontSize: '13px'}}>
+              Managing users in: <strong>{selectedOrg?.name}</strong>
+            </span>
+          </div>
+        )}
+        
         <div className="search-controls">
           <input
             type="text"
@@ -459,15 +488,15 @@ const AdminPanel = () => {
               </option>
             ))}
           </select>
-        </div>
-        
-        <div className="user-stats">
-          <span className="stat">
-            Total Users: {firebaseUsers.length}
-          </span>
-          <span className="stat">
-            Filtered: {getFilteredUsers(firebaseUsers).length}
-          </span>
+          
+          <div className="user-stats">
+            <span className="stat">
+              Total Users: {firebaseUsers.length}
+            </span>
+            <span className="stat">
+              Filtered: {getFilteredUsers(firebaseUsers).length}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -483,7 +512,6 @@ const AdminPanel = () => {
                 <th>Role & Status</th>
                 <th>Hierarchy</th>
                 <th>Activity</th>
-                <th>Quick Permissions</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -682,54 +710,7 @@ const AdminPanel = () => {
                     </td>
                     
                     <td>
-                      <div className="quick-permissions">
-                        <div className="permission-toggle">
-                          <label>
-                            <input
-                              type="checkbox"
-                              checked={userPermissions?.pages?.admin || false}
-                              onChange={(e) => handlePermissionChange(user.id, 'pages', 'admin', e.target.checked)}
-                              disabled={isCurrentUser || (user.role === 'account_owner' && userRole !== 'admin')}
-                            />
-                            <span>Admin Panel</span>
-                          </label>
-                        </div>
-                        <div className="permission-toggle">
-                          <label>
-                            <input
-                              type="checkbox"
-                              checked={userPermissions?.pages?.users || false}
-                              onChange={(e) => handlePermissionChange(user.id, 'pages', 'users', e.target.checked)}
-                              disabled={user.role === 'account_owner' && userRole !== 'admin'}
-                            />
-                            <span>User Management</span>
-                          </label>
-                        </div>
-                        <div className="permission-toggle">
-                          <label>
-                            <input
-                              type="checkbox"
-                              checked={userPermissions?.actions?.manage_roles || false}
-                              onChange={(e) => handlePermissionChange(user.id, 'actions', 'manage_roles', e.target.checked)}
-                              disabled={isCurrentUser || (user.role === 'account_owner' && userRole !== 'admin')}
-                            />
-                            <span>Manage Roles</span>
-                          </label>
-                        </div>
-                        {isCurrentUser && (
-                          <small className="permission-note">Cannot change your own permissions</small>
-                        )}
-                      </div>
-                    </td>
-                    
-                    <td>
                       <div className="action-buttons">
-                        <button
-                          onClick={() => setSelectedUser(user)}
-                          className="btn btn-primary btn-sm"
-                        >
-                          Full Permissions
-                        </button>
                         {!isCurrentUser && (
                           <button
                             onClick={() => handleUserStatusToggle(user.id)}
@@ -877,40 +858,135 @@ const AdminPanel = () => {
     </div>
   );
 
-  const renderRolePermissions = () => (
-    <div className="role-permissions">
-      <h3>Role Permissions Overview</h3>
-      <div className="roles-grid">
-        {Object.entries(rolePermissions).map(([role, permissions]) => (
-          <div key={role} className="role-card">
-            <h4>{role.charAt(0).toUpperCase() + role.slice(1)}</h4>
-            
-            <div className="permission-section">
-              <h5>Pages</h5>
-              <ul>
-                {Object.entries(permissions.pages).map(([page, hasAccess]) => (
-                  <li key={page} className={hasAccess ? 'allowed' : 'denied'}>
-                    {page}: {hasAccess ? '✓' : '✗'}
-                  </li>
+  const renderRolePermissions = () => {
+    const selectedPermissions = rolePermissions[selectedRoleTemplate] || rolePermissions.user;
+    
+    return (
+      <div className="role-permissions">
+        <div className="list-header">
+          <h3>Role Permissions Templates</h3>
+          <p className="header-description">
+            View default permissions for each role template
+          </p>
+        </div>
+
+        {/* Role Selector */}
+        <div className="role-selector" style={{
+          marginBottom: '20px',
+          padding: '15px',
+          background: '#f8f9fa',
+          borderRadius: '6px',
+          border: '1px solid #e0e0e0',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <label style={{fontWeight: '600', color: '#252423', fontSize: '13px'}}>
+            Select Role:
+          </label>
+          <select
+            value={selectedRoleTemplate}
+            onChange={(e) => setSelectedRoleTemplate(e.target.value)}
+            style={{
+              padding: '7px 12px',
+              borderRadius: '4px',
+              border: '1px solid #d0d0d0',
+              fontSize: '13px',
+              minWidth: '200px',
+              background: 'white'
+            }}
+          >
+            {Object.keys(rolePermissions).map(role => (
+              <option key={role} value={role}>
+                {role.charAt(0).toUpperCase() + role.slice(1).replace(/_/g, ' ')}
+              </option>
+            ))}
+          </select>
+          <span style={{color: '#605e5c', fontSize: '13px'}}>
+            Viewing permissions for: <strong>{selectedRoleTemplate.replace(/_/g, ' ')}</strong>
+          </span>
+        </div>
+
+        {/* Page Permissions Table */}
+        <div style={{ marginBottom: '25px' }}>
+          <h4 style={{ marginBottom: '12px', fontSize: '15px', fontWeight: '600', color: '#333' }}>
+            Page Access Permissions
+          </h4>
+          <div className="users-table">
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: '50%' }}>Page</th>
+                  <th style={{ width: '25%', textAlign: 'center' }}>Access</th>
+                  <th style={{ width: '25%', textAlign: 'center' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(selectedPermissions.pages).map(([page, hasAccess]) => (
+                  <tr key={page}>
+                    <td>
+                      <strong style={{ fontSize: '13px', color: '#333' }}>
+                        {page.charAt(0).toUpperCase() + page.slice(1).replace(/_/g, ' ')}
+                      </strong>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span style={{ fontSize: '18px' }}>
+                        {hasAccess ? '✓' : '✗'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span className={`badge ${hasAccess ? 'badge-success' : 'badge-secondary'}`}>
+                        {hasAccess ? 'Allowed' : 'Denied'}
+                      </span>
+                    </td>
+                  </tr>
                 ))}
-              </ul>
-            </div>
-            
-            <div className="permission-section">
-              <h5>Actions</h5>
-              <ul>
-                {Object.entries(permissions.actions).map(([action, hasAccess]) => (
-                  <li key={action} className={hasAccess ? 'allowed' : 'denied'}>
-                    {action}: {hasAccess ? '✓' : '✗'}
-                  </li>
-                ))}
-              </ul>
-            </div>
+              </tbody>
+            </table>
           </div>
-        ))}
+        </div>
+
+        {/* Action Permissions Table */}
+        <div>
+          <h4 style={{ marginBottom: '12px', fontSize: '15px', fontWeight: '600', color: '#333' }}>
+            Action Permissions
+          </h4>
+          <div className="users-table">
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: '50%' }}>Action</th>
+                  <th style={{ width: '25%', textAlign: 'center' }}>Access</th>
+                  <th style={{ width: '25%', textAlign: 'center' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(selectedPermissions.actions).map(([action, hasAccess]) => (
+                  <tr key={action}>
+                    <td>
+                      <strong style={{ fontSize: '13px', color: '#333' }}>
+                        {action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </strong>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span style={{ fontSize: '18px' }}>
+                        {hasAccess ? '✓' : '✗'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span className={`badge ${hasAccess ? 'badge-success' : 'badge-secondary'}`}>
+                        {hasAccess ? 'Allowed' : 'Denied'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderUserPermissionEditor = () => {
     if (!selectedUser) return null;
@@ -1160,12 +1236,14 @@ const AdminPanel = () => {
           >
             Registered Users
           </button>
-          <button
-            className={`tab ${activeTab === 'users' ? 'active' : ''}`}
-            onClick={() => setActiveTab('users')}
-          >
-            Database Users
-          </button>
+          {userRole === 'admin' && (
+            <button
+              className={`tab ${activeTab === 'users' ? 'active' : ''}`}
+              onClick={() => setActiveTab('users')}
+            >
+              Database Users
+            </button>
+          )}
           <button
             className={`tab ${activeTab === 'roles' ? 'active' : ''}`}
             onClick={() => setActiveTab('roles')}
@@ -1186,7 +1264,7 @@ const AdminPanel = () => {
 
       <div className="admin-content">
         {activeTab === 'firebase-users' && renderFirebaseUsersList()}
-        {activeTab === 'users' && renderUsersList()}
+        {activeTab === 'users' && userRole === 'admin' && renderUsersList()}
         {activeTab === 'roles' && renderRolePermissions()}
         {activeTab === 'organizations' && renderOrganizations()}
         {selectedUser && renderUserPermissionEditor()}

@@ -336,56 +336,59 @@ const MemberDocuments = () => {
           </p>
         </div>
       ) : (
-        <div className="documents-grid">
-          {filteredDocuments.map((document) => (
-            <div key={document.id} className="document-card">
-              <div className="document-card-header">
-                <div className="document-icon">
-                  {getCategoryIcon(document.category)}
-                </div>
-                <div className="document-badge">
-                  {getCategoryLabel(document.category)}
-                </div>
-              </div>
-
-              <div className="document-card-body">
-                <h3 className="document-title">{document.title}</h3>
-                {document.description && (
-                  <p className="document-description">{document.description}</p>
-                )}
-                
-                <div className="document-meta">
-                  <div className="meta-item">
-                    <span className="meta-label">File:</span>
-                    <span className="meta-value">{document.fileName}</span>
-                  </div>
-                  <div className="meta-item">
-                    <span className="meta-label">Size:</span>
-                    <span className="meta-value">{formatFileSize(document.fileSize)}</span>
-                  </div>
-                  <div className="meta-item">
-                    <span className="meta-label">Uploaded by:</span>
-                    <span className="meta-value">{document.userEmail}</span>
-                  </div>
-                  <div className="meta-item">
-                    <span className="meta-label">Date:</span>
-                    <span className="meta-value">{formatDate(document.createdAt)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="document-card-footer">
-                <button
-                  onClick={() => handleDownload(document)}
-                  className="btn-download"
-                  title="Download"
-                >
-                  <span className="btn-icon">⬇️</span>
-                  Download
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Document</th>
+                <th>Category</th>
+                <th>File Name</th>
+                <th>Size</th>
+                <th>Uploaded By</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredDocuments.map((document) => (
+                <tr key={document.id}>
+                  <td>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                      <span style={{fontSize: '1.2rem'}}>
+                        {getCategoryIcon(document.category)}
+                      </span>
+                      <div>
+                        <strong>{document.title}</strong>
+                        {document.description && (
+                          <div style={{fontSize: '0.85rem', color: '#6b7280', marginTop: '2px'}}>
+                            {document.description}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="badge badge-info">
+                      {getCategoryLabel(document.category)}
+                    </span>
+                  </td>
+                  <td>{document.fileName}</td>
+                  <td>{formatFileSize(document.fileSize)}</td>
+                  <td>{document.userEmail}</td>
+                  <td>{formatDate(document.createdAt)}</td>
+                  <td>
+                    <button
+                      onClick={() => handleDownload(document)}
+                      className="btn-small btn-primary"
+                      title="Download"
+                    >
+                      ⬇️ Download
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

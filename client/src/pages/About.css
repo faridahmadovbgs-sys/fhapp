@@ -410,3 +410,112 @@
     font-size: 1.5rem;
   }
 }
+
+/* Compact About Section */
+.compact-about {
+  max-width: 1000px;
+  margin: 0 auto 2rem;
+  padding: 18px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border-top: 3px solid #2CA01C;
+}
+
+.about-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.about-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2CA01C;
+  margin: 0 0 12px 0;
+}
+
+.about-header p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #666;
+  margin: 0;
+}
+
+.about-subsection {
+  padding-top: 16px;
+  border-top: 1px solid #e1dfdd;
+}
+
+.about-subsection h3 {
+  font-size: 17px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 12px 0;
+}
+
+.features-compact {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.feature-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background: #f9fafb;
+  border-radius: 4px;
+  border-left: 2px solid #2CA01C;
+}
+
+.feature-compact strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.feature-compact span {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.tech-compact {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.tech-compact-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  background: #f3f2f1;
+  border-radius: 4px;
+}
+
+.tech-compact-item strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2CA01C;
+}
+
+.tech-compact-item span {
+  font-size: 12px;
+  color: #666;
+}
+
+.team-info {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #666;
+  margin: 6px 0;
+}
+
+.team-info strong {
+  color: #333;
+  font-weight: 600;
+}

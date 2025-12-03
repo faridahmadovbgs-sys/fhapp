@@ -194,53 +194,89 @@ const DemoPermissions = () => {
             )}
           </div>
 
-          <div className="permissions-grid">
-            {/* Page Permissions */}
-            <div className="permissions-card">
-              <h3>📄 Page Access</h3>
-              <div className="permissions-list">
-                {pages.map(page => (
-                  <div key={page.key} className="permission-item editable">
-                    <span className="permission-name">{page.name}</span>
-                    {isEditing ? (
-                      <input
-                        type="checkbox"
-                        checked={currentPermissions?.pages?.[page.key] || false}
-                        onChange={() => togglePagePermission(page.key)}
-                        className="permission-checkbox"
-                      />
-                    ) : (
-                      <span className={`permission-status ${currentPermissions?.pages?.[page.key] ? 'allowed' : 'denied'}`}>
-                        {currentPermissions?.pages?.[page.key] ? '✅ Allowed' : '❌ Denied'}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
+          <div className="permissions-section">
+            <h3>📄 Page Access Permissions</h3>
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Page</th>
+                    <th>Permission Status</th>
+                    {isEditing && <th>Edit</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pages.map(page => (
+                    <tr key={page.key}>
+                      <td><strong>{page.name}</strong></td>
+                      <td>
+                        {isEditing ? (
+                          <span className={`badge ${currentPermissions?.pages?.[page.key] ? 'badge-success' : 'badge-secondary'}`}>
+                            {currentPermissions?.pages?.[page.key] ? '✅ Allowed' : '❌ Denied'}
+                          </span>
+                        ) : (
+                          <span className={`badge ${currentPermissions?.pages?.[page.key] ? 'badge-success' : 'badge-secondary'}`}>
+                            {currentPermissions?.pages?.[page.key] ? '✅ Allowed' : '❌ Denied'}
+                          </span>
+                        )}
+                      </td>
+                      {isEditing && (
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={currentPermissions?.pages?.[page.key] || false}
+                            onChange={() => togglePagePermission(page.key)}
+                            className="permission-checkbox"
+                          />
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
+          </div>
 
-            {/* Action Permissions */}
-            <div className="permissions-card">
-              <h3>⚡ Action Permissions</h3>
-              <div className="permissions-list">
-                {actions.map(action => (
-                  <div key={action.key} className="permission-item editable">
-                    <span className="permission-name">{action.name}</span>
-                    {isEditing ? (
-                      <input
-                        type="checkbox"
-                        checked={currentPermissions?.actions?.[action.key] || false}
-                        onChange={() => toggleActionPermission(action.key)}
-                        className="permission-checkbox"
-                      />
-                    ) : (
-                      <span className={`permission-status ${currentPermissions?.actions?.[action.key] ? 'allowed' : 'denied'}`}>
-                        {currentPermissions?.actions?.[action.key] ? '✅ Allowed' : '❌ Denied'}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
+          <div className="permissions-section">
+            <h3>⚡ Action Permissions</h3>
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Action</th>
+                    <th>Permission Status</th>
+                    {isEditing && <th>Edit</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {actions.map(action => (
+                    <tr key={action.key}>
+                      <td><strong>{action.name}</strong></td>
+                      <td>
+                        {isEditing ? (
+                          <span className={`badge ${currentPermissions?.actions?.[action.key] ? 'badge-success' : 'badge-secondary'}`}>
+                            {currentPermissions?.actions?.[action.key] ? '✅ Allowed' : '❌ Denied'}
+                          </span>
+                        ) : (
+                          <span className={`badge ${currentPermissions?.actions?.[action.key] ? 'badge-success' : 'badge-secondary'}`}>
+                            {currentPermissions?.actions?.[action.key] ? '✅ Allowed' : '❌ Denied'}
+                          </span>
+                        )}
+                      </td>
+                      {isEditing && (
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={currentPermissions?.actions?.[action.key] || false}
+                            onChange={() => toggleActionPermission(action.key)}
+                            className="permission-checkbox"
+                          />
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </>
@@ -248,37 +284,59 @@ const DemoPermissions = () => {
 
       {/* Non-Admin View - Just Show Your Permissions */}
       {!isAdminUser && (
-        <div className="permissions-grid">
-          {/* Page Permissions */}
-          <div className="permissions-card">
+        <>
+          <div className="permissions-section">
             <h3>📄 Your Page Access</h3>
-            <div className="permissions-list">
-              {pages.map(page => (
-                <div key={page.key} className="permission-item">
-                  <span className="permission-name">{page.name}</span>
-                  <span className={`permission-status ${hasPagePermission(page.key) ? 'allowed' : 'denied'}`}>
-                    {hasPagePermission(page.key) ? '✅ Allowed' : '❌ Denied'}
-                  </span>
-                </div>
-              ))}
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Page</th>
+                    <th>Permission Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pages.map(page => (
+                    <tr key={page.key}>
+                      <td><strong>{page.name}</strong></td>
+                      <td>
+                        <span className={`badge ${hasPagePermission(page.key) ? 'badge-success' : 'badge-secondary'}`}>
+                          {hasPagePermission(page.key) ? '✅ Allowed' : '❌ Denied'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          {/* Action Permissions */}
-          <div className="permissions-card">
+          <div className="permissions-section">
             <h3>⚡ Your Action Permissions</h3>
-            <div className="permissions-list">
-              {actions.map(action => (
-                <div key={action.key} className="permission-item">
-                  <span className="permission-name">{action.name}</span>
-                  <span className={`permission-status ${hasActionPermission(action.key) ? 'allowed' : 'denied'}`}>
-                    {hasActionPermission(action.key) ? '✅ Allowed' : '❌ Denied'}
-                  </span>
-                </div>
-              ))}
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Action</th>
+                    <th>Permission Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {actions.map(action => (
+                    <tr key={action.key}>
+                      <td><strong>{action.name}</strong></td>
+                      <td>
+                        <span className={`badge ${hasActionPermission(action.key) ? 'badge-success' : 'badge-secondary'}`}>
+                          {hasActionPermission(action.key) ? '✅ Allowed' : '❌ Denied'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       <div className="info-box">

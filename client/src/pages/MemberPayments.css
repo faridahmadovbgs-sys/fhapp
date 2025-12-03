@@ -1,6 +1,6 @@
 .member-payments {
-  padding: 10px;
-  max-width: 900px;
+  padding: 12px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -8,15 +8,18 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   flex-wrap: wrap;
   gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e1dfdd;
 }
 
 .payments-header h2 {
   color: var(--text-primary);
   margin: 0 0 2px 0;
-  font-size: 20px;
+  font-size: 18px;
+  font-weight: 600;
 }
 
 .payments-header p {
@@ -38,10 +41,10 @@
 }
 
 .org-selector select {
-  padding: 4px 8px;
+  padding: 6px 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 13px;
   background: white;
 }
 
@@ -49,14 +52,14 @@
 .summary-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .summary-card {
   background: white;
-  padding: 10px;
-  border-radius: 6px;
+  padding: 8px 12px;
+  border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   display: flex;
   align-items: center;
@@ -64,66 +67,71 @@
 }
 
 .summary-icon {
-  font-size: 24px;
+  font-size: 20px;
   opacity: 0.9;
 }
 
 .summary-info h3 {
   margin: 0 0 2px 0;
-  font-size: 18px;
+  font-size: 16px;
   color: #333;
+  font-weight: 700;
 }
 
 .summary-info p {
   margin: 0;
   color: #666;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .summary-card.pending {
-  border-left: 4px solid #ff9800;
+  border-left: 3px solid #ff9800;
 }
 
 .summary-card.paid {
-  border-left: 4px solid #4caf50;
+  border-left: 3px solid #4caf50;
 }
 
 .summary-card.total {
-  border-left: 4px solid #6264a7;
+  border-left: 3px solid #2CA01C;
 }
 
 /* Tabs */
 .tabs {
   display: flex;
-  gap: 6px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid #e0e0e0;
+  gap: 4px;
+  margin-bottom: 10px;
+  border-bottom: 2px solid #e0e0e0;
 }
 
 .tab {
-  padding: 10px 20px;
+  padding: 8px 16px;
   border: none;
   background: none;
   color: #666;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  border-bottom: 3px solid transparent;
+  border-bottom: 2px solid transparent;
   transition: all 0.2s;
 }
 
 .tab:hover {
-  color: #6264a7;
+  color: #2CA01C;
 }
 
 .tab.active {
-  color: #6264a7;
-  border-bottom-color: #6264a7;
+  color: #2CA01C;
+  border-bottom-color: #2CA01C;
 }
 
 /* Bills Section */
-.bills-section {
-  margin-top: 15px;
+.bills-section,
+.history-section {
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .bills-list {

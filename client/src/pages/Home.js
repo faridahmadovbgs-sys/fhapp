@@ -394,14 +394,14 @@ const Home = ({ data }) => {
             {announcements.map((announcement) => (
               <div key={announcement.id} className={`announcement-card ${announcement.priority || 'normal'}`}>
                 <div className="announcement-header">
-                  <h3>{announcement.title}</h3>
+                  <h3>{announcement.title || announcement.text?.substring(0, 50) + (announcement.text?.length > 50 ? '...' : '') || 'Announcement'}</h3>
                   <span className="announcement-date">
                     {announcement.createdAt?.toDate?.()?.toLocaleDateString() || 'Recent'}
                   </span>
                 </div>
-                <p className="announcement-content">{announcement.content}</p>
-                {announcement.author && (
-                  <p className="announcement-author">— {announcement.author}</p>
+                <p className="announcement-content">{announcement.content || announcement.text || 'No content'}</p>
+                {(announcement.author || announcement.userName) && (
+                  <p className="announcement-author">— {announcement.author || announcement.userName}</p>
                 )}
               </div>
             ))}

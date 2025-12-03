@@ -7,6 +7,7 @@ import ResetPassword from './components/ResetPassword';
 import { PermissionProtectedRoute, PermissionGuard } from './components/ProtectedRoute';
 import Home from './pages/Home';
 import About from './pages/About';
+import AboutPlatform from './pages/AboutPlatform';
 import RegisteredUsers from './pages/RegisteredUsers';
 import AdminPanel from './pages/AdminPanel';
 import ChatPage from './pages/ChatPage';
@@ -279,7 +280,9 @@ function MainApp() {
                   </Link>
                 </li>
               </PermissionGuard>
-              <li><Link to="/demo-permissions" onClick={closeMenu}>Permissions Demo</Link></li>
+              <PermissionGuard requiredRole="admin">
+                <li><Link to="/demo-permissions" onClick={closeMenu}>Permissions Demo</Link></li>
+              </PermissionGuard>
               <PermissionGuard requiredRole="admin">
                 <li><Link to="/registered-users" onClick={closeMenu}>Users</Link></li>
               </PermissionGuard>
@@ -314,6 +317,7 @@ function MainApp() {
                 </Link>
               </li>
               <li><Link to="/about" onClick={closeMenu}>About</Link></li>
+              <li><Link to="/about-platform" onClick={closeMenu}>About Platform</Link></li>
             </ul>
           </nav>
         </aside>
@@ -324,7 +328,15 @@ function MainApp() {
             <Routes>
               <Route path="/" element={<Home data={data} />} />
               <Route path="/about" element={<About />} />
-              <Route path="/demo-permissions" element={<DemoPermissions />} />
+              <Route path="/about-platform" element={<AboutPlatform />} />
+              <Route 
+                path="/demo-permissions" 
+                element={
+                  <PermissionProtectedRoute requiredRole="admin">
+                    <DemoPermissions />
+                  </PermissionProtectedRoute>
+                } 
+              />
               <Route path="/storage-test" element={<StorageTest />} />
             <Route 
               path="/registered-users" 

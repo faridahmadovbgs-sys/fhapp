@@ -248,6 +248,7 @@ const ChatPage = () => {
     const messagesQuery = query(
       collection(db, 'messages'),
       where('organizationId', '==', selectedOrganization.id),
+      where('isAnnouncement', '!=', true),
       limit(100)
     );
 
@@ -498,7 +499,8 @@ const ChatPage = () => {
         firstName: firstName,
         lastName: lastName,
         userEmail: currentUser.email,
-        organizationId: selectedOrganization.id
+        organizationId: selectedOrganization.id,
+        isAnnouncement: false
       });
       console.log('✅ Message sent successfully! Doc ID:', docRef.id);
       setNewMessage('');

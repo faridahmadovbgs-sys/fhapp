@@ -15,6 +15,7 @@ import { db } from '../config/firebase';
 import OrganizationNotificationBadge from '../components/OrganizationNotificationBadge';
 import '../components/OrganizationNotificationBadge.css';
 import './BillingManagement.css';
+import './PersonalDocuments.css';
 
 const BillingManagement = () => {
   const { user } = useAuth();
@@ -831,89 +832,92 @@ const BillingManagement = () => {
             <p>No bills created yet. Create your first bill to get started!</p>
           </div>
         ) : (
-          <div className="bills-grid">
-            {filteredBills.map(bill => (
-              <div key={bill.id} className="bill-card">
-                <div className="bill-header">
-                  <h4>{bill.title}</h4>
-                  <span className={`bill-badge ${bill.billType}`}>
-                    {bill.billType === 'subscription' ? 'Subscription' : 'One-Time'}
-                  </span>
-                </div>
-                
-                <div className="bill-details">
-                  <p className="bill-description">{bill.description}</p>
-                  
-                  <div className="bill-info">
-                    <div className="info-item">
-                      <span className="label">Amount:</span>
-                      <span className="value">{formatCurrency(bill.amount)}</span>
-                    </div>
-                    
-                    {bill.dueDate && (
-                      <div className="info-item">
-                        <span className="label">Due Date:</span>
-                        <span className="value">{formatDate(bill.dueDate)}</span>
-                      </div>
-                    )}
-                    
-                    <div className="info-item">
-                      <span className="label">Total Paid:</span>
-                      <span className="value">{formatCurrency(bill.totalPaid || 0)}</span>
-                    </div>
-                    
-                    <div className="info-item">
-                      <span className="label">Status:</span>
-                      <span className={`status-badge ${bill.status}`}>
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Title</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>Paid</th>
+                  <th>Due Date</th>
+                  <th>Status</th>
+                  <th>Members</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredBills.map((bill, index) => (
+                  <tr key={bill.id}>
+                    <td style={{textAlign: 'center', fontWeight: '600', color: '#2CA01C', fontSize: '12px'}}>{index + 1}</td>
+                    <td>
+                      <div style={{fontWeight: '600', fontSize: '13px', color: '#333'}}>{bill.title}</div>
+                      {bill.description && (
+                        <div style={{fontSize: '11px', color: '#999', marginTop: '2px'}}>{bill.description.substring(0, 50)}{bill.description.length > 50 ? '...' : ''}</div>
+                      )}
+                    </td>
+                    <td>
+                      <span className={`badge ${bill.billType === 'subscription' ? 'badge-info' : 'badge-secondary'}`}>
+                        {bill.billType === 'subscription' ? 'Subscription' : 'One-Time'}
+                      </span>
+                    </td>
+                    <td style={{fontSize: '13px', fontWeight: '600', color: '#333'}}>{formatCurrency(bill.amount)}</td>
+                    <td style={{fontSize: '13px', color: '#2CA01C', fontWeight: '600'}}>{formatCurrency(bill.totalPaid || 0)}</td>
+                    <td style={{fontSize: '12px', color: '#666'}}>
+                      {bill.dueDate ? formatDate(bill.dueDate) : 'N/A'}
+                    </td>
+                    <td>
+                      <span className={`badge ${
+                        bill.status === 'active' ? 'badge-success' : 
+                        bill.status === 'completed' ? 'badge-info' : 
+                        bill.status === 'overdue' ? 'badge-warning' : 
+                        'badge-secondary'
+                      }`}>
                         {bill.status}
                       </span>
-                    </div>
-                    
-                    <div className="info-item">
-                      <span className="label">Payments:</span>
-                      <span className="value">{bill.payments?.length || 0}</span>
-                    </div>
-
-                    <div className="info-item">
-                      <span className="label">Members:</span>
-                      <span className="value">{billMembers[bill.id]?.length || 0}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bill-actions">
-                  <button 
-                    className="btn btn-small btn-secondary"
-                    onClick={() => viewBillDetails(bill)}
-                  >
-                    View Details
-                  </button>
-                  
-                  <button 
-                    className="btn btn-small btn-primary"
-                    onClick={() => openManageMembersModal(bill)}
-                  >
-                    Manage Members
-                  </button>
-
-                  <button 
-                    className="btn btn-small btn-success"
-                    onClick={() => openMarkPaidModal(bill)}
-                  >
-                    Mark as Paid
-                  </button>
-                  
-                  {bill.status === 'active' && (
-                    <button 
-                      className="btn btn-small btn-danger"
-                      onClick={() => handleStatusChange(bill.id, 'cancelled')}
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+                    </td>
+                    <td style={{textAlign: 'center', fontSize: '13px', color: '#666'}}>
+                      {billMembers[bill.id]?.length || 0}
+                    </td>
+                    <td>
+                      <div style={{display: 'flex', gap: '4px', flexWrap: 'wrap'}}>
+                        <button 
+                          className="btn-action btn-action-view"
+                          onClick={() => viewBillDetails(bill)}
+                          title="View Details"
+                        >
+                          👁️
+                        </button>
+                        <button 
+                          className="btn-action btn-action-manage"
+                          onClick={() => openManageMembersModal(bill)}
+                          title="Manage Members"
+                        >
+                          👥
+                        </button>
+                        <button 
+                          className="btn-action btn-action-paid"
+                          onClick={() => openMarkPaidModal(bill)}
+                          title="Mark as Paid"
+                        >
+                          💰
+                        </button>
+                        {bill.status === 'active' && (
+                          <button 
+                            className="btn-action btn-action-cancel"
+                            onClick={() => handleStatusChange(bill.id, 'cancelled')}
+                            title="Cancel Bill"
+                          >
+                            ❌
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

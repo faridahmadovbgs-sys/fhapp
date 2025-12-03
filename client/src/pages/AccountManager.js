@@ -359,99 +359,84 @@ const AccountManager = () => {
         <h2>Your Accounts ({accounts.length})</h2>
         
         {accounts.length === 0 ? (
-          <div className="no-accounts">
-            <p>No accounts yet. Click "Add Account" to create your first account.</p>
+          <div className="empty-state">
+            <div className="empty-icon">💼</div>
+            <h3>No Accounts Yet</h3>
+            <p>Click "Add Account" to create your first account.</p>
           </div>
         ) : (
-          <div className="accounts-grid">
-            {accounts.map((account) => (
-              <div 
-                key={account.id} 
-                className={`account-card ${account.isDefault ? 'default' : ''} ${activeAccount?.id === account.id ? 'active' : ''}`}
-                onClick={() => switchAccount(account)}
-              >
-                {account.isDefault && (
-                  <div className="default-badge">Default</div>
-                )}
-                
-                <div className="account-header">
-                  <div className="account-icon">
-                    {getAccountIcon(account.accountType)}
-                  </div>
-                  <div className="account-info">
-                    <h3>{account.accountName}</h3>
-                    <p className="account-type">
-                      {accountTypes.find(t => t.value === account.accountType)?.label || account.accountType}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="account-details">
-                  {account.entityName && (
-                    <div className="detail-row">
-                      <span className="label">Entity:</span>
-                      <span className="value">{account.entityName}</span>
-                    </div>
-                  )}
-                  {account.ein && (
-                    <div className="detail-row">
-                      <span className="label">EIN:</span>
-                      <span className="value">{account.ein}</span>
-                    </div>
-                  )}
-                  {account.address && (
-                    <div className="detail-row">
-                      <span className="label">Address:</span>
-                      <span className="value">
-                        {account.address}
-                        {account.city && `, ${account.city}`}
-                        {account.state && `, ${account.state}`}
-                        {account.zipCode && ` ${account.zipCode}`}
-                      </span>
-                    </div>
-                  )}
-                  {account.phone && (
-                    <div className="detail-row">
-                      <span className="label">Phone:</span>
-                      <span className="value">{account.phone}</span>
-                    </div>
-                  )}
-                  {account.email && (
-                    <div className="detail-row">
-                      <span className="label">Email:</span>
-                      <span className="value">{account.email}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="account-actions">
-                  {!account.isDefault && (
-                    <button
-                      className="btn-small btn-secondary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSetAsDefault(account.id);
-                      }}
-                    >
-                      Set as Default
-                    </button>
-                  )}
-                  <button
-                    className="btn-small btn-danger"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteAccount(account.id);
-                    }}
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Account Name</th>
+                  <th>Type</th>
+                  <th>Entity Name</th>
+                  <th>EIN/Tax ID</th>
+                  <th>Contact</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {accounts.map((account) => (
+                  <tr 
+                    key={account.id}
+                    className={activeAccount?.id === account.id ? 'active-row' : ''}
                   >
-                    Delete
-                  </button>
-                </div>
-
-                {activeAccount?.id === account.id && (
-                  <div className="active-checkmark">✓</div>
-                )}
-              </div>
-            ))}
+                    <td>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <span style={{fontSize: '1.2rem'}}>
+                          {getAccountIcon(account.accountType)}
+                        </span>
+                        <strong>{account.accountName}</strong>
+                      </div>
+                    </td>
+                    <td>
+                      {accountTypes.find(t => t.value === account.accountType)?.label || account.accountType}
+                    </td>
+                    <td>{account.entityName || '-'}</td>
+                    <td>{account.ein || account.taxId || '-'}</td>
+                    <td>
+                      <div style={{fontSize: '0.85rem'}}>
+                        {account.phone && <div>📞 {account.phone}</div>}
+                        {account.email && <div>✉️ {account.email}</div>}
+                        {!account.phone && !account.email && '-'}
+                      </div>
+                    </td>
+                    <td>
+                      {account.isDefault ? (
+                        <span className="badge badge-success">✓ Default</span>
+                      ) : activeAccount?.id === account.id ? (
+                        <span className="badge badge-info">Active</span>
+                      ) : (
+                        <span className="badge badge-secondary">Inactive</span>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{display: 'flex', gap: '8px'}}>
+                        {!account.isDefault && (
+                          <button
+                            className="btn-small btn-primary"
+                            onClick={() => handleSetAsDefault(account.id)}
+                            title="Set as Default"
+                          >
+                            Set Default
+                          </button>
+                        )}
+                        <button
+                          className="btn-small btn-danger"
+                          onClick={() => deleteAccount(account.id)}
+                          title="Delete Account"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

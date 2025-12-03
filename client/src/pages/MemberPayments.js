@@ -10,6 +10,7 @@ import {
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import './MemberPayments.css';
+import './PersonalDocuments.css';
 
 const MemberPayments = () => {
   const { user, loading: authLoading } = useAuth();
@@ -443,49 +444,61 @@ const MemberPayments = () => {
               <p>🎉 No pending bills! You're all caught up.</p>
             </div>
           ) : (
-            <div className="bills-list">
-              {pendingBills.map(bill => (
-                <div key={bill.id} className="bill-card pending-bill">
-                  <div className="bill-main">
-                    <div className="bill-icon">
-                      {bill.billType === 'subscription' ? 'Subscription' : 'One-Time'}
-                    </div>
-                    <div className="bill-info">
-                      <h3>{bill.title}</h3>
-                      <p className="bill-description">{bill.description}</p>
-                      <div className="bill-meta">
-                        {bill.dueDate && (
-                          <span className="meta-item">
-                            Due: {formatDate(bill.dueDate)}
-                          </span>
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Title</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Due Date</th>
+                    <th>Interval</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingBills.map((bill, index) => (
+                    <tr key={bill.id}>
+                      <td style={{textAlign: 'center', fontWeight: '600', color: '#2CA01C', fontSize: '12px'}}>{index + 1}</td>
+                      <td>
+                        <div style={{fontWeight: '600', fontSize: '13px', color: '#333'}}>{bill.title}</div>
+                        {bill.description && (
+                          <div style={{fontSize: '11px', color: '#999', marginTop: '2px'}}>{bill.description.substring(0, 40)}{bill.description.length > 40 ? '...' : ''}</div>
                         )}
-                        <span className="meta-item">
-                          {bill.billType === 'subscription' 
-                            ? `${bill.subscriptionInterval}` 
-                            : 'One-time'}
+                      </td>
+                      <td>
+                        <span className={`badge ${bill.billType === 'subscription' ? 'badge-info' : 'badge-secondary'}`}>
+                          {bill.billType === 'subscription' ? 'Subscription' : 'One-Time'}
                         </span>
-                      </div>
-                    </div>
-                    <div className="bill-amount">
-                      <div className="amount-value">{formatCurrency(bill.amount)}</div>
-                      <div className="bill-actions-member">
-                        <button 
-                          className="btn btn-primary"
-                          onClick={() => initiatePayment(bill)}
-                        >
-                          Pay Now
-                        </button>
-                        <button 
-                          className="btn btn-success btn-small"
-                          onClick={() => openMarkPaidModal(bill)}
-                        >
-                          Mark as Paid
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                      </td>
+                      <td style={{fontSize: '14px', fontWeight: '700', color: '#2CA01C'}}>{formatCurrency(bill.amount)}</td>
+                      <td style={{fontSize: '12px', color: '#666'}}>
+                        {bill.dueDate ? formatDate(bill.dueDate) : 'N/A'}
+                      </td>
+                      <td style={{fontSize: '11px', color: '#666'}}>
+                        {bill.billType === 'subscription' ? bill.subscriptionInterval : 'One-time'}
+                      </td>
+                      <td>
+                        <div style={{display: 'flex', gap: '4px'}}>
+                          <button 
+                            className="btn btn-primary btn-small"
+                            onClick={() => initiatePayment(bill)}
+                          >
+                            Pay Now
+                          </button>
+                          <button 
+                            className="btn btn-success btn-small"
+                            onClick={() => openMarkPaidModal(bill)}
+                          >
+                            Mark Paid
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -499,44 +512,59 @@ const MemberPayments = () => {
               <p>No payment history yet.</p>
             </div>
           ) : (
-            <div className="history-list">
-              {paymentHistory.map(payment => (
-                <div key={payment.id} className="history-item">
-                  <div className="history-icon">Paid</div>
-                  <div className="history-info">
-                    <h4>{payment.billTitle}</h4>
-                    <p className="history-date">
-                      Paid on {formatDate(payment.paidAt)}
-                    </p>
-                    {payment.paymentMethod && (
-                      <p className="history-method">
-                        {getPaymentMethodIcon(payment.paymentMethod)} {formatPaymentMethod(payment.paymentMethod)}
-                      </p>
-                    )}
-                    {(payment.paidWithAccountName || payment.paidWithEntityName) && (
-                      <p className="history-profile">
-                        <span className="profile-badge">
-                          {payment.paidWithAccountType === 'personal' && '👤'}
-                          {payment.paidWithAccountType === 'llc' && '🏢'}
-                          {payment.paidWithAccountType === 'trust' && '🏛️'}
-                          {payment.paidWithAccountType === 'corporation' && '🏭'}
-                          {payment.paidWithAccountType === 'partnership' && '🤝'}
-                          {payment.paidWithAccountType === 'nonprofit' && '❤️'}
-                          {payment.paidWithAccountType === 'other' && '📋'}
-                          {' '}
-                          {payment.paidWithEntityName || payment.paidWithAccountName}
-                        </span>
-                      </p>
-                    )}
-                    {payment.notes && (
-                      <p className="history-notes">{payment.notes}</p>
-                    )}
-                  </div>
-                  <div className="history-amount">
-                    {formatCurrency(payment.amount)}
-                  </div>
-                </div>
-              ))}
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Bill</th>
+                    <th>Amount</th>
+                    <th>Paid Date</th>
+                    <th>Method</th>
+                    <th>Account</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paymentHistory.map((payment, index) => (
+                    <tr key={payment.id}>
+                      <td style={{textAlign: 'center', fontWeight: '600', color: '#2CA01C', fontSize: '12px'}}>{index + 1}</td>
+                      <td>
+                        <div style={{fontWeight: '600', fontSize: '13px', color: '#333'}}>{payment.billTitle}</div>
+                      </td>
+                      <td style={{fontSize: '14px', fontWeight: '700', color: '#2CA01C'}}>{formatCurrency(payment.amount)}</td>
+                      <td style={{fontSize: '12px', color: '#666'}}>
+                        {formatDate(payment.paidAt)}
+                      </td>
+                      <td style={{fontSize: '11px'}}>
+                        {payment.paymentMethod ? (
+                          <span>
+                            {getPaymentMethodIcon(payment.paymentMethod)} {formatPaymentMethod(payment.paymentMethod)}
+                          </span>
+                        ) : 'N/A'}
+                      </td>
+                      <td style={{fontSize: '11px', color: '#666'}}>
+                        {(payment.paidWithAccountName || payment.paidWithEntityName) ? (
+                          <span className="badge badge-info">
+                            {payment.paidWithAccountType === 'personal' && '👤'}
+                            {payment.paidWithAccountType === 'llc' && '🏢'}
+                            {payment.paidWithAccountType === 'trust' && '🏛️'}
+                            {payment.paidWithAccountType === 'corporation' && '🏭'}
+                            {payment.paidWithAccountType === 'partnership' && '🤝'}
+                            {payment.paidWithAccountType === 'nonprofit' && '❤️'}
+                            {payment.paidWithAccountType === 'other' && '📋'}
+                            {' '}
+                            {payment.paidWithEntityName || payment.paidWithAccountName}
+                          </span>
+                        ) : 'N/A'}
+                      </td>
+                      <td style={{fontSize: '11px', color: '#999', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                        {payment.notes || 'N/A'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -652,7 +680,7 @@ const MemberPayments = () => {
                   </button>
                   <button 
                     type="button" 
-                    className="btn btn-secondary"
+                    className="btn btn-danger"
                     onClick={() => setShowPaymentForm(false)}
                   >
                     Cancel
@@ -725,7 +753,7 @@ const MemberPayments = () => {
 
               <div className="modal-actions">
                 <button 
-                  className="btn btn-secondary"
+                  className="btn btn-danger"
                   onClick={closeMarkPaidModal}
                 >
                   Cancel

@@ -395,13 +395,36 @@
   transform: translateY(-1px);
 }
 
-/* Table Layout */
+/* Table Layout with scrollbar */
 .documents-table-container {
   background: white;
   border-radius: 6px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 600px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid var(--gray-300);
+  position: relative;
+}
+
+/* Custom scrollbar styling */
+.documents-table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.documents-table-container::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.documents-table-container::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 4px;
+}
+
+.documents-table-container::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
 }
 
 .documents-table {
@@ -423,6 +446,10 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+  z-index: 10;
 }
 
 .documents-table tbody tr {
@@ -537,7 +564,7 @@
   }
 
   .documents-table-container {
-    overflow-x: auto;
+    border-radius: 6px;
   }
 
   .documents-table {
@@ -551,4 +578,80 @@
   .form-actions button {
     width: 100%;
   }
+}
+
+/* Alias for table-container to match other pages */
+.table-container {
+  background: white;
+  border-radius: 6px;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 600px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--gray-300);
+  position: relative;
+}
+
+/* Custom scrollbar styling for table-container */
+.table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.data-table thead {
+  background: var(--bg-secondary);
+  border-bottom: 2px solid var(--gray-300);
+}
+
+.data-table th {
+  text-align: left;
+  padding: 10px 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+  z-index: 10;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid var(--gray-200);
+  transition: background-color 0.2s;
+}
+
+.data-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.data-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.data-table td {
+  padding: 10px 12px;
+  color: var(--text-secondary);
+  vertical-align: middle;
 }

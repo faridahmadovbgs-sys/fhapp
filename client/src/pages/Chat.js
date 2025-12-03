@@ -26,9 +26,11 @@ const Chat = ({ isEmbedded = false }) => {
       return;
     }
 
-    // Create query for messages
+    // Create query for messages (exclude announcements)
     const messagesQuery = query(
       collection(db, 'messages'),
+      where('isAnnouncement', '!=', true),
+      orderBy('isAnnouncement', 'asc'),
       orderBy('createdAt', 'asc'),
       limit(100) // Limit to last 100 messages
     );
@@ -75,7 +77,8 @@ const Chat = ({ isEmbedded = false }) => {
         createdAt: serverTimestamp(),
         userId: user.id,
         userName: user.name || user.email.split('@')[0],
-        userEmail: user.email
+        userEmail: user.email,
+        isAnnouncement: false
       });
       
       setNewMessage('');

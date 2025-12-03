@@ -216,57 +216,63 @@
 
 /* Bills Section */
 .bills-section {
-  margin-top: 30px;
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-top: 12px;
 }
 
 .bills-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  gap: 20px;
+  margin-bottom: 12px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .bills-section h3 {
   color: #333;
   margin: 0;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .search-container {
   position: relative;
   flex: 1;
-  max-width: 500px;
-  min-width: 300px;
+  max-width: 400px;
+  min-width: 250px;
 }
 
 .search-input {
   width: 100%;
-  padding: 10px 40px 10px 15px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: all 0.3s ease;
+  padding: 6px 35px 6px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 13px;
+  transition: all 0.2s ease;
   background: white;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #2CA01C;
+  box-shadow: 0 0 0 1px #2CA01C;
 }
 
 .clear-search-btn {
   position: absolute;
-  right: 10px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   background: transparent;
   border: none;
   color: #718096;
   cursor: pointer;
-  font-size: 16px;
-  padding: 5px;
+  font-size: 14px;
+  padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -278,9 +284,57 @@
 }
 
 .bills-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Action Buttons for Table */
+.btn-action {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 3px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: #f3f4f6;
+}
+
+.btn-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-action-view {
+  background: #e3f2fd;
+}
+
+.btn-action-view:hover {
+  background: #bbdefb;
+}
+
+.btn-action-manage {
+  background: #f3e5f5;
+}
+
+.btn-action-manage:hover {
+  background: #e1bee7;
+}
+
+.btn-action-paid {
+  background: #e8f5e9;
+}
+
+.btn-action-paid:hover {
+  background: #c8e6c9;
+}
+
+.btn-action-cancel {
+  background: #ffebee;
+}
+
+.btn-action-cancel:hover {
+  background: #ffcdd2;
 }
 
 .bill-card {

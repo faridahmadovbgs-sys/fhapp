@@ -4,6 +4,7 @@ import { getUserOrganizations } from '../services/organizationService';
 import { collection, query, where, getDocs, doc, updateDoc, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import './OrganizationMembers.css';
+import './PersonalDocuments.css';
 
 const OrganizationMembers = () => {
   const { user } = useAuth();
@@ -482,11 +483,11 @@ const OrganizationMembers = () => {
                     </td>
                     <td className="role-cell">
                       {member.isOwner ? (
-                        <span className="role-badge owner">👑 Owner</span>
+                        <span className="role-badge owner">Owner</span>
                       ) : member.role === 'sub_account_owner' ? (
-                        <span className="role-badge sub-owner">👑 Sub Account Owner</span>
+                        <span className="role-badge sub-owner">Sub Owner</span>
                       ) : (
-                        <span className="role-badge member">👤 Member</span>
+                        <span className="role-badge member">Member</span>
                       )}
                     </td>
                     <td className="date-cell">{formatDate(member.joinedAt)}</td>

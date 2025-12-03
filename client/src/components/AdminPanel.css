@@ -112,7 +112,7 @@
   font-weight: bold;
 }
 
-/* Users List Styles */
+/* Users List Styles - Compact Table Design */
 .users-list h3 {
   margin-bottom: 1.5rem;
   color: var(--text-primary);
@@ -120,152 +120,251 @@
   font-weight: 600;
 }
 
+/* Compact table container with scrollbar */
 .users-table {
-  background: var(--bg-primary);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-  border: 1px solid var(--gray-200);
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 600px;
+  border: 1px solid #e0e0e0;
+  margin-top: 15px;
+  position: relative;
+}
+
+/* Custom scrollbar styling */
+.users-table::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.users-table::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.users-table::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 4px;
+}
+
+.users-table::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
 }
 
 .users-table table {
   width: 100%;
   border-collapse: collapse;
-}
-
-.users-table th,
-.users-table td {
-  padding: 12px 15px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
+  table-layout: auto;
+  font-size: 13px;
 }
 
 .users-table th {
-  background: #f8f9fa;
+  background: #f5f5f5;
   font-weight: 600;
   color: #333;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 2px solid #e0e0e0;
+  white-space: nowrap;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
-.users-table tr:hover {
-  background: #f8f9fa;
+.users-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+.users-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.users-table tbody tr:hover {
+  background: #f9f9f9;
+}
+
+.users-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .role-select {
-  padding: 6px 10px;
-  border: 1px solid #ddd;
+  padding: 5px 8px;
+  border: 1px solid #d0d0d0;
   border-radius: 4px;
   background: white;
-  font-size: 14px;
+  font-size: 12px;
+  min-width: 140px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
 }
 
+.role-select:hover {
+  border-color: #2CA01C;
+}
+
+.role-select:focus {
+  outline: none;
+  border-color: #2CA01C;
+  box-shadow: 0 0 0 2px rgba(44, 160, 28, 0.1);
+}
+
+/* Badge styles for status */
 .status {
-  padding: 4px 8px;
+  display: inline-block;
+  padding: 4px 10px;
   border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 .status.active {
   background: #d4edda;
   color: #155724;
+  border: 1px solid #c3e6cb;
 }
 
 .status.inactive {
   background: #f8d7da;
   color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* Badge styles */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.badge-success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.badge-info {
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.badge-secondary {
+  background: #e2e3e5;
+  color: #383d41;
+  border: 1px solid #d6d8db;
+}
+
+.badge-warning {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
 }
 
 .btn {
-  padding: 6px 12px;
+  padding: 5px 12px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   text-decoration: none;
   display: inline-block;
+  white-space: nowrap;
 }
 
 .btn-primary {
-  background: #007bff;
+  background: #2CA01C;
   color: white;
+  border: 1px solid #2CA01C;
 }
 
 .btn-primary:hover {
-  background: #0056b3;
+  background: #248517;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(44, 160, 28, 0.2);
 }
 
 .btn-secondary {
   background: #6c757d;
   color: white;
+  border: 1px solid #6c757d;
 }
 
 .btn-secondary:hover {
   background: #545b62;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(108, 117, 125, 0.2);
 }
 
 .btn-sm {
-  padding: 4px 8px;
-  font-size: 12px;
+  padding: 4px 10px;
+  font-size: 11px;
 }
 
-/* Role Permissions Styles */
-.role-permissions h3 {
+/* Role Permissions Styles - Compact Table Layout */
+.role-permissions {
+  width: 100%;
+}
+
+.role-permissions .list-header {
   margin-bottom: 20px;
+}
+
+.role-permissions h3 {
+  margin-bottom: 8px;
   color: #333;
+  font-size: 1.5rem;
+  font-weight: 600;
 }
 
-.roles-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
-}
-
-.role-card {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border: 1px solid #eee;
-}
-
-.role-card h4 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: #333;
-  border-bottom: 2px solid #007bff;
-  padding-bottom: 5px;
-}
-
-.role-card .permission-section {
-  margin-bottom: 15px;
-}
-
-.role-card .permission-section h5 {
-  margin: 0 0 8px 0;
+.role-permissions .header-description {
   color: #666;
   font-size: 14px;
-}
-
-.role-card ul {
-  list-style: none;
-  padding: 0;
   margin: 0;
 }
 
-.role-card li {
-  padding: 3px 0;
+.role-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 20px;
+}
+
+.role-permissions h4 {
+  margin-bottom: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.role-permissions .users-table {
+  max-height: 400px;
+}
+
+.role-permissions .users-table table {
   font-size: 13px;
-}
-
-.role-card li.allowed {
-  color: #28a745;
-}
-
-.role-card li.denied {
-  color: #dc3545;
 }
 
 /* Permission Editor Styles */
@@ -345,6 +444,22 @@
 
 .btn-danger:hover {
   background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+}
+
+.no-users {
+  text-align: center;
+  padding: 30px 20px;
+  color: #666;
+  background: #f8f9fa;
+  border-radius: 6px;
+  margin-top: 15px;
+}
+
+.no-users p {
+  margin: 0;
+  font-size: 14px;
 }
 
 .permission-sections {
@@ -436,45 +551,59 @@
   margin: 5px 0;
 }
 
-/* Quick Permissions in User Table */
+/* Quick Permissions in User Table - Compact */
 .user-info {
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-details {
+  display: flex;
   flex-direction: column;
+  gap: 2px;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
 }
 
 .user-id {
   color: #999;
-  font-size: 11px;
-  margin-top: 2px;
+  font-size: 10px;
 }
 
 .quick-permissions {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .permission-toggle {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .permission-toggle label {
   display: flex;
   align-items: center;
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 2px 0;
   border-radius: 3px;
   transition: background-color 0.2s ease;
+  margin: 0;
 }
 
 .permission-toggle label:hover {
-  background: #f8f9fa;
+  background: #f0f0f0;
 }
 
 .permission-toggle input[type="checkbox"] {
   margin-right: 6px;
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   cursor: pointer;
 }
 
@@ -486,7 +615,8 @@
 .action-buttons {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
+  align-items: flex-start;
 }
 
 .loading {
@@ -506,10 +636,6 @@
   .admin-tabs {
     width: 100%;
     justify-content: center;
-  }
-
-  .roles-grid {
-    grid-template-columns: 1fr;
   }
 
   .permission-sections {
@@ -552,46 +678,70 @@
 
 .user-controls {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #dee2e6;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.organization-selector {
+  width: 100%;
 }
 
 .search-controls {
   display: flex;
-  gap: 15px;
+  gap: 12px;
   align-items: center;
+  padding: 12px 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  flex-wrap: wrap;
 }
 
 .search-input {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
+  padding: 7px 12px;
+  border: 1px solid #d0d0d0;
   border-radius: 4px;
-  font-size: 14px;
-  width: 300px;
+  font-size: 13px;
+  width: 280px;
+  transition: border-color 0.2s ease;
+  flex: 1;
+  min-width: 200px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #2CA01C;
+  box-shadow: 0 0 0 2px rgba(44, 160, 28, 0.1);
 }
 
 .role-filter {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
+  padding: 7px 12px;
+  border: 1px solid #d0d0d0;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 13px;
   background: white;
+  min-width: 150px;
+  cursor: pointer;
+}
+
+.role-filter:focus {
+  outline: none;
+  border-color: #2CA01C;
+  box-shadow: 0 0 0 2px rgba(44, 160, 28, 0.1);
 }
 
 .user-stats {
   display: flex;
-  gap: 20px;
+  gap: 18px;
+  margin-left: auto;
 }
 
 .stat {
-  font-size: 14px;
+  font-size: 13px;
   color: #666;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .current-user-row {
@@ -606,10 +756,11 @@
 }
 
 .user-avatar {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .avatar-img {
@@ -621,13 +772,13 @@
 .avatar-placeholder {
   width: 100%;
   height: 100%;
-  background: #007bff;
+  background: #2CA01C;
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
-  font-size: 16px;
+  font-weight: 600;
+  font-size: 14px;
 }
 
 .user-details {
@@ -642,72 +793,109 @@
 }
 
 .current-user-badge {
-  background: #28a745;
+  background: #2CA01C;
   color: white;
-  font-size: 10px;
+  font-size: 9px;
   padding: 2px 6px;
   border-radius: 10px;
-  margin-left: 8px;
-  font-weight: bold;
+  margin-left: 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
-.user-id {
-  color: #999;
-  font-size: 11px;
+.btn-warning {
+  background: #ffc107;
+  color: #212529;
+  border: 1px solid #ffc107;
+}
+
+.btn-warning:hover {
+  background: #e0a800;
+  border-color: #d39e00;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(255, 193, 7, 0.2);
+}
+
+.btn-success {
+  background: #28a745;
+  color: white;
+  border: 1px solid #28a745;
+}
+
+.btn-success:hover {
+  background: #218838;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+  border: 1px solid #dc3545;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
 }
 
 .email-info {
   display: flex;
   flex-direction: column;
+  gap: 3px;
 }
 
 .email {
   font-size: 13px;
   color: #333;
-  margin-bottom: 4px;
 }
 
 .verification-status {
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .verification.verified {
   color: #28a745;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .verification.unverified {
   color: #ffc107;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .role-status {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 .role-note, .permission-note {
   font-size: 10px;
-  color: #666;
+  color: #999;
   font-style: italic;
+  margin-top: 2px;
 }
 
 .activity-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .activity-item {
   display: flex;
   flex-direction: column;
+  gap: 1px;
 }
 
 .activity-item small {
-  color: #666;
+  color: #999;
   font-size: 10px;
-  margin-bottom: 1px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .activity-item span {
@@ -748,16 +936,22 @@
   
   .user-controls {
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
     align-items: stretch;
   }
   
   .search-controls {
     flex-direction: column;
     gap: 10px;
+    width: 100%;
   }
   
   .search-input {
+    width: 100%;
+  }
+  
+  .user-stats {
+    justify-content: space-between;
     width: 100%;
   }
 }
@@ -765,10 +959,15 @@
 @media (max-width: 768px) {
   .users-table {
     overflow-x: auto;
+    border-radius: 6px;
   }
   
   .users-table table {
     min-width: 900px;
+  }
+  
+  .admin-panel {
+    padding: 1rem;
   }
 }
 
@@ -781,7 +980,11 @@
     padding: 15px;
   }
 
-  .permission-editor > div {
+  .permission-editor-content {
     padding: 15px;
+  }
+  
+  .users-table table {
+    font-size: 11px;
   }
 }

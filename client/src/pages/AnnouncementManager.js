@@ -4,6 +4,7 @@ import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserMemberOrganizations } from '../services/organizationService';
 import './AnnouncementManager.css';
+import './PersonalDocuments.css';
 
 const AnnouncementManager = () => {
   const { user } = useAuth();
@@ -80,6 +81,7 @@ const AnnouncementManager = () => {
       const q = query(
         collection(db, 'messages'),
         where('organizationId', '==', userOrganization.id),
+        where('isAnnouncement', '==', true),
         orderBy('createdAt', 'desc')
       );
       
@@ -114,7 +116,8 @@ const AnnouncementManager = () => {
         console.log('Attempting to load without orderBy...');
         const fallbackQuery = query(
           collection(db, 'messages'),
-          where('organizationId', '==', userOrganization.id)
+          where('organizationId', '==', userOrganization.id),
+          where('isAnnouncement', '==', true)
         );
         const fallbackSnapshot = await getDocs(fallbackQuery);
         console.log('📊 [AnnouncementManager] Fallback query: Found', fallbackSnapshot.docs.length, 'announcements');
@@ -168,6 +171,8 @@ const AnnouncementManager = () => {
         await updateDoc(doc(db, 'messages', editingId), {
           text: formData.content,
           priority: formData.priority,
+          isAnnouncement: true,
+          active: formData.active,
           updatedAt: serverTimestamp(),
           updatedBy: user.name || user.email
         });
@@ -178,6 +183,8 @@ const AnnouncementManager = () => {
         const newAnnouncement = {
           text: formData.content,
           priority: formData.priority,
+          isAnnouncement: true,
+          active: formData.active,
           createdAt: serverTimestamp(),
           timestamp: serverTimestamp(),
           userName: user.name || user.email.split('@')[0],
@@ -379,32 +386,81 @@ const AnnouncementManager = () => {
             <p>No announcements yet. Create your first announcement above!</p>
           </div>
         ) : (
-          <div className="announcements-table">
-            {announcements.map((announcement) => (
-              <div key={announcement.id} className={`announcement-item priority-${announcement.priority || 'normal'}`}>
-                <div className="announcement-item-header">
-                  <div className="announcement-title-section">
-                    <h3>{announcement.title || 'Announcement'}</h3>
-                    <span className={`priority-badge priority-${announcement.priority || 'normal'}`}>
-                      {announcement.priority === 'urgent' ? '🔴 Urgent' : announcement.priority === 'high' ? '🟠 High Priority' : '🟢 Normal'}
-                    </span>
-                  </div>
-                  <div className="announcement-actions">
-                    <button onClick={() => handleEdit(announcement)} className="btn-edit" title="Edit">
-                      ✏️
-                    </button>
-                    <button onClick={() => handleDelete(announcement.id)} className="btn-delete" title="Delete">
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-                <p className="announcement-content">{announcement.content}</p>
-                <div className="announcement-meta">
-                  <span>By: {announcement.author}</span>
-                  <span>Created: {announcement.createdAt?.toDate?.()?.toLocaleDateString() || 'Unknown'}</span>
-                </div>
-              </div>
-            ))}
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Content</th>
+                  <th>Priority</th>
+                  <th>Author</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {announcements.map((announcement) => (
+                  <tr key={announcement.id} className={`priority-${announcement.priority || 'normal'}`}>
+                    <td>
+                      <strong style={{ fontSize: '13px', color: '#333' }}>
+                        {announcement.title || 'Announcement'}
+                      </strong>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: '13px', color: '#555' }}>
+                        {announcement.content?.substring(0, 100)}{announcement.content?.length > 100 ? '...' : ''}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`badge priority-badge-${announcement.priority || 'normal'}`}>
+                        {announcement.priority === 'urgent' ? '🔴 Urgent' : 
+                         announcement.priority === 'high' ? '🟠 High' : '🟢 Normal'}
+                      </span>
+                    </td>
+                    <td style={{ fontSize: '13px', color: '#555' }}>
+                      {announcement.author}
+                    </td>
+                    <td style={{ fontSize: '12px', color: '#999' }}>
+                      {announcement.createdAt?.toDate?.()?.toLocaleDateString() || 'Unknown'}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button 
+                          onClick={() => handleEdit(announcement)} 
+                          className="btn-edit" 
+                          title="Edit"
+                          style={{ 
+                            padding: '4px 8px',
+                            fontSize: '12px',
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '4px',
+                            background: 'white',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          ✏️
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(announcement.id)} 
+                          className="btn-delete" 
+                          title="Delete"
+                          style={{ 
+                            padding: '4px 8px',
+                            fontSize: '12px',
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '4px',
+                            background: 'white',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

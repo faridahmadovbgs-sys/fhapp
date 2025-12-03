@@ -4,6 +4,7 @@ import { useAuthorization } from '../contexts/AuthorizationContext';
 import { getAccountOwnerInvitationLink, getInvitedUsers } from '../services/invitationService';
 import { getUserOrganizations, getUserMemberOrganizations } from '../services/organizationService';
 import './InvitationManager.css';
+import './PersonalDocuments.css';
 
 const InvitationManager = () => {
   const { user } = useAuth();
@@ -199,128 +200,171 @@ const InvitationManager = () => {
 
         {invitation ? (
           <div className="invitation-section">
-            {/* Member Invitation Link */}
-            <div className="invitation-box">
-              <h3>👤 Member Invitation Link</h3>
-              
-              <div className="organization-info">
-                <p><strong>Organization:</strong> {invitation.organizationName}</p>
-                <p><strong>Link Created:</strong> {invitation.createdAt?.seconds 
-                  ? new Date(invitation.createdAt.seconds * 1000).toLocaleDateString() 
-                  : 'Just now'}</p>
-              </div>
-
-              <div className="link-display">
-                <div className="link-input-group">
-                  <input 
-                    type="text" 
-                    value={invitation.link} 
-                    readOnly 
-                    className="link-input"
-                  />
-                  <button 
-                    onClick={handleCopyLink}
-                    disabled={copying}
-                    className="btn btn-primary"
-                  >
-                    {copying ? 'Copying...' : '📋 Copy Link'}
-                  </button>
-                </div>
-
-                <p className="link-description">
-                  Share this link to invite regular members who can access and upload documents.
-                </p>
-              </div>
-            </div>
-
-            {/* Sub Account Owner Invitation Link - Only visible to account owners */}
-            {!isSubAccountOwner && (
+            {/* Left column: Invitation boxes and stats */}
+            <div className="invitation-boxes-wrapper">
+              {/* Member Invitation Link */}
               <div className="invitation-box">
-                <h3>👑 Sub Account Owner Invitation Link</h3>
+                <h3>👤 Member Invitation Link</h3>
                 
                 <div className="organization-info">
                   <p><strong>Organization:</strong> {invitation.organizationName}</p>
-                  <p><strong>Permissions:</strong> Can invite members and manage team</p>
                 </div>
 
                 <div className="link-display">
                   <div className="link-input-group">
                     <input 
                       type="text" 
-                      value={invitation.link.replace('/register/member?', '/register/sub-owner?')} 
+                      value={invitation.link} 
                       readOnly 
                       className="link-input"
                     />
                     <button 
-                      onClick={() => {
-                        const subOwnerLink = invitation.link.replace('/register/member?', '/register/sub-owner?');
-                        navigator.clipboard.writeText(subOwnerLink);
-                        setCopying(true);
-                        setSuccess('✅ Sub Account Owner link copied to clipboard!');
-                        setTimeout(() => {
-                          setCopying(false);
-                          setSuccess('');
-                        }, 2000);
-                      }}
+                      onClick={handleCopyLink}
                       disabled={copying}
                       className="btn btn-primary"
                     >
                       {copying ? 'Copying...' : '📋 Copy Link'}
                     </button>
                   </div>
-
-                  <p className="link-description">
-                    Share this link to invite Sub Account Owners who can invite members and help manage the team.
-                  </p>
                 </div>
               </div>
-            )}
 
-            {/* Member Statistics */}
-            <div className="member-stats-section" style={{marginTop: '1.5rem', display: 'grid', gridTemplateColumns: isSubAccountOwner ? '1fr' : '1fr 1fr', gap: '1rem'}}>
+              {/* Sub Account Owner Invitation Link - Only visible to account owners */}
               {!isSubAccountOwner && (
-                <div style={{padding: '1rem', background: '#f0f7ff', borderRadius: '8px', border: '1px solid #d0e7ff'}}>
-                  <div style={{fontSize: '0.85rem', color: '#555', marginBottom: '0.25rem'}}>Sub Account Owners</div>
-                  <div style={{fontSize: '1.75rem', fontWeight: '600', color: '#6264a7'}}>
+                <div className="invitation-box">
+                  <h3>👑 Sub Account Owner Invitation Link</h3>
+                  
+                  <div className="organization-info">
+                    <p><strong>Organization:</strong> {invitation.organizationName}</p>
+                  </div>
+
+                  <div className="link-display">
+                    <div className="link-input-group">
+                      <input 
+                        type="text" 
+                        value={invitation.link.replace('/register/member?', '/register/sub-owner?')} 
+                        readOnly 
+                        className="link-input"
+                      />
+                      <button 
+                        onClick={() => {
+                          const subOwnerLink = invitation.link.replace('/register/member?', '/register/sub-owner?');
+                          navigator.clipboard.writeText(subOwnerLink);
+                          setCopying(true);
+                          setSuccess('✅ Sub Account Owner link copied to clipboard!');
+                          setTimeout(() => {
+                            setCopying(false);
+                            setSuccess('');
+                          }, 2000);
+                        }}
+                        disabled={copying}
+                        className="btn btn-primary"
+                      >
+                        {copying ? 'Copying...' : '📋 Copy Link'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Member Statistics */}
+              <div className="member-stats-section" style={{display: 'flex', gap: '0.75rem', justifyContent: 'flex-start'}}>
+              {!isSubAccountOwner && (
+                <div style={{padding: '8px 12px', background: '#f0f7ff', borderRadius: '6px', border: '1px solid #d0e7ff', minWidth: '120px'}}>
+                  <div style={{fontSize: '11px', color: '#666', marginBottom: '2px', fontWeight: '500'}}>Sub Account Owners</div>
+                  <div style={{fontSize: '20px', fontWeight: '700', color: '#6264a7'}}>
                     {invitedUsers.filter(u => u.role === 'sub_account_owner').length}
                   </div>
                 </div>
               )}
-              <div style={{padding: '1rem', background: '#f0fff4', borderRadius: '8px', border: '1px solid #c6f6d5'}}>
-                <div style={{fontSize: '0.85rem', color: '#555', marginBottom: '0.25rem'}}>Members</div>
-                <div style={{fontSize: '1.75rem', fontWeight: '600', color: '#38a169'}}>
+              <div style={{padding: '8px 12px', background: '#f0fff4', borderRadius: '6px', border: '1px solid #c6f6d5', minWidth: '120px'}}>
+                <div style={{fontSize: '11px', color: '#666', marginBottom: '2px', fontWeight: '500'}}>Members</div>
+                <div style={{fontSize: '20px', fontWeight: '700', color: '#38a169'}}>
                   {invitedUsers.filter(u => u.role === 'user' || !u.role).length}
                 </div>
               </div>
             </div>
+            </div>
 
+            {/* Right column: Members table */}
             <div className="invited-users-section">
               <h3>👥 Members ({invitedUsers.length})</h3>
               
               {invitedUsers.length === 0 ? (
                 <p className="no-users">No members yet. Share your invitation link to get started!</p>
               ) : (
-                <div className="users-list">
-                  {invitedUsers.map((invitedUser) => (
-                    <div key={invitedUser.id} className="user-card">
-                      <div className="user-avatar">
-                        {invitedUser.name?.charAt(0).toUpperCase() || '?'}
-                      </div>
-                      <div className="user-info">
-                        <div className="user-name">{invitedUser.name}</div>
-                        <div className="user-email">{invitedUser.email}</div>
-                        {invitedUser.invitedAt && (
-                          <div className="invited-date">
-                            Joined: {invitedUser.invitedAt.seconds 
-                              ? new Date(invitedUser.invitedAt.seconds * 1000).toLocaleDateString()
-                              : invitedUser.invitedAt instanceof Date 
-                                ? invitedUser.invitedAt.toLocaleDateString()
-                                : new Date(invitedUser.invitedAt).toLocaleDateString()}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                <div className="table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Member</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Joined Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invitedUsers
+                        .sort((a, b) => {
+                          // Sort by join date from oldest to newest
+                          const dateA = a.invitedAt?.seconds 
+                            ? new Date(a.invitedAt.seconds * 1000)
+                            : a.invitedAt instanceof Date 
+                              ? a.invitedAt 
+                              : new Date(a.invitedAt || 0);
+                          const dateB = b.invitedAt?.seconds 
+                            ? new Date(b.invitedAt.seconds * 1000)
+                            : b.invitedAt instanceof Date 
+                              ? b.invitedAt 
+                              : new Date(b.invitedAt || 0);
+                          return dateA - dateB; // Oldest first
+                        })
+                        .map((invitedUser) => (
+                        <tr key={invitedUser.id}>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                color: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: '600',
+                                fontSize: '14px',
+                                flexShrink: 0
+                              }}>
+                                {invitedUser.name?.charAt(0).toUpperCase() || '?'}
+                              </div>
+                              <strong style={{ fontSize: '13px', color: '#333' }}>
+                                {invitedUser.name}
+                              </strong>
+                            </div>
+                          </td>
+                          <td style={{ fontSize: '13px', color: '#555' }}>
+                            {invitedUser.email}
+                          </td>
+                          <td>
+                            <span className="badge badge-info">
+                              {invitedUser.role === 'sub_account_owner' ? 'Sub Account Owner' : 
+                               invitedUser.role === 'account_owner' ? 'Account Owner' : 'Member'}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: '12px', color: '#999' }}>
+                            {invitedUser.invitedAt 
+                              ? (invitedUser.invitedAt.seconds 
+                                  ? new Date(invitedUser.invitedAt.seconds * 1000).toLocaleDateString()
+                                  : invitedUser.invitedAt instanceof Date 
+                                    ? invitedUser.invitedAt.toLocaleDateString()
+                                    : new Date(invitedUser.invitedAt).toLocaleDateString())
+                              : 'Unknown'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
