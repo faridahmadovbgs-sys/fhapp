@@ -3,6 +3,41 @@
   display: inline-block;
 }
 
+.chat-notification-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: 8px;
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+  animation: pulseChatBadge 2s ease-in-out infinite;
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.chat-notification-badge:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 8px rgba(37, 99, 235, 0.5);
+}
+
+@keyframes pulseChatBadge {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 3px 8px rgba(37, 99, 235, 0.5);
+  }
+}
+
 .chat-badge {
   cursor: pointer;
   transition: transform 0.2s;

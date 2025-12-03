@@ -48,8 +48,13 @@ service cloud.firestore {
     }
     
     // Private conversations
-    match /conversations/{conversationId}/messages/{messageId} {
+    match /conversations/{conversationId} {
       allow read, write: if isSignedIn();
+      
+      // Conversation messages
+      match /messages/{messageId} {
+        allow read, write: if isSignedIn();
+      }
     }
     
     // Groups

@@ -13,6 +13,13 @@
   border-radius: 10px;
   box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
   animation: pulseBadge 2s ease-in-out infinite;
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.org-notification-badge:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 8px rgba(220, 38, 38, 0.5);
 }
 
 @keyframes pulseBadge {

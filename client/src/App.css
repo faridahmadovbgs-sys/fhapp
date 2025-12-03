@@ -48,10 +48,12 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  align-items: stretch;
 }
 
 .sidebar-nav nav ul li {
   position: relative;
+  width: 100%;
 }
 
 .sidebar-nav nav a {
@@ -69,6 +71,8 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
   overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .sidebar-nav nav a::before {
@@ -291,11 +295,12 @@ nav ul {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 nav ul li {
   position: relative;
+  width: 100%;
 }
 
 .nav-item-with-badge {
@@ -309,27 +314,29 @@ nav ul li {
   gap: 12px;
 }
 
+/* General notification badge (red - for announcements, documents, etc.) */
 .nav-notification-badge {
-  position: absolute;
-  top: 8px;
-  right: 12px;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.2);
-  animation: pulse-badge 2s ease-in-out infinite;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  position: absolute !important;
+  top: 8px !important;
+  right: 12px !important;
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  color: white !important;
+  min-width: 20px !important;
+  height: 20px !important;
+  padding: 0 6px !important;
+  border-radius: 10px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.2) !important;
+  animation: pulse-notification-badge 2s ease-in-out infinite !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  z-index: 10 !important;
 }
 
-@keyframes pulse-badge {
+@keyframes pulse-notification-badge {
   0%, 100% {
     transform: scale(1);
     box-shadow: 0 2px 6px rgba(220, 38, 38, 0.4);
@@ -337,6 +344,39 @@ nav ul li {
   50% {
     transform: scale(1.1);
     box-shadow: 0 3px 8px rgba(220, 38, 38, 0.6);
+  }
+}
+
+/* Billing/Payment badge (orange/amber - for pending bills) */
+.nav-billing-badge {
+  position: absolute !important;
+  top: 8px !important;
+  right: 12px !important;
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: white !important;
+  min-width: 20px !important;
+  height: 20px !important;
+  padding: 0 6px !important;
+  border-radius: 10px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.2) !important;
+  animation: pulse-billing-badge 2s ease-in-out infinite !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  z-index: 10 !important;
+}
+
+@keyframes pulse-billing-badge {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 6px rgba(217, 119, 6, 0.4);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 3px 8px rgba(217, 119, 6, 0.6);
   }
 }
 
@@ -464,6 +504,69 @@ nav a:hover {
   background: linear-gradient(135deg, var(--secondary-color) 0%, var(--accent-color) 100%);
 }
 
+.header-chat-badge {
+  position: relative;
+  background: rgba(37, 99, 235, 0.15);
+  border: 2px solid rgba(37, 99, 235, 0.3);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  margin-right: 0.75rem;
+  backdrop-filter: blur(10px);
+}
+
+.header-chat-badge:hover {
+  background: rgba(37, 99, 235, 0.25);
+  border-color: rgba(37, 99, 235, 0.5);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.header-chat-badge:active {
+  transform: scale(0.98);
+}
+
+.header-chat-icon {
+  font-size: 20px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.header-chat-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border: 2px solid var(--primary-color);
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+  animation: pulse-badge 2s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.6);
+  }
+}
+
 .logout-button {
   background-color: rgba(220, 38, 38, 0.9);
   color: white;
@@ -563,6 +666,22 @@ nav a:hover {
     width: 36px;
     height: 36px;
     font-size: 20px;
+  }
+
+  .header-chat-badge {
+    width: 42px;
+    height: 42px;
+    margin-right: 0.5rem;
+  }
+
+  .header-chat-icon {
+    font-size: 18px;
+  }
+
+  .header-chat-count {
+    font-size: 10px;
+    min-width: 18px;
+    height: 18px;
   }
 
   .user-profile-section {

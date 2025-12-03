@@ -1,15 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, where, onSnapshot, limit } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import './OrganizationListWithBadges.css';
 
 const OrganizationListWithBadges = ({ organizations, userId, selectedOrgId, onSelectOrg }) => {
   const [notificationCounts, setNotificationCounts] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+  const isMountedRef = useRef(true);
+  const countsMapRef = useRef({});
 
   useEffect(() => {
-    if (!organizations || organizations.length === 0 || !userId || !db) return;
+    if (!organizations || organizations.length === 0 || !userId || !db) {
+      setIsLoading(false);
+      return;
+    }
 
+    isMountedRef.current = true;
     const unsubscribers = [];
+
+    console.log('🔔 Setting up notification badges for', organizations.length, 'organizations');
+
+    // Helper to update org count
+    const updateOrgCount = (orgId, countsRef) => {
+      if (!isMountedRef.current) return;
+      
+      const total = Object.values(countsRef).reduce((sum, val) => sum + val, 0);
+      countsMapRef.current[orgId] = total;
+      
+      setNotificationCounts({ ...countsMapRef.current });
+      setIsLoading(false);
+    };
 
     organizations.forEach((org) => {
       // Track counts for each organization
@@ -20,6 +40,9 @@ const OrganizationListWithBadges = ({ organizations, userId, selectedOrgId, onSe
         bills: 0,
         payments: 0
       };
+
+      // Initialize count for this org
+      countsMapRef.current[org.id] = 0;
 
       // 1. Announcements
       const announcementsQuery = query(
@@ -117,17 +140,12 @@ const OrganizationListWithBadges = ({ organizations, userId, selectedOrgId, onSe
     });
 
     return () => {
+      console.log('🔕 Cleaning up notification listeners for all organizations');
+      isMountedRef.current = false;
       unsubscribers.forEach(unsub => unsub());
+      countsMapRef.current = {};
     };
   }, [organizations, userId]);
-
-  const updateOrgCount = (orgId, countsRef) => {
-    const total = Object.values(countsRef).reduce((sum, val) => sum + val, 0);
-    setNotificationCounts(prev => ({
-      ...prev,
-      [orgId]: total
-    }));
-  };
 
   return (
     <div className="organization-list-with-badges">

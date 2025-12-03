@@ -116,7 +116,10 @@ function MainApp() {
 
   // Listen for pending bills (for members)
   useEffect(() => {
-    if (!user?.id || !db) return;
+    if (!user?.id || !db) {
+      setPendingBillsCount(0);
+      return;
+    }
 
     const billsQuery = query(
       collection(db, 'bills'),
@@ -124,23 +127,41 @@ function MainApp() {
     );
 
     const unsubscribe = onSnapshot(billsQuery, async (snapshot) => {
+      console.log(`💰 Checking ${snapshot.size} active bills for user:`, user.id);
+      
+      if (snapshot.empty) {
+        console.log('💰 No active bills found');
+        setPendingBillsCount(0);
+        return;
+      }
+      
       let pendingCount = 0;
       for (const docSnap of snapshot.docs) {
         const billData = docSnap.data();
-        // Check if bill is for this user and not paid
+        
+        // Check if bill is for this user
         if (billData.memberIds?.includes(user.id)) {
+          console.log(`📋 Bill ${docSnap.id} includes user, checking payment...`);
+          
           // Check payment status
           const paymentsQuery = query(
             collection(db, 'payments'),
             where('billId', '==', docSnap.id),
-            where('memberId', '==', user.id)
+            where('memberId', '==', user.id),
+            where('status', '==', 'completed')
           );
           const paymentsSnap = await getDocs(paymentsQuery);
+          
           if (paymentsSnap.empty) {
+            console.log(`⚠️ Bill ${docSnap.id} is unpaid`);
             pendingCount++;
+          } else {
+            console.log(`✅ Bill ${docSnap.id} is paid`);
           }
         }
       }
+      
+      console.log(`💰 Final pending bills count: ${pendingCount}`);
       setPendingBillsCount(pendingCount);
     });
 
@@ -237,7 +258,7 @@ function MainApp() {
 
   return (
     <div className="App">
-      <Header user={user} isMenuOpen={isMenuOpen} toggleMenu={toggleMenu} />
+      <Header user={user} isMenuOpen={isMenuOpen} toggleMenu={toggleMenu} unreadChatsCount={unreadChatsCount} />
       {isMenuOpen && <div className="mobile-overlay" onClick={closeMenu}></div>}
       <div className="app-layout">
         <aside className={isMenuOpen ? 'sidebar-nav nav-open' : 'sidebar-nav'}>
@@ -272,7 +293,7 @@ function MainApp() {
                   <span className="nav-icon">💳</span>
                   <span className="nav-text">Payments</span>
                   {pendingBillsCount > 0 && (
-                    <span className="nav-notification-badge">{pendingBillsCount > 99 ? '99+' : pendingBillsCount}</span>
+                    <span className="nav-billing-badge">{pendingBillsCount > 99 ? '99+' : pendingBillsCount}</span>
                   )}
                 </Link>
               </li>

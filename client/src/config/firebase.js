@@ -3,6 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, setPersistence, browserSessionPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
 // Your web app's Firebase config
 const firebaseConfig = {
@@ -24,7 +25,7 @@ if (!isFirebaseConfigured) {
 }
 
 // Initialize Firebase
-let app, auth, db, storage;
+let app, auth, db, storage, messaging;
 
 try {
   if (isFirebaseConfigured) {
@@ -48,11 +49,21 @@ try {
     db = getFirestore(app);
     storage = getStorage(app);
     
+    // Initialize Firebase Cloud Messaging
+    try {
+      messaging = getMessaging(app);
+      console.log('✅ Firebase Cloud Messaging initialized');
+    } catch (msgError) {
+      console.warn('⚠️ Firebase Messaging not available:', msgError.message);
+      messaging = null;
+    }
+    
     console.log('✅ Firebase initialized successfully', {
       app: !!app,
       auth: !!auth,
       db: !!db,
-      storage: !!storage
+      storage: !!storage,
+      messaging: !!messaging
     });
   } else {
     console.warn('⚠️ Firebase not configured - using demo mode');
@@ -60,6 +71,7 @@ try {
     auth = null;
     db = null;
     storage = null;
+    messaging = null;
   }
 } catch (error) {
   console.error('❌ Firebase initialization error:', error);
@@ -71,7 +83,8 @@ try {
   auth = null;
   db = null;
   storage = null;
+  messaging = null;
 }
 
-export { auth, db, storage };
+export { auth, db, storage, messaging, getToken, onMessage };
 export default app;

@@ -6,7 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import axios from 'axios';
 
-const Header = ({ user, isMenuOpen, toggleMenu }) => {
+const Header = ({ user, isMenuOpen, toggleMenu, unreadChatsCount = 0 }) => {
   const { logout } = useAuth();
   const { activeAccount, operatingAsUser } = useAccount();
   const navigate = useNavigate();
@@ -135,7 +135,21 @@ const Header = ({ user, isMenuOpen, toggleMenu }) => {
         <div style={{ flex: 1 }}></div>
 
         {user && (
-          <div className="user-info">
+          <>
+            {unreadChatsCount > 0 && (
+              <button 
+                className="header-chat-badge" 
+                onClick={() => navigate('/chat')}
+                aria-label={`${unreadChatsCount} unread messages`}
+                title={`${unreadChatsCount} unread message${unreadChatsCount > 1 ? 's' : ''}`}
+              >
+                <span className="header-chat-icon">💬</span>
+                <span className="header-chat-count">
+                  {unreadChatsCount > 99 ? '99+' : unreadChatsCount}
+                </span>
+              </button>
+            )}
+            <div className="user-info">
             <div className="user-profile-section" onClick={handleProfileClick}>
               <span className="welcome-text">
                 Welcome, {user.name || user.email}!
@@ -162,6 +176,7 @@ const Header = ({ user, isMenuOpen, toggleMenu }) => {
               Logout
             </button>
           </div>
+          </>
         )}
       </div>
     </header>

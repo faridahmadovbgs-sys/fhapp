@@ -12,12 +12,14 @@ import {
   updateDoc,
   where,
   getDocs,
-  arrayUnion
+  arrayUnion,
+  setDoc
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserMemberOrganizations } from '../services/organizationService';
 import OrganizationNotificationBadge from '../components/OrganizationNotificationBadge';
+import notificationService from '../services/notificationService';
 import '../components/OrganizationNotificationBadge.css';
 import './ChatPage.css';
 
@@ -44,6 +46,8 @@ const ChatPage = () => {
   const [reactionTarget, setReactionTarget] = useState(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState({}); // Track unread messages per user
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileInfoOpen, setMobileInfoOpen] = useState(false);
   const messagesEndRef = useRef(null);
   const previousMessageCountRef = useRef({
     public: 0,
@@ -87,18 +91,52 @@ const ChatPage = () => {
     }
     
     console.log(`✅ Completed marking ${messageIds.length} messages`);
+    
+    // Trigger badge refresh
+    window.dispatchEvent(new Event('refreshChatBadge'));
   };
 
-  // Request notification permission
+  // Initialize Firebase Cloud Messaging notifications
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then(permission => {
-        setNotificationsEnabled(permission === 'granted');
-      });
-    } else if (Notification.permission === 'granted') {
-      setNotificationsEnabled(true);
-    }
-  }, []);
+    if (!currentUser?.id) return;
+
+    const initNotifications = async () => {
+      try {
+        const result = await notificationService.initialize(currentUser.id);
+        if (result.success) {
+          console.log('✅ FCM Notifications initialized');
+          setNotificationsEnabled(true);
+          
+          // Listen for foreground messages
+          notificationService.onForegroundMessage((payload) => {
+            console.log('📬 New message notification:', payload);
+            // Handle the notification data
+            if (payload.data?.type === 'chat') {
+              // Update UI or show custom notification
+              showNotification(
+                payload.notification.title,
+                payload.notification.body,
+                payload.data.type
+              );
+            }
+          });
+        } else {
+          console.log('⚠️ FCM initialization failed:', result.message);
+          // Fallback to browser notifications
+          if ('Notification' in window && Notification.permission === 'default') {
+            const permission = await Notification.requestPermission();
+            setNotificationsEnabled(permission === 'granted');
+          } else if (Notification.permission === 'granted') {
+            setNotificationsEnabled(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing notifications:', error);
+      }
+    };
+
+    initNotifications();
+  }, [currentUser]);
 
   // Fetch user's organizations
   useEffect(() => {
@@ -248,7 +286,8 @@ const ChatPage = () => {
     const messagesQuery = query(
       collection(db, 'messages'),
       where('organizationId', '==', selectedOrganization.id),
-      where('isAnnouncement', '!=', true),
+      where('isAnnouncement', '==', false),
+      orderBy('__name__', 'asc'),
       limit(100)
     );
 
@@ -335,12 +374,35 @@ const ChatPage = () => {
 
     const unsubscribe = onSnapshot(privateQuery, (snapshot) => {
       const messagesData = [];
+      const toMarkAsViewed = [];
+      
       snapshot.forEach((doc) => {
+        const data = doc.data();
         messagesData.push({
           id: doc.id,
-          ...doc.data()
+          ...data
         });
+        
+        // Mark messages from other user as viewed
+        if (data.senderId !== currentUser.id && !data.viewedBy?.includes(currentUser.id)) {
+          toMarkAsViewed.push(doc.id);
+        }
       });
+      
+      // Mark unread messages as viewed in batch
+      if (toMarkAsViewed.length > 0) {
+        console.log(`📬 Marking ${toMarkAsViewed.length} private messages as viewed`);
+        toMarkAsViewed.forEach(async (msgId) => {
+          try {
+            const msgRef = doc(db, `conversations/${conversationId}/messages`, msgId);
+            await updateDoc(msgRef, {
+              viewedBy: arrayUnion(currentUser.id)
+            });
+          } catch (error) {
+            // Silently handle errors
+          }
+        });
+      }
       
       // Show notification for new private messages
       const previousCount = previousMessageCountRef.current.private;
@@ -365,11 +427,11 @@ const ChatPage = () => {
     });
 
     return () => unsubscribe();
-  }, [selectedUser, currentUser]);
+  }, [selectedUser, currentUser, notificationsEnabled]);
 
   // Fetch group messages
   useEffect(() => {
-    if (!db || !selectedGroup) {
+    if (!db || !currentUser || !selectedGroup) {
       setGroupMessages([]);
       return;
     }
@@ -382,12 +444,35 @@ const ChatPage = () => {
 
     const unsubscribe = onSnapshot(groupMessagesQuery, (snapshot) => {
       const messagesData = [];
+      const toMarkAsViewed = [];
+      
       snapshot.forEach((doc) => {
+        const data = doc.data();
         messagesData.push({
           id: doc.id,
-          ...doc.data()
+          ...data
         });
+        
+        // Mark messages from other users as viewed
+        if (data.senderId !== currentUser.id && !data.viewedBy?.includes(currentUser.id)) {
+          toMarkAsViewed.push(doc.id);
+        }
       });
+      
+      // Mark unread messages as viewed in batch
+      if (toMarkAsViewed.length > 0) {
+        console.log(`📬 Marking ${toMarkAsViewed.length} group messages as viewed`);
+        toMarkAsViewed.forEach(async (msgId) => {
+          try {
+            const msgRef = doc(db, `groups/${selectedGroup.id}/messages`, msgId);
+            await updateDoc(msgRef, {
+              viewedBy: arrayUnion(currentUser.id)
+            });
+          } catch (error) {
+            // Silently handle errors
+          }
+        });
+      }
       
       // Show notification for new group messages
       const previousCount = previousMessageCountRef.current.group;
@@ -412,7 +497,7 @@ const ChatPage = () => {
     });
 
     return () => unsubscribe();
-  }, [selectedGroup]);
+  }, [selectedGroup, currentUser, notificationsEnabled]);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -424,10 +509,10 @@ const ChatPage = () => {
   };
 
   const showNotification = (title, body, type) => {
-    // Play notification sound
-    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZSA0PVajk7qxdGAg+ltryxnMpBSuBzvLYiTcIGWi77eefTRAMUKfj8LZjHAY4ktfyzHksBSR3x/DdkEAKFF606+uoVRQKRp/g8r5sIQUxh9Hz04IzBh5uwO/jmUgND1Wo5O6sXRgIPpba8sZzKQUrm87y2Ik3CBlou+3nn0wQDFCn4/C2YxwGOJLX8sx5LAUkd8fw3ZBAE6');
-    audio.volume = 0.3;
-    audio.play().catch(err => console.log('Could not play notification sound'));
+    // Notification sound disabled per user request
+    // const audio = new Audio('data:audio/wav;base64,...');
+    // audio.volume = 0.3;
+    // audio.play().catch(err => console.log('Could not play notification sound'));
 
     // Show browser notification
     if (notificationsEnabled && document.hidden) {
@@ -532,9 +617,13 @@ const ChatPage = () => {
         senderName: fullName,
         firstName: firstName,
         lastName: lastName,
-        organizationId: selectedOrganization.id
+        organizationId: selectedOrganization.id,
+        viewedBy: [currentUser.id]
       });
       setNewMessage('');
+      
+      // Trigger badge refresh
+      window.dispatchEvent(new Event('refreshChatBadge'));
     } catch (error) {
       console.error('Error sending group message:', error);
       alert('Failed to send message');
@@ -583,6 +672,18 @@ const ChatPage = () => {
       const firstName = nameParts[0] || fullName;
       const lastName = nameParts.slice(1).join(' ') || '';
       
+      // Create/update the conversation document first
+      const conversationRef = doc(db, 'conversations', conversationId);
+      await setDoc(conversationRef, {
+        participants: [currentUser.id, selectedUser.uid],
+        lastMessageAt: serverTimestamp(),
+        lastMessage: newMessage.trim().substring(0, 100)
+      }, { merge: true });
+      
+      console.log(`✅ Created conversation document: ${conversationId}`);
+      console.log(`📤 Participants: [${currentUser.id}, ${selectedUser.uid}]`);
+      
+      // Then add the message
       await addDoc(collection(db, `conversations/${conversationId}/messages`), {
         text: newMessage.trim(),
         createdAt: serverTimestamp(),
@@ -590,9 +691,28 @@ const ChatPage = () => {
         senderName: fullName,
         firstName: firstName,
         lastName: lastName,
-        receiverId: selectedUser.uid
+        receiverId: selectedUser.uid,
+        viewedBy: [currentUser.id]
       });
+      
+      console.log(`💬 Message sent successfully. Sender: ${currentUser.id}, Receiver: ${selectedUser.uid}`);
       setNewMessage('');
+      
+      // Send browser notification to receiver
+      try {
+        await notificationService.sendChatNotification({
+          title: `New message from ${fullName}`,
+          body: newMessage.trim().substring(0, 100),
+          receiverId: selectedUser.uid,
+          senderId: currentUser.id,
+          conversationId: conversationId
+        });
+      } catch (notifError) {
+        console.log('Could not send notification:', notifError);
+      }
+      
+      // Trigger badge refresh
+      window.dispatchEvent(new Event('refreshChatBadge'));
     } catch (error) {
       console.error('Error sending private message:', error);
       alert('Failed to send message');
@@ -693,38 +813,51 @@ const ChatPage = () => {
   return (
     <div className="chat-page">
       <div className="chat-page-header">
-        <h1>💬 Team Communication</h1>
-        <p>Connect with your team through public chat, direct messages, and groups</p>
-        
-        {/* Organization Selector */}
-        {organizations.length > 0 && (
-          <div className="organization-selector">
-            <label htmlFor="org-select">Organization:</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <select 
-                id="org-select"
-                value={selectedOrganization?.id || ''}
-                onChange={(e) => {
-                  const org = organizations.find(o => o.id === e.target.value);
-                  setSelectedOrganization(org);
-                }}
-                className="org-dropdown"
-              >
-                {organizations.map(org => (
-                  <option key={org.id} value={org.id}>
-                    {org.name}
-                  </option>
-                ))}
-              </select>
-              {selectedOrganization && (
-                <OrganizationNotificationBadge 
-                  organizationId={selectedOrganization.id} 
-                  userId={currentUser?.id || currentUser?.uid}
-                />
-              )}
-            </div>
-          </div>
+        {/* Mobile menu toggle - only show when org selected */}
+        {selectedOrganization && (
+          <button 
+            className="mobile-menu-toggle"
+            onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+            aria-label="Toggle menu"
+          >
+            ☰
+          </button>
         )}
+        
+        <div>
+          <h1>💬 Team Communication</h1>
+          <p>Connect with your team through public chat, direct messages, and groups</p>
+          
+          {/* Organization Selector */}
+          {organizations.length > 0 && (
+            <div className="organization-selector">
+              <label htmlFor="org-select">Organization:</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <select 
+                  id="org-select"
+                  value={selectedOrganization?.id || ''}
+                  onChange={(e) => {
+                    const org = organizations.find(o => o.id === e.target.value);
+                    setSelectedOrganization(org);
+                  }}
+                  className="org-dropdown"
+                >
+                  {organizations.map(org => (
+                    <option key={org.id} value={org.id}>
+                      {org.name}
+                    </option>
+                  ))}
+                </select>
+                {selectedOrganization && (
+                  <OrganizationNotificationBadge 
+                    organizationId={selectedOrganization.id} 
+                    userId={currentUser?.id || currentUser?.uid}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+        </div>
         
         {!selectedOrganization && organizations.length === 0 && (
           <div className="no-organization">
@@ -734,9 +867,16 @@ const ChatPage = () => {
       </div>
 
       {selectedOrganization && (
-        <div className="chat-page-container">
-          {/* Left Sidebar */}
-          <div className="chat-nav-sidebar">
+        <>
+          {/* Mobile sidebar overlay */}
+          <div 
+            className={`mobile-sidebar-overlay ${mobileSidebarOpen ? 'active' : ''}`}
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+          
+          <div className="chat-page-container">
+            {/* Left Sidebar */}
+            <div className={`chat-nav-sidebar ${mobileSidebarOpen ? 'mobile-open' : ''}`}>
             <div className="sidebar-header">
               <input 
                 type="text" 
@@ -769,7 +909,10 @@ const ChatPage = () => {
                     <div className="sidebar-section-title">Channels</div>
                     <div 
                       className={`chat-list-item ${chatTab === 'public' ? 'active' : ''}`}
-                      onClick={() => setChatTab('public')}
+                      onClick={() => {
+                        setChatTab('public');
+                        setMobileSidebarOpen(false);
+                      }}
                     >
                       <div className="chat-item-avatar">#</div>
                       <div className="chat-item-info">
@@ -798,6 +941,8 @@ const ChatPage = () => {
                               ...prev,
                               [user.uid]: 0
                             }));
+                            // Close mobile sidebar when user selected
+                            setMobileSidebarOpen(false);
                           }}
                         >
                           <div className="chat-item-avatar">
@@ -882,7 +1027,10 @@ const ChatPage = () => {
                       <div
                         key={group.id}
                         className={`chat-list-item ${selectedGroup?.id === group.id ? 'active' : ''}`}
-                        onClick={() => setSelectedGroup(group)}
+                        onClick={() => {
+                          setSelectedGroup(group);
+                          setMobileSidebarOpen(false);
+                        }}
                       >
                         <div className="chat-item-avatar">{group.avatar}</div>
                         <div className="chat-item-info">
@@ -1177,6 +1325,7 @@ const ChatPage = () => {
             )}
           </div>
         </div>
+        </>
       )}
     </div>
   );

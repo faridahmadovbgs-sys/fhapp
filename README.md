@@ -17,9 +17,10 @@
 - **Team Member Management**: Invite, add, and manage team members with role-based permissions
 - **Billing & Payments**: Create bills, track payments, and manage subscriptions for organization members
 - **Document Management**: Store, share, and organize both personal and organization-wide documents
-- **Real-Time Communication**: Built-in chat system for team collaboration
+- **Real-Time Communication**: Built-in chat system with Firebase Cloud Messaging (FCM) push notifications
 - **Secure Access Control**: Advanced role-based authorization with granular permissions
 - **Profile Management**: User profiles with photo uploads and customizable information
+- **Push Notifications**: Background notifications for messages, announcements, bills, and documents
 
 ---
 
@@ -150,7 +151,8 @@
 - **Billing**: Bill creation and management interface
 - **Payments**: Member payment dashboard and history
 - **Documents**: Personal and organization document libraries
-- **Chat**: Real-time messaging interface
+- **Chat**: Real-time messaging with push notifications
+- **Notifications**: Firebase Cloud Messaging for background notifications
 - **Profile**: User profile editing and photo upload
 - **Invitations**: Invitation link management and team onboarding
 - **Admin Panel**: User and permission management

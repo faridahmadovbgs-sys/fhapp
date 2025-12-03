@@ -20,7 +20,17 @@ export const AuthProvider = ({ children }) => {
 
   // Check if user is logged in on app start and listen to auth changes
   useEffect(() => {
+    console.log('🔄 AuthContext: Initializing auth state listener...');
+    
+    // Set a timeout to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      console.warn('⚠️ AuthContext: Auth initialization timeout - setting loading to false');
+      setLoading(false);
+    }, 5000); // 5 second timeout
+
     const unsubscribe = firebaseAuthService.onAuthStateChange((firebaseUser) => {
+      clearTimeout(loadingTimeout); // Clear timeout when auth state is determined
+      
       if (firebaseUser) {
         const userData = {
           id: firebaseUser.uid,
@@ -42,7 +52,10 @@ export const AuthProvider = ({ children }) => {
     });
 
     // Cleanup subscription on unmount
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(loadingTimeout);
+      unsubscribe();
+    };
   }, []);
 
   // Login function - Firebase handles this automatically via onAuthStateChange
