@@ -1,19 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { collection, query, where, onSnapshot, limit, Timestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, limit } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getUserMemberOrganizations } from '../services/organizationService';
 import './ChatNotificationBadge.css';
-
-// Use shared timestamp storage with ChatPage
-window.chatLastViewedTimes = window.chatLastViewedTimes || {};
 
 const ChatNotificationBadge = ({ userId, onCountChange }) => {
   const [hasUnread, setHasUnread] = useState(false);
   const [userOrganization, setUserOrganization] = useState(null);
   const location = useLocation();
   const isOnChatPage = location.pathname === '/chat';
-  const checkIntervalRef = useRef(null);
+  const messageCountRef = useRef(0);
+  const hasVisitedChatRef = useRef(false);
 
   // Fetch user's organization
   useEffect(() => {
@@ -33,117 +31,67 @@ const ChatNotificationBadge = ({ userId, onCountChange }) => {
     fetchOrganization();
   }, [userId]);
 
-  // Clear badge and update timestamp when on chat page
+  // When on chat page, mark as visited and hide badge
   useEffect(() => {
-    if (isOnChatPage && userId && userOrganization) {
-      const key = `${userId}_${userOrganization.id}`;
-      window.chatLastViewedTimes[key] = Date.now();
+    if (isOnChatPage) {
+      hasVisitedChatRef.current = true;
       setHasUnread(false);
       if (onCountChange) {
         onCountChange(0);
       }
-      console.log('📬 Chat viewed, timestamp updated:', new Date(window.chatLastViewedTimes[key]).toISOString());
     }
-  }, [isOnChatPage, userId, userOrganization, onCountChange]);
+  }, [isOnChatPage, onCountChange]);
 
-  // Listen for messages when NOT on chat page
+  // Listen for NEW messages arriving in real-time
   useEffect(() => {
     if (!userId || !db || !userOrganization) return;
-
-    // Don't show badge on chat page
-    if (isOnChatPage) {
-      setHasUnread(false);
-      if (onCountChange) {
-        onCountChange(0);
-      }
-      return;
-    }
-
-    const key = `${userId}_${userOrganization.id}`;
-
-    console.log('📬 Setting up badge listener');
 
     const messagesQuery = query(
       collection(db, 'messages'),
       where('organizationId', '==', userOrganization.id),
-      limit(100)
+      limit(50)
     );
 
     const unsubscribe = onSnapshot(
       messagesQuery,
       (snapshot) => {
-        if (!snapshot || snapshot.empty) {
-          setHasUnread(false);
-          if (onCountChange) onCountChange(0);
+        const currentCount = snapshot.size;
+        const previousCount = messageCountRef.current;
+
+        // First load - just set the count, don't show badge
+        if (previousCount === 0) {
+          messageCountRef.current = currentCount;
           return;
         }
 
-        // Re-read the timestamp on EVERY snapshot check
-        const lastViewed = window.chatLastViewedTimes[key];
-        console.log('📬 Checking messages. Last viewed:', lastViewed ? new Date(lastViewed).toISOString() : 'Never');
-
-        let newMessagesFound = false;
-        const now = Date.now();
-        let debugMessages = [];
-
-        snapshot.forEach((doc) => {
-          const msg = doc.data();
+        // If count increased and we're NOT on chat page
+        if (currentCount > previousCount && !isOnChatPage && hasVisitedChatRef.current) {
+          const newMessages = [];
+          snapshot.forEach((doc) => {
+            const msg = doc.data();
+            // Only show badge for other people's messages
+            if (msg.userId !== userId && !msg.isAnnouncement) {
+              newMessages.push(doc.id);
+            }
+          });
           
-          // Skip own messages and announcements
-          if (msg.userId === userId || msg.isAnnouncement) {
-            return;
-          }
-
-          // Get message timestamp
-          let msgTime = 0;
-          if (msg.createdAt) {
-            if (msg.createdAt.toMillis) {
-              msgTime = msg.createdAt.toMillis();
-            } else if (msg.createdAt instanceof Date) {
-              msgTime = msg.createdAt.getTime();
+          if (newMessages.length > 0) {
+            console.log('📬 New message arrived while away from chat');
+            setHasUnread(true);
+            if (onCountChange) {
+              onCountChange(1);
             }
           }
-
-          // If we have a last viewed time, check if message is newer
-          if (lastViewed) {
-            if (msgTime > lastViewed) {
-              debugMessages.push({
-                id: doc.id,
-                msgTime: new Date(msgTime).toISOString(),
-                text: msg.text?.substring(0, 30)
-              });
-              newMessagesFound = true;
-            }
-          } else {
-            // No last viewed time - show badge for recent messages (last 1 hour)
-            const oneHourAgo = now - (60 * 60 * 1000);
-            if (msgTime > oneHourAgo) {
-              newMessagesFound = true;
-            }
-          }
-        });
-
-        if (debugMessages.length > 0) {
-          console.log('📬 New messages found:', debugMessages);
         }
-        
-        console.log('📬 Badge check result. Has unread:', newMessagesFound);
-        setHasUnread(newMessagesFound);
-        if (onCountChange) {
-          onCountChange(newMessagesFound ? 1 : 0);
-        }
+
+        messageCountRef.current = currentCount;
       },
       (error) => {
         console.error('❌ Badge listener error:', error);
-        setHasUnread(false);
-        if (onCountChange) {
-          onCountChange(0);
-        }
       }
     );
 
     return () => {
-      console.log('📬 Cleaning up badge listener');
       unsubscribe();
     };
   }, [userId, userOrganization, isOnChatPage, onCountChange]);

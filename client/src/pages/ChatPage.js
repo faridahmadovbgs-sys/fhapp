@@ -23,9 +23,6 @@ import './ChatPage.css';
 
 const EMOJI_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '😸'];
 
-// Share the same timestamp storage with ChatNotificationBadge
-window.chatLastViewedTimes = window.chatLastViewedTimes || {};
-
 const ChatPage = () => {
   const { user: currentUser } = useAuth();
   const [organizations, setOrganizations] = useState([]);
@@ -288,21 +285,6 @@ const ChatPage = () => {
         markMessagesAsViewedBatch(toMarkAsViewed).catch(err => {
           console.error('Error marking messages as viewed:', err);
         });
-      }
-      
-      // Update shared timestamp to the LATEST message time (not current time)
-      // This ensures only NEW messages trigger the badge
-      const key = `${currentUser.id}_${selectedOrganization.id}`;
-      if (messagesData.length > 0) {
-        const latestMessage = messagesData[messagesData.length - 1];
-        if (latestMessage.createdAt) {
-          const latestTime = latestMessage.createdAt.toMillis();
-          window.chatLastViewedTimes[key] = latestTime;
-          console.log('📊 Updated timestamp to latest message:', new Date(latestTime).toISOString());
-        }
-      } else {
-        // No messages, set to current time
-        window.chatLastViewedTimes[key] = Date.now();
       }
       
       // Show notification for new messages
