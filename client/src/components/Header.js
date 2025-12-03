@@ -101,11 +101,15 @@ const Header = ({ user, isMenuOpen, toggleMenu }) => {
     return icons[type] || '📋';
   };
 
+  const handleBrandClick = () => {
+    navigate('/');
+  };
+
   return (
     <header>
       <div className="header-container">
         <div className="brand-section">
-          <div className="brand-logo">
+          <div className="brand-logo" onClick={handleBrandClick}>
             <div className="logo-icon">I</div>
             <span className="brand-name">Integrant Platform</span>
           </div>

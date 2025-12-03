@@ -89,6 +89,13 @@ code {
   padding: 0 24px;
 }
 
+/* Standard Page Container - Applied to all pages */
+.page-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
 /* Professional Typography */
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;

@@ -243,9 +243,11 @@ function MainApp() {
         <aside className={isMenuOpen ? 'sidebar-nav nav-open' : 'sidebar-nav'}>
           <nav>
             <ul>
+              {/* Dashboard & Communication */}
               <li className="nav-item-with-badge">
                 <Link to="/" onClick={closeMenu}>
-                  Home
+                  <span className="nav-icon">🏠</span>
+                  <span className="nav-text">Home</span>
                   {newAnnouncementsCount > 0 && (
                     <span className="nav-notification-badge">{newAnnouncementsCount > 99 ? '99+' : newAnnouncementsCount}</span>
                   )}
@@ -253,71 +255,86 @@ function MainApp() {
               </li>
               <li className="nav-item-with-badge">
                 <Link to="/chat" onClick={closeMenu}>
-                  Chat
+                  <span className="nav-icon">💬</span>
+                  <span className="nav-text">Chat</span>
                   <ChatNotificationBadge 
                     userId={user?.id} 
                     onCountChange={(count) => setUnreadChatsCount(count)}
                   />
                 </Link>
               </li>
-              <li><Link to="/documents" onClick={closeMenu}>My Documents</Link></li>
-              <li><Link to="/accounts" onClick={closeMenu}>My Accounts</Link></li>
+              
+              {/* Personal */}
+              <li><Link to="/accounts" onClick={closeMenu}><span className="nav-icon">👤</span><span className="nav-text">My Accounts</span></Link></li>
+              <li><Link to="/documents" onClick={closeMenu}><span className="nav-icon">📄</span><span className="nav-text">My Documents</span></Link></li>
+              <li className="nav-item-with-badge">
+                <Link to="/payments" onClick={closeMenu}>
+                  <span className="nav-icon">💳</span>
+                  <span className="nav-text">Payments</span>
+                  {pendingBillsCount > 0 && (
+                    <span className="nav-notification-badge">{pendingBillsCount > 99 ? '99+' : pendingBillsCount}</span>
+                  )}
+                </Link>
+              </li>
+              
+              {/* Organization */}
               <li className="nav-item-with-badge">
                 <Link to="/org-documents" onClick={closeMenu}>
-                  Org Documents
+                  <span className="nav-icon">🏢</span>
+                  <span className="nav-text">Org Documents</span>
                   {newOrgDocsCount > 0 && (
                     <span className="nav-notification-badge">{newOrgDocsCount > 99 ? '99+' : newOrgDocsCount}</span>
                   )}
                 </Link>
               </li>
+              <PermissionGuard requiredPage="invitations">
+                <li><Link to="/members" onClick={closeMenu}><span className="nav-icon">👨‍👩‍👧‍👦</span><span className="nav-text">Members</span></Link></li>
+              </PermissionGuard>
+              
+              {/* Management (Account Owner & Sub Owner) */}
+              <PermissionGuard requiredRole="account_owner">
+                <li><Link to="/announcements" onClick={closeMenu}><span className="nav-icon">📢</span><span className="nav-text">Announcements</span></Link></li>
+              </PermissionGuard>
+              <PermissionGuard requiredPage="invitations">
+                <li><Link to="/invitations" onClick={closeMenu}><span className="nav-icon">✉️</span><span className="nav-text">Invite Team</span></Link></li>
+              </PermissionGuard>
               <PermissionGuard requiredRoles={['account_owner', 'sub_account_owner']}>
                 <li className="nav-item-with-badge">
                   <Link to="/member-documents" onClick={closeMenu}>
-                    Member Documents
+                    <span className="nav-icon">📂</span>
+                    <span className="nav-text">Member Documents</span>
                     {newDocumentsCount > 0 && (
                       <span className="nav-notification-badge">{newDocumentsCount > 99 ? '99+' : newDocumentsCount}</span>
                     )}
                   </Link>
                 </li>
               </PermissionGuard>
-              <PermissionGuard requiredRole="admin">
-                <li><Link to="/demo-permissions" onClick={closeMenu}>Permissions Demo</Link></li>
-              </PermissionGuard>
-              <PermissionGuard requiredRole="admin">
-                <li><Link to="/registered-users" onClick={closeMenu}>Users</Link></li>
-              </PermissionGuard>
-              <PermissionGuard requiredPage="admin">
-                <li><Link to="/admin" onClick={closeMenu}>Admin Panel</Link></li>
-              </PermissionGuard>
-              <PermissionGuard requiredRole="account_owner">
-                <li><Link to="/announcements" onClick={closeMenu}>Announcements</Link></li>
-              </PermissionGuard>
-              <PermissionGuard requiredPage="invitations">
-                <li><Link to="/invitations" onClick={closeMenu}>Invite Team</Link></li>
-              </PermissionGuard>
-              <PermissionGuard requiredPage="invitations">
-                <li><Link to="/members" onClick={closeMenu}>Members</Link></li>
-              </PermissionGuard>
               <PermissionGuard requiredPage="billing">
                 <li className="nav-item-with-badge">
                   <Link to="/billing" onClick={closeMenu}>
-                    Billing
+                    <span className="nav-icon">💰</span>
+                    <span className="nav-text">Billing</span>
                     {newPaymentsCount > 0 && (
                       <span className="nav-notification-badge">{newPaymentsCount > 99 ? '99+' : newPaymentsCount}</span>
                     )}
                   </Link>
                 </li>
               </PermissionGuard>
-              <li className="nav-item-with-badge">
-                <Link to="/payments" onClick={closeMenu}>
-                  Payments
-                  {pendingBillsCount > 0 && (
-                    <span className="nav-notification-badge">{pendingBillsCount > 99 ? '99+' : pendingBillsCount}</span>
-                  )}
-                </Link>
-              </li>
-              <li><Link to="/about" onClick={closeMenu}>About</Link></li>
-              <li><Link to="/about-platform" onClick={closeMenu}>About Platform</Link></li>
+              
+              {/* Admin */}
+              <PermissionGuard requiredPage="admin">
+                <li><Link to="/admin" onClick={closeMenu}><span className="nav-icon">⚙️</span><span className="nav-text">Admin Panel</span></Link></li>
+              </PermissionGuard>
+              <PermissionGuard requiredRole="admin">
+                <li><Link to="/registered-users" onClick={closeMenu}><span className="nav-icon">👥</span><span className="nav-text">Users</span></Link></li>
+              </PermissionGuard>
+              <PermissionGuard requiredRole="admin">
+                <li><Link to="/demo-permissions" onClick={closeMenu}><span className="nav-icon">🔐</span><span className="nav-text">Permissions Demo</span></Link></li>
+              </PermissionGuard>
+              
+              {/* Information */}
+              <li><Link to="/about" onClick={closeMenu}><span className="nav-icon">ℹ️</span><span className="nav-text">About</span></Link></li>
+              <li><Link to="/about-platform" onClick={closeMenu}><span className="nav-icon">🚀</span><span className="nav-text">About Platform</span></Link></li>
             </ul>
           </nav>
         </aside>
