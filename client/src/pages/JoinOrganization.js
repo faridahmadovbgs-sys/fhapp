@@ -252,8 +252,8 @@ const JoinOrganization = () => {
               id="invitationLink"
               value={invitationLink}
               onChange={(e) => setInvitationLink(e.target.value)}
-              placeholder="Paste the invitation link here (e.g., https://example.com/register/member?token=...)"
-              rows={4}
+              placeholder="Paste invitation link or token here"
+              rows={3}
               disabled={loading}
               required
             />
@@ -347,6 +347,22 @@ const JoinOrganization = () => {
           <div className="help-text">
             <p><strong>Don't have an invitation link?</strong></p>
             <p>Ask your organization's owner or sub-account owner to create one for you from their Invitation Manager.</p>
+          </div>
+
+          <div className="roles-info" style={{marginTop: '16px'}}>
+            <h3>👥 Role Types</h3>
+            <div className="role-card" style={{background: '#fff8e1', border: '1.5px solid #ffc107', padding: '8px', borderRadius: '6px', marginBottom: '8px'}}>
+              <div style={{fontWeight: '600', fontSize: '12px', color: '#f57f17', marginBottom: '3px'}}>👑 Account Owner - $49.99/month</div>
+              <div style={{fontSize: '11px', color: '#666', lineHeight: '1.4'}}>Full administrative privileges, manage billing, settings, permissions, sub-profiles, and users</div>
+            </div>
+            <div className="role-card" style={{background: '#e8f5e9', border: '1.5px solid #4caf50', padding: '8px', borderRadius: '6px', marginBottom: '8px'}}>
+              <div style={{fontWeight: '600', fontSize: '12px', color: '#2e7d32', marginBottom: '3px'}}>👤 Sub-Account Owner - 1st FREE, $9.99/month each additional</div>
+              <div style={{fontSize: '11px', color: '#666', lineHeight: '1.4'}}>Manage sub-profiles, add/remove users, oversee specific business units or projects</div>
+            </div>
+            <div className="role-card" style={{background: '#e3f2fd', border: '1.5px solid #2196f3', padding: '8px', borderRadius: '6px'}}>
+              <div style={{fontWeight: '600', fontSize: '12px', color: '#1565c0', marginBottom: '3px'}}>👥 Member - $0.99 per transaction</div>
+              <div style={{fontSize: '11px', color: '#666', lineHeight: '1.4'}}>Limited permissions, view and interact with assigned resources</div>
+            </div>
           </div>
         </div>
       </div>
