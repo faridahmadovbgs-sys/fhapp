@@ -10,7 +10,8 @@ const InvitationManager = () => {
   const { user } = useAuth();
   const { userRole } = useAuthorization();
   const isSubAccountOwner = userRole === 'sub_account_owner';
-  const [invitation, setInvitation] = useState(null);
+  const [invitation, setInvitation] = useState(null); // Member invitation
+  const [subOwnerInvitation, setSubOwnerInvitation] = useState(null); // Sub-account owner invitation
   const [invitedUsers, setInvitedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copying, setCopying] = useState(false);
@@ -97,43 +98,74 @@ const InvitationManager = () => {
       console.log('📊 Invitation Org ID:', invitationResult?.organizationId);
       console.log('📊 Invitation link token:', invitationResult?.link?.split('token=')[1]);
       
-      // If no invitation exists OR invitation doesn't match the organization, create one
+      // If no MEMBER invitation exists OR invitation doesn't match the organization, create one
       if (!invitationResult || invitationResult.organizationId !== selectedOrg.id) {
-        console.log('⚠️ No invitation found, creating new one...');
+        console.log('⚠️ No member invitation found, creating new one...');
         try {
           const { createInvitationLink } = await import('../services/invitationService');
           
-          // Get user's sub-account name if they're a sub-account owner
+          // Check if user is a sub-account owner for THIS specific organization
+          // (not owner of the org, but invited as sub-account owner)
+          const { doc, getDoc } = await import('firebase/firestore');
+          const { db } = await import('../config/firebase');
+          const userDoc = await getDoc(doc(db, 'users', user.id));
+          
+          let subAccountOwnerId = null;
           let subAccountName = null;
-          if (isSubAccountOwner) {
-            const { doc, getDoc } = await import('firebase/firestore');
-            const { db } = await import('../config/firebase');
-            const userDoc = await getDoc(doc(db, 'users', user.id));
-            if (userDoc.exists()) {
-              subAccountName = userDoc.data().subAccountName || null;
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            // Check if user is NOT the owner but IS a sub-account owner for this org
+            if (selectedOrg.ownerId !== user.id && userData.subAccountOwners && userData.subAccountOwners[selectedOrg.id]) {
+              subAccountOwnerId = user.id;
+              subAccountName = userData.subAccountOwners[selectedOrg.id].ownerName || userData.subAccountName || null;
             }
           }
           
+          // Create MEMBER invitation
           invitationResult = await createInvitationLink(
             user.id, 
             user.email, 
             selectedOrg.name,
             selectedOrg.id,
-            isSubAccountOwner ? user.id : null,
-            subAccountName
+            subAccountOwnerId,
+            subAccountName,
+            'member'  // Member role
           );
-          console.log('✅ New invitation created:', invitationResult);
-          setSuccess('✅ Invitation link created successfully!');
+          console.log('✅ New member invitation created:', invitationResult);
+          setSuccess('✅ Member invitation link created successfully!');
           setTimeout(() => setSuccess(''), 3000);
         } catch (createError) {
-          console.error('❌ Failed to create invitation:', createError);
-          setError('Could not create invitation link: ' + createError.message);
+          console.error('❌ Failed to create member invitation:', createError);
+          setError('Could not create member invitation link: ' + createError.message);
         }
       }
       
       if (invitationResult) {
-        console.log('✅ Invitation found');
+        console.log('✅ Member invitation found');
         setInvitation(invitationResult);
+      }
+
+      // If user is account owner (not sub-account owner), create SUB-ACCOUNT OWNER invitation too
+      if (!isSubAccountOwner && selectedOrg.ownerId === user.id) {
+        try {
+          const { createInvitationLink } = await import('../services/invitationService');
+          
+          // Create SUB-ACCOUNT OWNER invitation
+          const subOwnerResult = await createInvitationLink(
+            user.id,
+            user.email,
+            selectedOrg.name,
+            selectedOrg.id,
+            null,
+            null,
+            'sub_account_owner'  // Sub-account owner role
+          );
+          console.log('✅ Sub-account owner invitation created:', subOwnerResult);
+          setSubOwnerInvitation(subOwnerResult);
+        } catch (createError) {
+          console.error('❌ Failed to create sub-account owner invitation:', createError);
+        }
       }
 
       // Load invited users for the selected organization
@@ -244,26 +276,28 @@ const InvitationManager = () => {
               </div>
 
               {/* Sub Account Owner Invitation Link - Only visible to account owners */}
-              {!isSubAccountOwner && (
+              {!isSubAccountOwner && subOwnerInvitation && (
                 <div className="invitation-box">
                   <h3>👑 Sub Account Owner Invitation Link</h3>
                   
                   <div className="organization-info">
-                    <p><strong>Organization:</strong> {invitation.organizationName}</p>
+                    <p><strong>Organization:</strong> {subOwnerInvitation.organizationName}</p>
+                    <p style={{fontSize: '14px', color: '#666', marginTop: '8px'}}>
+                      People joining with this link will become sub-account owners with invitation and billing management permissions.
+                    </p>
                   </div>
 
                   <div className="link-display">
                     <div className="link-input-group">
                       <input 
                         type="text" 
-                        value={invitation.link.replace('/register/member?', '/register/sub-owner?')} 
+                        value={subOwnerInvitation.link} 
                         readOnly 
                         className="link-input"
                       />
                       <button 
                         onClick={() => {
-                          const subOwnerLink = invitation.link.replace('/register/member?', '/register/sub-owner?');
-                          navigator.clipboard.writeText(subOwnerLink);
+                          navigator.clipboard.writeText(subOwnerInvitation.link);
                           setCopying(true);
                           setSuccess('✅ Sub Account Owner link copied to clipboard!');
                           setTimeout(() => {

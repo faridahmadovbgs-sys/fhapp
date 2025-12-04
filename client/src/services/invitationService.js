@@ -2,9 +2,9 @@ import { db } from '../config/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
 
 // Generate a unique invitation link for account owner or sub-account owner
-export const createInvitationLink = async (userId, email, organizationName, organizationId, subAccountOwnerId = null, subAccountName = null) => {
+export const createInvitationLink = async (userId, email, organizationName, organizationId, subAccountOwnerId = null, subAccountName = null, role = 'member') => {
   try {
-    console.log('🔗 Creating invitation link for:', { userId, email, organizationName, organizationId, subAccountOwnerId, subAccountName });
+    console.log('🔗 Creating invitation link for:', { userId, email, organizationName, organizationId, subAccountOwnerId, subAccountName, role });
     
     if (!db) {
       throw new Error('Firebase Firestore not available');
@@ -27,7 +27,7 @@ export const createInvitationLink = async (userId, email, organizationName, orga
       organizationName: organizationName,
       organizationId: organizationId,
       token: token,
-      role: 'user', // Default role for member invitations
+      role: role === 'sub_account_owner' ? 'sub_account_owner' : 'member', // Support both member and sub_account_owner
       status: 'active',
       createdAt: serverTimestamp(),
       expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year expiry

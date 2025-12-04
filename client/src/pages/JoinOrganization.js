@@ -182,14 +182,24 @@ const JoinOrganization = () => {
         organizations: arrayUnion(invitationData.organizationId)
       };
 
-      // Store sub-account owner info in a map structure for each organization
+      // If invitation grants sub_account_owner role, store that role for this org
+      if (invitationData.role === 'sub_account_owner') {
+        updateData[`organizationRoles.${invitationData.organizationId}`] = 'sub_account_owner';
+        console.log('👨‍💼 User joining as sub-account owner');
+      }
+      // Otherwise store as member (default)
+      else {
+        updateData[`organizationRoles.${invitationData.organizationId}`] = 'member';
+      }
+
+      // Store sub-account owner info if joining under someone's sub-account
       if (invitationData.subAccountOwnerId && invitationData.subAccountName) {
         updateData[`subAccountOwners.${invitationData.organizationId}`] = {
           ownerId: invitationData.subAccountOwnerId,
           ownerName: invitationData.subAccountName,
           joinedAt: new Date()
         };
-        console.log('👨‍💼 Member joining under sub-account owner:', invitationData.subAccountName);
+        console.log('📋 Joined under sub-account owner:', invitationData.subAccountName);
       }
       
       if (userDoc.exists()) {

@@ -2,32 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAccount } from '../contexts/AccountContext';
-import { useAuthorization } from '../contexts/AuthorizationContext';
 import { useOrganization } from '../contexts/OrganizationContext';
 import OrganizationSwitcher from './OrganizationSwitcher';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import axios from 'axios';
 
 const Header = ({ user, isMenuOpen, toggleMenu, unreadChatsCount = 0 }) => {
   const { logout } = useAuth();
   const { activeAccount, operatingAsUser } = useAccount();
-  const { userRole: contextRole } = useAuthorization();
-  const { organizations, currentOrgRole } = useOrganization();
+  const { organizations } = useOrganization();
   const navigate = useNavigate();
   const [photoURL, setPhotoURL] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [userRole, setUserRole] = useState(contextRole || null);
-
-  // Update role when currentOrgRole changes (from organization switching)
-  useEffect(() => {
-    if (currentOrgRole) {
-      console.log('🔄 [Header] Updating role from org context:', currentOrgRole);
-      setUserRole(currentOrgRole);
-    } else if (contextRole) {
-      setUserRole(contextRole);
-    }
-  }, [currentOrgRole, contextRole]);
 
   useEffect(() => {
     const fetchUserPhoto = async () => {
@@ -62,58 +48,12 @@ const Header = ({ user, isMenuOpen, toggleMenu, unreadChatsCount = 0 }) => {
     };
   }, [user, refreshKey]);
 
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      if (!user?.uid) return;
-
-      try {
-        // First try MongoDB backend API
-        try {
-          const response = await axios.get(`http://localhost:5000/api/users/uid/${user.uid}`);
-          if (response.data.success && response.data.data) {
-            setUserRole(response.data.data.role || 'user');
-            return;
-          }
-        } catch (apiError) {
-          console.log('MongoDB API not available, trying Firebase...');
-        }
-
-        // Fallback to Firebase if MongoDB fails
-        if (user?.id && db) {
-          const userDoc = await getDoc(doc(db, 'users', user.id));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setUserRole(userData.role || 'user');
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching user role:', error);
-        setUserRole('user');
-      }
-    };
-
-    fetchUserRole();
-  }, [user]);
-
   const handleLogout = () => {
     logout();
   };
 
   const handleProfileClick = () => {
     navigate('/profile');
-  };
-
-  const getAccountIcon = (type) => {
-    const icons = {
-      'personal': '👤',
-      'llc': '🏢',
-      'trust': '🏛️',
-      'corporation': '🏭',
-      'partnership': '🤝',
-      'nonprofit': '❤️',
-      'other': '📋'
-    };
-    return icons[type] || '📋';
   };
 
   const handleBrandClick = () => {
@@ -151,8 +91,8 @@ const Header = ({ user, isMenuOpen, toggleMenu, unreadChatsCount = 0 }) => {
 
         {user && (
           <>
-            {/* Organization Switcher - Only show if user has multiple organizations */}
-            {organizations && organizations.length > 1 && (
+            {/* Organization Switcher - Shows org and role */}
+            {organizations && organizations.length > 0 && (
               <OrganizationSwitcher />
             )}
 
@@ -170,32 +110,21 @@ const Header = ({ user, isMenuOpen, toggleMenu, unreadChatsCount = 0 }) => {
               </button>
             )}
             <div className="user-info">
-            <div className="user-profile-section" onClick={handleProfileClick}>
-              <span className="welcome-text">
-                Welcome, {user.name || user.email}!
-                {userRole && (
-                  <span className="user-role-badge">
-                    {userRole === 'account_owner' ? '👑 Account Owner' : 
-                     userRole === 'sub_account_owner' ? '👨‍💼 Sub Account Owner' : 
-                     userRole === 'admin' ? '⚙️ Admin' : 
-                     '👤 Member'}
-                  </span>
-                )}
-              </span>
-              <div className="user-avatar-header">
-                {photoURL ? (
-                  <img src={photoURL} alt={user.name || user.email} className="user-avatar-photo-header" />
-                ) : (
-                  <div className="user-avatar-initial-header">
-                    {(user.name || user.email)?.charAt(0).toUpperCase() || '?'}
-                  </div>
-                )}
+              <div className="user-profile-section" onClick={handleProfileClick}>
+                <div className="user-avatar-header">
+                  {photoURL ? (
+                    <img src={photoURL} alt={user.name || user.email} className="user-avatar-photo-header" />
+                  ) : (
+                    <div className="user-avatar-initial-header">
+                      {(user.name || user.email)?.charAt(0).toUpperCase() || '?'}
+                    </div>
+                  )}
+                </div>
               </div>
+              <button onClick={handleLogout} className="logout-button">
+                Logout
+              </button>
             </div>
-            <button onClick={handleLogout} className="logout-button">
-              Logout
-            </button>
-          </div>
           </>
         )}
       </div>

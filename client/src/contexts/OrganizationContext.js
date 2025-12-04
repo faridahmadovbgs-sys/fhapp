@@ -46,13 +46,21 @@ export const OrganizationProvider = ({ children }) => {
           let role = 'member';
           let subAccountOwner = null;
 
-          // Check if user is the organization owner
+          // Check if user is the organization owner (they're always account_owner for their own org)
           if (org.ownerId === user.id) {
-            role = userData.role === 'sub_account_owner' ? 'sub_account_owner' : 'account_owner';
+            role = 'account_owner';
           } 
-          // Check if user has a sub-account owner role in this org
+          // Check if user has an explicit organization role (from invitation)
+          else if (userData.organizationRoles && userData.organizationRoles[org.id]) {
+            role = userData.organizationRoles[org.id];
+            // If they're a sub_account_owner and have sub-account info, get it
+            if (role === 'sub_account_owner' && userData.subAccountOwners && userData.subAccountOwners[org.id]) {
+              subAccountOwner = userData.subAccountOwners[org.id].ownerName;
+            }
+          }
+          // Legacy: Check if user has a sub-account owner info (old logic)
           else if (userData.subAccountOwners && userData.subAccountOwners[org.id]) {
-            role = 'sub_account_owner';
+            role = 'member'; // They're under a sub-account owner but are themselves a member
             subAccountOwner = userData.subAccountOwners[org.id].ownerName;
           }
 
@@ -114,9 +122,14 @@ export const OrganizationProvider = ({ children }) => {
         let subAccountOwner = null;
 
         if (org.ownerId === user.id) {
-          role = userData.role === 'sub_account_owner' ? 'sub_account_owner' : 'account_owner';
+          role = 'account_owner';
+        } else if (userData.organizationRoles && userData.organizationRoles[org.id]) {
+          role = userData.organizationRoles[org.id];
+          if (role === 'sub_account_owner' && userData.subAccountOwners && userData.subAccountOwners[org.id]) {
+            subAccountOwner = userData.subAccountOwners[org.id].ownerName;
+          }
         } else if (userData.subAccountOwners && userData.subAccountOwners[org.id]) {
-          role = 'sub_account_owner';
+          role = 'member';
           subAccountOwner = userData.subAccountOwners[org.id].ownerName;
         }
 
