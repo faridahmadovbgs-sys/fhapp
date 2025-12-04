@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAccount } from '../contexts/AccountContext';
+import { useAuthorization } from '../contexts/AuthorizationContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import axios from 'axios';
@@ -9,10 +10,11 @@ import axios from 'axios';
 const Header = ({ user, isMenuOpen, toggleMenu, unreadChatsCount = 0 }) => {
   const { logout } = useAuth();
   const { activeAccount, operatingAsUser } = useAccount();
+  const { userRole: contextRole } = useAuthorization();
   const navigate = useNavigate();
   const [photoURL, setPhotoURL] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [userRole, setUserRole] = useState(null);
+  const [userRole, setUserRole] = useState(contextRole || null);
 
   useEffect(() => {
     const fetchUserPhoto = async () => {
@@ -46,6 +48,13 @@ const Header = ({ user, isMenuOpen, toggleMenu, unreadChatsCount = 0 }) => {
       window.removeEventListener('profilePhotoUpdated', handleStorageChange);
     };
   }, [user, refreshKey]);
+
+  // Update role from context whenever it changes
+  useEffect(() => {
+    if (contextRole) {
+      setUserRole(contextRole);
+    }
+  }, [contextRole]);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -155,10 +164,10 @@ const Header = ({ user, isMenuOpen, toggleMenu, unreadChatsCount = 0 }) => {
                 Welcome, {user.name || user.email}!
                 {userRole && (
                   <span className="user-role-badge">
-                    {userRole === 'account_owner' ? ' 👑 Account Owner' : 
-                     userRole === 'sub_account_owner' ? ' 👑 Sub Account Owner' : 
-                     userRole === 'admin' ? ' ⚙️ Admin' : 
-                     ' 👤 Member'}
+                    {userRole === 'account_owner' ? '👑 Account Owner' : 
+                     userRole === 'sub_account_owner' ? '👨‍💼 Sub Account Owner' : 
+                     userRole === 'admin' ? '⚙️ Admin' : 
+                     '👤 Member'}
                   </span>
                 )}
               </span>

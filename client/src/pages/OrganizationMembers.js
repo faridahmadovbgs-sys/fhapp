@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserOrganizations } from '../services/organizationService';
+import { getAllUserOrganizations } from '../services/organizationService';
 import { collection, query, where, getDocs, doc, updateDoc, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import './OrganizationMembers.css';
@@ -30,7 +30,7 @@ const OrganizationMembers = () => {
       if (!user?.id) return;
       
       try {
-        const result = await getUserOrganizations(user.id);
+        const result = await getAllUserOrganizations(user.id);
         setOrganizations(result.organizations);
         
         if (result.organizations.length > 0 && !selectedOrg) {

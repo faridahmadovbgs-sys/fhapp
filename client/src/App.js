@@ -26,6 +26,7 @@ import OrganizationDocuments from './pages/OrganizationDocuments';
 import MemberDocuments from './pages/MemberDocuments';
 import AnnouncementManager from './pages/AnnouncementManager';
 import AccountManager from './pages/AccountManager';
+import JoinOrganization from './pages/JoinOrganization';
 import ChatNotificationBadge from './components/ChatNotificationBadge';
 import apiService from './services/apiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -286,7 +287,9 @@ function MainApp() {
               </li>
               
               {/* Personal */}
-              <li><Link to="/accounts" onClick={closeMenu}><span className="nav-icon">👤</span><span className="nav-text">My Accounts</span></Link></li>
+              <li><Link to="/profile" onClick={closeMenu}><span className="nav-icon">👤</span><span className="nav-text">Profile</span></Link></li>
+              <li><Link to="/join-organization" onClick={closeMenu}><span className="nav-icon">🔗</span><span className="nav-text">Join Organization</span></Link></li>
+              <li><Link to="/accounts" onClick={closeMenu}><span className="nav-icon">🏦</span><span className="nav-text">My Accounts</span></Link></li>
               <li><Link to="/documents" onClick={closeMenu}><span className="nav-icon">📄</span><span className="nav-text">My Documents</span></Link></li>
               <li className="nav-item-with-badge">
                 <Link to="/payments" onClick={closeMenu}>
@@ -367,6 +370,7 @@ function MainApp() {
               <Route path="/" element={<Home data={data} />} />
               <Route path="/about" element={<About />} />
               <Route path="/about-platform" element={<AboutPlatform />} />
+              <Route path="/join-organization" element={<JoinOrganization />} />
               <Route 
                 path="/demo-permissions" 
                 element={

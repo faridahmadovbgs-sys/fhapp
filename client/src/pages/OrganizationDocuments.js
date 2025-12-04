@@ -14,7 +14,7 @@ import {
   arrayUnion
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { getUserOrganizations, getUserMemberOrganizations } from '../services/organizationService';
+import { getAllUserOrganizations, getUserMemberOrganizations } from '../services/organizationService';
 import OrganizationNotificationBadge from '../components/OrganizationNotificationBadge';
 import '../components/OrganizationNotificationBadge.css';
 import './OrganizationDocuments.css';
@@ -66,7 +66,7 @@ const OrganizationDocuments = () => {
         setLoading(true);
         
         // Try to get organizations where user is owner first
-        let result = await getUserOrganizations(user.id);
+        let result = await getAllUserOrganizations(user.id);
         let orgs = result.organizations || [];
         
         // If no owned organizations, try to get organizations where user is a member

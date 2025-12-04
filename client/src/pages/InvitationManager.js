@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAuthorization } from '../contexts/AuthorizationContext';
 import { getAccountOwnerInvitationLink, getInvitedUsers } from '../services/invitationService';
-import { getUserOrganizations, getUserMemberOrganizations } from '../services/organizationService';
+import { getAllUserOrganizations, getUserMemberOrganizations } from '../services/organizationService';
 import './InvitationManager.css';
 import './PersonalDocuments.css';
 
@@ -30,7 +30,7 @@ const InvitationManager = () => {
         console.log('🔍 Fetching organizations for user:', user.id);
         
         // Get organizations where user is owner
-        const ownerResult = await getUserOrganizations(user.id);
+        const ownerResult = await getAllUserOrganizations(user.id);
         console.log('👑 Owner organizations:', ownerResult.organizations.length);
         
         // Get organizations where user is a member
@@ -102,11 +102,25 @@ const InvitationManager = () => {
         console.log('⚠️ No invitation found, creating new one...');
         try {
           const { createInvitationLink } = await import('../services/invitationService');
+          
+          // Get user's sub-account name if they're a sub-account owner
+          let subAccountName = null;
+          if (isSubAccountOwner) {
+            const { doc, getDoc } = await import('firebase/firestore');
+            const { db } = await import('../config/firebase');
+            const userDoc = await getDoc(doc(db, 'users', user.id));
+            if (userDoc.exists()) {
+              subAccountName = userDoc.data().subAccountName || null;
+            }
+          }
+          
           invitationResult = await createInvitationLink(
             user.id, 
             user.email, 
             selectedOrg.name,
-            selectedOrg.id
+            selectedOrg.id,
+            isSubAccountOwner ? user.id : null,
+            subAccountName
           );
           console.log('✅ New invitation created:', invitationResult);
           setSuccess('✅ Invitation link created successfully!');

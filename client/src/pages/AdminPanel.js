@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuthorization } from '../contexts/AuthorizationContext';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/apiService';
-import { getUserOrganizations, createOrganization } from '../services/organizationService';
+import { getAllUserOrganizations, createOrganization } from '../services/organizationService';
 import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import '../components/AdminPanel.css';
@@ -92,7 +92,7 @@ const AdminPanel = () => {
 
         // For account owners, fetch their organizations first
         if (userRole === 'account_owner' || userRole === 'sub_account_owner') {
-          const orgsResult = await getUserOrganizations(currentUser.id);
+          const orgsResult = await getAllUserOrganizations(currentUser.id);
           const orgs = orgsResult.organizations || [];
           setOrganizations(orgs);
           
@@ -233,7 +233,7 @@ const AdminPanel = () => {
     
     try {
       setOrgLoading(true);
-      const result = await getUserOrganizations(currentUser.id);
+      const result = await getAllUserOrganizations(currentUser.id);
       setOrganizations(result.organizations);
     } catch (err) {
       console.error('Error fetching organizations:', err);

@@ -125,6 +125,56 @@ export const getUserMemberOrganizations = async (userId) => {
   }
 };
 
+// Get ALL organizations for a user (owned + member of)
+export const getAllUserOrganizations = async (userId) => {
+  try {
+    if (!db || !userId) {
+      throw new Error('Invalid parameters');
+    }
+
+    console.log('🔍 Fetching all organizations for user:', userId);
+
+    // Get organizations owned by user
+    const ownedOrgs = await getUserOrganizations(userId);
+    
+    // Get organizations user is a member of
+    const memberOrgs = await getUserMemberOrganizations(userId);
+
+    // Combine and deduplicate
+    const allOrgsMap = new Map();
+    
+    // Add owned organizations
+    if (ownedOrgs.success && ownedOrgs.organizations) {
+      ownedOrgs.organizations.forEach(org => {
+        allOrgsMap.set(org.id, { ...org, isOwner: true });
+      });
+    }
+    
+    // Add member organizations (don't override if already owned)
+    if (memberOrgs.success && memberOrgs.organizations) {
+      memberOrgs.organizations.forEach(org => {
+        if (!allOrgsMap.has(org.id)) {
+          allOrgsMap.set(org.id, { ...org, isOwner: false });
+        }
+      });
+    }
+
+    const organizations = Array.from(allOrgsMap.values());
+    console.log(`✅ Found total ${organizations.length} organizations for user (owned + member)`);
+
+    return {
+      success: true,
+      organizations: organizations
+    };
+  } catch (error) {
+    console.error('❌ Error fetching all user organizations:', error);
+    return {
+      success: false,
+      organizations: []
+    };
+  }
+};
+
 // Add member to organization
 export const addMemberToOrganization = async (organizationId, userId) => {
   try {

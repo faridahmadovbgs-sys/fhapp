@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserOrganizations, getOrganization, updateOrganization } from '../services/organizationService';
+import { getAllUserOrganizations, getOrganization, updateOrganization } from '../services/organizationService';
 import { getUserRoleFromDatabase } from '../services/roleService';
 import './About.css';
 
@@ -34,8 +34,8 @@ const About = () => {
         const role = await getUserRoleFromDatabase(user.id);
         setUserRole(role);
 
-        // Get user's organizations
-        const orgResult = await getUserOrganizations(user.id);
+        // Get ALL user's organizations (owned + member)
+        const orgResult = await getAllUserOrganizations(user.id);
         if (orgResult.success && orgResult.organizations.length > 0) {
           const orgs = orgResult.organizations;
           setUserOrganizations(orgs);

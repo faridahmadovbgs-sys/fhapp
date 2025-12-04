@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAccount } from '../contexts/AccountContext';
-import { getUserOrganizations, getUserMemberOrganizations, getOrganizationMembers } from '../services/organizationService';
+import { getAllUserOrganizations, getUserMemberOrganizations, getOrganizationMembers } from '../services/organizationService';
 import { 
   createBill, 
   getOrganizationBills, 
@@ -61,7 +61,7 @@ const BillingManagement = () => {
       
       try {
         // Fetch both owned and member organizations
-        const ownerResult = await getUserOrganizations(user.id);
+        const ownerResult = await getAllUserOrganizations(user.id);
         const memberResult = await getUserMemberOrganizations(user.id);
         
         // Combine and deduplicate organizations

@@ -1,10 +1,10 @@
 import { db } from '../config/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
 
-// Generate a unique invitation link for account owner
-export const createInvitationLink = async (userId, email, organizationName, organizationId) => {
+// Generate a unique invitation link for account owner or sub-account owner
+export const createInvitationLink = async (userId, email, organizationName, organizationId, subAccountOwnerId = null, subAccountName = null) => {
   try {
-    console.log('🔗 Creating invitation link for:', { userId, email, organizationName, organizationId });
+    console.log('🔗 Creating invitation link for:', { userId, email, organizationName, organizationId, subAccountOwnerId, subAccountName });
     
     if (!db) {
       throw new Error('Firebase Firestore not available');
@@ -21,7 +21,7 @@ export const createInvitationLink = async (userId, email, organizationName, orga
     console.log('📝 Token components:', { userId, timestamp, random1, random2, random3 });
 
     // Create invitation document
-    const invitationRef = await addDoc(collection(db, 'invitations'), {
+    const invitationData = {
       accountOwnerId: userId,
       accountOwnerEmail: email,
       organizationName: organizationName,
@@ -33,7 +33,16 @@ export const createInvitationLink = async (userId, email, organizationName, orga
       expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year expiry
       usedCount: 0,
       description: `Join ${organizationName}`
-    });
+    };
+
+    // Add sub-account owner info if provided
+    if (subAccountOwnerId && subAccountName) {
+      invitationData.subAccountOwnerId = subAccountOwnerId;
+      invitationData.subAccountName = subAccountName;
+      invitationData.description = `Join ${organizationName} - ${subAccountName}`;
+    }
+
+    const invitationRef = await addDoc(collection(db, 'invitations'), invitationData);
 
     console.log('✅ Invitation document created with ID:', invitationRef.id);
 

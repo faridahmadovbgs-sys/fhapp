@@ -4,7 +4,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useAuthorization } from '../contexts/AuthorizationContext';
 import { collection, addDoc, query, where, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { getUserOrganizations } from '../services/organizationService';
+import { getAllUserOrganizations } from '../services/organizationService';
 
 const InvitationManager = () => {
   const { user } = useAuth();
@@ -41,7 +41,7 @@ const InvitationManager = () => {
   const fetchOrganizations = async () => {
     try {
       const userId = user.uid || user.id;
-      const result = await getUserOrganizations(userId);
+      const result = await getAllUserOrganizations(userId);
       setOrganizations(result.organizations);
       
       // Auto-select first organization
