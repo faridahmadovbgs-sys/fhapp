@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserMemberOrganizations } from '../services/organizationService';
+import { useOrganization } from '../contexts/OrganizationContext';
 import OrganizationNotificationBadge from '../components/OrganizationNotificationBadge';
 import notificationService from '../services/notificationService';
 import '../components/OrganizationNotificationBadge.css';
@@ -27,8 +27,7 @@ const EMOJI_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '😸
 
 const ChatPage = () => {
   const { user: currentUser } = useAuth();
-  const [organizations, setOrganizations] = useState([]);
-  const [selectedOrganization, setSelectedOrganization] = useState(null);
+  const { organizations, currentOrganization } = useOrganization();
   const [mainTab, setMainTab] = useState('messages'); // 'messages' or 'groups'
   const [chatTab, setChatTab] = useState('public'); // 'public' or 'direct' (under messages)
   const [publicMessages, setPublicMessages] = useState([]);
@@ -138,35 +137,14 @@ const ChatPage = () => {
     initNotifications();
   }, [currentUser]);
 
-  // Fetch user's organizations
-  useEffect(() => {
-    if (!currentUser) return;
-
-    const fetchOrganizations = async () => {
-      try {
-        const result = await getUserMemberOrganizations(currentUser.id);
-        setOrganizations(result.organizations);
-        
-        // Auto-select first organization if available
-        if (result.organizations.length > 0 && !selectedOrganization) {
-          setSelectedOrganization(result.organizations[0]);
-        }
-      } catch (error) {
-        console.error('Error fetching organizations:', error);
-      }
-    };
-
-    fetchOrganizations();
-  }, [currentUser]);
-
   // Fetch organization members as users (including account owner)
   useEffect(() => {
-    if (!db || !currentUser || !selectedOrganization) return;
+    if (!db || !currentUser || !currentOrganization) return;
 
     // Fetch all members of the organization
     const fetchOrgMembers = async () => {
       try {
-        const memberIds = selectedOrganization.members || [];
+        const memberIds = currentOrganization.members || [];
         const usersList = [];
 
         // Fetch user details for each member
@@ -192,7 +170,7 @@ const ChatPage = () => {
               firstName: firstName,
               lastName: lastName,
               photoURL: userData.photoURL || userData.profilePictureUrl || null,
-              role: userData.uid === selectedOrganization.ownerId ? 'Account Owner' : 'Member'
+              role: userData.uid === currentOrganization.ownerId ? 'Account Owner' : 'Member'
             });
           });
         }
@@ -204,11 +182,11 @@ const ChatPage = () => {
     };
 
     fetchOrgMembers();
-  }, [currentUser, selectedOrganization]);
+  }, [currentUser, currentOrganization]);
 
   // Calculate unread message counts for each user
   useEffect(() => {
-    if (!db || !currentUser || !selectedOrganization || users.length === 0) return;
+    if (!db || !currentUser || !currentOrganization || users.length === 0) return;
 
     console.log('📊 Setting up unread counts listener');
 
@@ -248,15 +226,15 @@ const ChatPage = () => {
       console.log('📊 Cleaning up unread counts listeners');
       unsubscribers.forEach(unsub => unsub());
     };
-  }, [currentUser, selectedOrganization, users]);
+  }, [currentUser, currentOrganization, users]);
 
   // Fetch organization's groups
   useEffect(() => {
-    if (!db || !currentUser || !selectedOrganization) return;
+    if (!db || !currentUser || !currentOrganization) return;
 
     const groupsQuery = query(
       collection(db, 'groups'),
-      where('organizationId', '==', selectedOrganization.id)
+      where('organizationId', '==', currentOrganization.id)
     );
 
     const unsubscribe = onSnapshot(groupsQuery, (snapshot) => {
@@ -275,17 +253,17 @@ const ChatPage = () => {
     });
 
     return () => unsubscribe();
-  }, [currentUser, selectedOrganization]);
+  }, [currentUser, currentOrganization]);
 
   // Fetch organization public messages
   useEffect(() => {
-    if (!db || !selectedOrganization || !currentUser) return;
+    if (!db || !currentOrganization || !currentUser) return;
 
-    console.log('📊 Fetching messages for organization:', selectedOrganization.id, selectedOrganization.name);
+    console.log('📊 Fetching messages for organization:', currentOrganization.id, currentOrganization.name);
 
     const messagesQuery = query(
       collection(db, 'messages'),
-      where('organizationId', '==', selectedOrganization.id),
+      where('organizationId', '==', currentOrganization.id),
       where('isAnnouncement', '==', false),
       orderBy('__name__', 'asc'),
       limit(100)
@@ -298,7 +276,7 @@ const ChatPage = () => {
       snapshot.forEach((doc) => {
         const data = doc.data();
         // Additional safety check: only include messages that match the selected organization
-        if (data.organizationId === selectedOrganization.id) {
+        if (data.organizationId === currentOrganization.id) {
           messagesData.push({
             id: doc.id,
             ...data
@@ -334,7 +312,7 @@ const ChatPage = () => {
         newMessages.forEach(msg => {
           if (msg.userId !== currentUser.id && notificationsEnabled) {
             showNotification(
-              `${msg.userName || 'Someone'} in ${selectedOrganization.name}`,
+              `${msg.userName || 'Someone'} in ${currentOrganization.name}`,
               msg.text,
               'public'
             );
@@ -343,7 +321,7 @@ const ChatPage = () => {
       }
       previousMessageCountRef.current.public = messagesData.length;
       
-      console.log(`✅ Loaded ${messagesData.length} messages for organization: ${selectedOrganization.name}`);
+      console.log(`✅ Loaded ${messagesData.length} messages for organization: ${currentOrganization.name}`);
       setPublicMessages(messagesData);
     }, (error) => {
       console.error('Error fetching messages:', error);
@@ -351,10 +329,10 @@ const ChatPage = () => {
     });
 
     return () => {
-      console.log('📊 Cleaning up messages listener for:', selectedOrganization?.name);
+      console.log('📊 Cleaning up messages listener for:', currentOrganization?.name);
       unsubscribe();
     };
-  }, [selectedOrganization, currentUser, notificationsEnabled]);
+  }, [currentOrganization, currentUser, notificationsEnabled]);
 
   // Fetch private messages with selected user
   useEffect(() => {
@@ -553,17 +531,17 @@ const ChatPage = () => {
     
     console.log('📤 Attempting to send message...');
     console.log('Current user:', currentUser?.id, currentUser?.email);
-    console.log('Selected org:', selectedOrganization?.id, selectedOrganization?.name);
+    console.log('Selected org:', currentOrganization?.id, currentOrganization?.name);
     console.log('DB initialized:', !!db);
     console.log('Message:', newMessage.trim());
     
-    if (!newMessage.trim() || sending || !currentUser || !db || !selectedOrganization) {
+    if (!newMessage.trim() || sending || !currentUser || !db || !currentOrganization) {
       console.warn('❌ Message send blocked:', {
         hasMessage: !!newMessage.trim(),
         sending,
         hasUser: !!currentUser,
         hasDb: !!db,
-        hasOrg: !!selectedOrganization
+        hasOrg: !!currentOrganization
       });
       return;
     }
@@ -584,7 +562,7 @@ const ChatPage = () => {
         firstName: firstName,
         lastName: lastName,
         userEmail: currentUser.email,
-        organizationId: selectedOrganization.id,
+        organizationId: currentOrganization.id,
         isAnnouncement: false
       });
       console.log('✅ Message sent successfully! Doc ID:', docRef.id);
@@ -601,7 +579,7 @@ const ChatPage = () => {
 
   const sendGroupMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || sending || !currentUser || !selectedGroup || !db || !selectedOrganization) return;
+    if (!newMessage.trim() || sending || !currentUser || !selectedGroup || !db || !currentOrganization) return;
 
     setSending(true);
     try {
@@ -617,7 +595,7 @@ const ChatPage = () => {
         senderName: fullName,
         firstName: firstName,
         lastName: lastName,
-        organizationId: selectedOrganization.id,
+        organizationId: currentOrganization.id,
         viewedBy: [currentUser.id]
       });
       setNewMessage('');
@@ -633,7 +611,7 @@ const ChatPage = () => {
   };
 
   const createGroup = async () => {
-    if (!groupName.trim() || selectedMembers.length === 0 || !db || !currentUser || !selectedOrganization) {
+    if (!groupName.trim() || selectedMembers.length === 0 || !db || !currentUser || !currentOrganization) {
       alert('Please enter a group name and select at least one member');
       return;
     }
@@ -647,7 +625,7 @@ const ChatPage = () => {
         createdBy: currentUser.id,
         createdAt: serverTimestamp(),
         avatar: groupName.trim().charAt(0).toUpperCase(),
-        organizationId: selectedOrganization.id
+        organizationId: currentOrganization.id
       });
 
       setGroupName('');
@@ -814,7 +792,7 @@ const ChatPage = () => {
     <div className="chat-page">
       <div className="chat-page-header">
         {/* Mobile menu toggle - only show when org selected */}
-        {selectedOrganization && (
+        {currentOrganization && (
           <button 
             className="mobile-menu-toggle"
             onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
@@ -828,45 +806,27 @@ const ChatPage = () => {
           <h1>💬 Team Communication</h1>
           <p>Connect with your team through public chat, direct messages, and groups</p>
           
-          {/* Organization Selector */}
-          {organizations.length > 0 && (
-            <div className="organization-selector">
-              <label htmlFor="org-select">Organization:</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <select 
-                  id="org-select"
-                  value={selectedOrganization?.id || ''}
-                  onChange={(e) => {
-                    const org = organizations.find(o => o.id === e.target.value);
-                    setSelectedOrganization(org);
-                  }}
-                  className="org-dropdown"
-                >
-                  {organizations.map(org => (
-                    <option key={org.id} value={org.id}>
-                      {org.name}
-                    </option>
-                  ))}
-                </select>
-                {selectedOrganization && (
-                  <OrganizationNotificationBadge 
-                    organizationId={selectedOrganization.id} 
-                    userId={currentUser?.id || currentUser?.uid}
-                  />
-                )}
-              </div>
+          {/* Organization info from global context */}
+          {currentOrganization && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px', padding: '8px', background: '#f0f8ff', borderRadius: '6px' }}>
+              <span style={{ fontWeight: '600', fontSize: '13px' }}>Organization:</span>
+              <span style={{ fontWeight: '500', color: '#3b82f6', fontSize: '13px' }}>{currentOrganization.name}</span>
+              <OrganizationNotificationBadge 
+                organizationId={currentOrganization.id} 
+                userId={currentUser?.id || currentUser?.uid}
+              />
             </div>
           )}
         </div>
         
-        {!selectedOrganization && organizations.length === 0 && (
+        {!currentOrganization && organizations.length === 0 && (
           <div className="no-organization">
             <p>You are not a member of any organization yet.</p>
           </div>
         )}
       </div>
 
-      {selectedOrganization && (
+      {currentOrganization && (
         <>
           {/* Mobile sidebar overlay */}
           <div 

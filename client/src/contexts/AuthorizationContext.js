@@ -192,6 +192,24 @@ export const AuthorizationProvider = ({ children }) => {
     fetchUserPermissions();
   }, [user, isAuthenticated]);
 
+  // Listen for organization role changes
+  useEffect(() => {
+    const handleOrgRoleChange = (event) => {
+      const { role } = event.detail;
+      if (role) {
+        console.log('🔄 [AuthContext] Organization role changed to:', role);
+        setUserRole(role);
+        setPermissions(rolePermissions[role] || rolePermissions.user);
+      }
+    };
+
+    window.addEventListener('organizationRoleChanged', handleOrgRoleChange);
+    
+    return () => {
+      window.removeEventListener('organizationRoleChanged', handleOrgRoleChange);
+    };
+  }, []);
+
   // Check if user has permission for a specific page
   const hasPagePermission = (pageName) => {
     if (!isAuthenticated) return false;
@@ -290,6 +308,15 @@ export const AuthorizationProvider = ({ children }) => {
     }
   };
 
+  // Update role for organization context (called when switching orgs)
+  const setOrganizationRole = (orgRole) => {
+    if (!orgRole) return;
+    
+    console.log('🔄 [AuthContext] Setting organization role:', orgRole);
+    setUserRole(orgRole);
+    setPermissions(rolePermissions[orgRole] || rolePermissions.user);
+  };
+
   const value = {
     permissions,
     userRole,
@@ -300,6 +327,7 @@ export const AuthorizationProvider = ({ children }) => {
     hasAnyRole,
     updateUserPermissions,
     updateUserRole,
+    setOrganizationRole,
     getAllPermissions,
     getAllRoles,
     rolePermissions,

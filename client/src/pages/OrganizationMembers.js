@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getAllUserOrganizations } from '../services/organizationService';
+import { useOrganization } from '../contexts/OrganizationContext';
 import { collection, query, where, getDocs, doc, updateDoc, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import './OrganizationMembers.css';
@@ -8,8 +8,7 @@ import './PersonalDocuments.css';
 
 const OrganizationMembers = () => {
   const { user } = useAuth();
-  const [organizations, setOrganizations] = useState([]);
-  const [selectedOrg, setSelectedOrg] = useState(null);
+  const { currentOrganization } = useOrganization();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -26,36 +25,17 @@ const OrganizationMembers = () => {
   const membersPerPage = 20;
 
   useEffect(() => {
-    const fetchOrganizations = async () => {
-      if (!user?.id) return;
-      
-      try {
-        const result = await getAllUserOrganizations(user.id);
-        setOrganizations(result.organizations);
-        
-        if (result.organizations.length > 0 && !selectedOrg) {
-          setSelectedOrg(result.organizations[0]);
-        }
-      } catch (error) {
-        console.error('Error fetching organizations:', error);
-      }
-    };
-    
-    fetchOrganizations();
-  }, [user]);
-
-  useEffect(() => {
-    if (selectedOrg) {
+    if (currentOrganization) {
       loadMembers();
     }
-  }, [selectedOrg]);
+  }, [currentOrganization]);
 
   const loadMembers = async () => {
-    if (!selectedOrg) return;
+    if (!currentOrganization) return;
 
     try {
       setLoading(true);
-      const memberIds = selectedOrg.members || [];
+      const memberIds = currentOrganization.members || [];
       const membersList = [];
 
       for (const memberId of memberIds) {
@@ -74,10 +54,10 @@ const OrganizationMembers = () => {
             name: userData.name || userData.email?.split('@')[0] || 'User',
             photoURL: userData.photoURL || userData.profilePictureUrl || null,
             role: userData.role || 'user',
-            displayRole: userData.uid === selectedOrg.ownerId ? 'Account Owner' : 
+            displayRole: userData.uid === currentOrganization.ownerId ? 'Account Owner' : 
                         userData.role === 'sub_account_owner' ? 'Sub Account Owner' : 'Member',
             joinedAt: userData.invitedAt,
-            isOwner: userData.uid === selectedOrg.ownerId
+            isOwner: userData.uid === currentOrganization.ownerId
           });
         });
       }
@@ -114,17 +94,17 @@ const OrganizationMembers = () => {
   };
 
   const handleDeleteMember = async (member) => {
-    if (!selectedOrg || !user) return;
+    if (!currentOrganization || !user) return;
 
     // Check if current user is the owner (check both uid and id)
-    const isOwner = selectedOrg.ownerId === user.uid || selectedOrg.ownerId === user.id;
+    const isOwner = currentOrganization.ownerId === user.uid || currentOrganization.ownerId === user.id;
     if (!isOwner) {
       alert('Only the organization owner can remove members.');
       return;
     }
 
     // Prevent owner from deleting themselves
-    if (member.uid === selectedOrg.ownerId) {
+    if (member.uid === currentOrganization.ownerId) {
       alert('Organization owner cannot be removed.');
       return;
     }
@@ -133,13 +113,13 @@ const OrganizationMembers = () => {
   };
 
   const confirmDelete = async () => {
-    if (!deleteConfirm || !selectedOrg) return;
+    if (!deleteConfirm || !currentOrganization) return;
 
     try {
       setDeleting(true);
 
       // Remove member from organization's members array
-      const orgRef = doc(db, 'organizations', selectedOrg.id);
+      const orgRef = doc(db, 'organizations', currentOrganization.id);
       await updateDoc(orgRef, {
         members: arrayRemove(deleteConfirm.uid)
       });
@@ -151,15 +131,8 @@ const OrganizationMembers = () => {
       
       // Reload members
       await loadMembers();
-      
-      // Update selectedOrg in state
-      const updatedOrg = {
-        ...selectedOrg,
-        members: selectedOrg.members.filter(id => id !== deleteConfirm.uid)
-      };
-      setSelectedOrg(updatedOrg);
 
-      alert(`${deleteConfirm.name} has been removed from ${selectedOrg.name}`);
+      alert(`${deleteConfirm.name} has been removed from ${currentOrganization.name}`);
     } catch (error) {
       console.error('Error deleting member:', error);
       alert('Failed to remove member: ' + error.message);
@@ -173,10 +146,10 @@ const OrganizationMembers = () => {
   };
 
   const handlePromoteToSubOwner = async (member) => {
-    if (!selectedOrg || !user) return;
+    if (!currentOrganization || !user) return;
 
     // Check if current user is the owner
-    const isOwner = selectedOrg.ownerId === user.uid || selectedOrg.ownerId === user.id;
+    const isOwner = currentOrganization.ownerId === user.uid || currentOrganization.ownerId === user.id;
     if (!isOwner) {
       alert('Only the organization owner can change member roles.');
       return;
@@ -191,7 +164,7 @@ const OrganizationMembers = () => {
   };
 
   const confirmRoleChange = async (newRole) => {
-    if (!promotingMember || !selectedOrg) return;
+    if (!promotingMember || !currentOrganization) return;
 
     try {
       setRoleChangeLoading(true);
@@ -248,7 +221,7 @@ const OrganizationMembers = () => {
         member.email || '',
         member.isOwner ? 'Owner' : 'Member',
         formatDate(member.joinedAt),
-        selectedOrg?.name || ''
+        currentOrganization?.name || ''
       ]);
 
       // Combine headers and rows
@@ -263,7 +236,7 @@ const OrganizationMembers = () => {
       const url = URL.createObjectURL(blob);
       
       link.setAttribute('href', url);
-      link.setAttribute('download', `${selectedOrg?.name || 'organization'}_contacts_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `${currentOrganization?.name || 'organization'}_contacts_${new Date().toISOString().split('T')[0]}.csv`);
       link.style.visibility = 'hidden';
       
       document.body.appendChild(link);
@@ -380,25 +353,11 @@ const OrganizationMembers = () => {
           <p className="subtitle">Manage and view all members in your organizations</p>
         </div>
 
-        {/* Organization Selector */}
-        {organizations.length > 0 && (
-          <div className="org-selector-section">
-            <label htmlFor="org-select">Organization:</label>
-            <select
-              id="org-select"
-              value={selectedOrg?.id || ''}
-              onChange={(e) => {
-                const org = organizations.find(o => o.id === e.target.value);
-                setSelectedOrg(org);
-                setCurrentPage(1);
-                setSearchTerm('');
-              }}
-              className="org-select"
-            >
-              {organizations.map(org => (
-                <option key={org.id} value={org.id}>{org.name}</option>
-              ))}
-            </select>
+        {/* Organization info from global context */}
+        {currentOrganization && (
+          <div className="org-info" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', background: '#f0f8ff', borderRadius: '8px' }}>
+            <span style={{ fontWeight: '600' }}>Organization:</span>
+            <span style={{ fontWeight: '500', color: '#3b82f6' }}>{currentOrganization.name}</span>
           </div>
         )}
       </div>
@@ -458,7 +417,7 @@ const OrganizationMembers = () => {
                   <th>Organization</th>
                   <th>Role</th>
                   <th>Joined</th>
-                  {(selectedOrg?.ownerId === user?.uid || selectedOrg?.ownerId === user?.id) && <th>Actions</th>}
+                  {(currentOrganization?.ownerId === user?.uid || currentOrganization?.ownerId === user?.id) && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -479,7 +438,7 @@ const OrganizationMembers = () => {
                     </td>
                     <td className="email-cell">{member.email}</td>
                     <td className="org-cell">
-                      <span className="org-badge">{selectedOrg?.name || 'N/A'}</span>
+                      <span className="org-badge">{currentOrganization?.name || 'N/A'}</span>
                     </td>
                     <td className="role-cell">
                       {member.isOwner ? (
@@ -491,7 +450,7 @@ const OrganizationMembers = () => {
                       )}
                     </td>
                     <td className="date-cell">{formatDate(member.joinedAt)}</td>
-                    {(selectedOrg?.ownerId === user?.uid || selectedOrg?.ownerId === user?.id) && (
+                    {(currentOrganization?.ownerId === user?.uid || currentOrganization?.ownerId === user?.id) && (
                       <td className="actions-cell">
                         {!member.isOwner && (
                           <div style={{display: 'flex', gap: '0.5rem'}}>
@@ -590,7 +549,7 @@ const OrganizationMembers = () => {
             <h3>⚠️ Remove Member</h3>
             <p>
               Are you sure you want to remove <strong>{deleteConfirm.name}</strong> ({deleteConfirm.email}) 
-              from <strong>{selectedOrg?.name}</strong>?
+              from <strong>{currentOrganization?.name}</strong>?
             </p>
             <p className="warning-text">
               This action will remove their access to the organization.

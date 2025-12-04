@@ -32,6 +32,7 @@ import apiService from './services/apiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthorizationProvider } from './contexts/AuthorizationContext';
 import { AccountProvider } from './contexts/AccountContext';
+import { OrganizationProvider } from './contexts/OrganizationContext';
 import { collection, query, where, onSnapshot, getDocs, orderBy } from 'firebase/firestore';
 import { db } from './config/firebase';
 
@@ -487,9 +488,11 @@ function App() {
     <AuthProvider>
       <AuthorizationProvider>
         <AccountProvider>
-          <Router>
-            <AppContent />
-          </Router>
+          <OrganizationProvider>
+            <Router>
+              <AppContent />
+            </Router>
+          </OrganizationProvider>
         </AccountProvider>
       </AuthorizationProvider>
     </AuthProvider>

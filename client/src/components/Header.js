@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAccount } from '../contexts/AccountContext';
 import { useAuthorization } from '../contexts/AuthorizationContext';
+import { useOrganization } from '../contexts/OrganizationContext';
+import OrganizationSwitcher from './OrganizationSwitcher';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import axios from 'axios';
@@ -11,10 +13,21 @@ const Header = ({ user, isMenuOpen, toggleMenu, unreadChatsCount = 0 }) => {
   const { logout } = useAuth();
   const { activeAccount, operatingAsUser } = useAccount();
   const { userRole: contextRole } = useAuthorization();
+  const { organizations, currentOrgRole } = useOrganization();
   const navigate = useNavigate();
   const [photoURL, setPhotoURL] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [userRole, setUserRole] = useState(contextRole || null);
+
+  // Update role when currentOrgRole changes (from organization switching)
+  useEffect(() => {
+    if (currentOrgRole) {
+      console.log('🔄 [Header] Updating role from org context:', currentOrgRole);
+      setUserRole(currentOrgRole);
+    } else if (contextRole) {
+      setUserRole(contextRole);
+    }
+  }, [currentOrgRole, contextRole]);
 
   useEffect(() => {
     const fetchUserPhoto = async () => {
@@ -48,13 +61,6 @@ const Header = ({ user, isMenuOpen, toggleMenu, unreadChatsCount = 0 }) => {
       window.removeEventListener('profilePhotoUpdated', handleStorageChange);
     };
   }, [user, refreshKey]);
-
-  // Update role from context whenever it changes
-  useEffect(() => {
-    if (contextRole) {
-      setUserRole(contextRole);
-    }
-  }, [contextRole]);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -145,6 +151,11 @@ const Header = ({ user, isMenuOpen, toggleMenu, unreadChatsCount = 0 }) => {
 
         {user && (
           <>
+            {/* Organization Switcher - Only show if user has multiple organizations */}
+            {organizations && organizations.length > 1 && (
+              <OrganizationSwitcher />
+            )}
+
             {unreadChatsCount > 0 && (
               <button 
                 className="header-chat-badge" 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAccount } from '../contexts/AccountContext';
-import { getAllUserOrganizations, getUserMemberOrganizations, getOrganizationMembers } from '../services/organizationService';
+import { useOrganization } from '../contexts/OrganizationContext';
+import { getOrganizationMembers } from '../services/organizationService';
 import { 
   createBill, 
   getOrganizationBills, 
@@ -20,8 +21,7 @@ import './PersonalDocuments.css';
 const BillingManagement = () => {
   const { user } = useAuth();
   const { activeAccount, operatingAsUser } = useAccount();
-  const [organizations, setOrganizations] = useState([]);
-  const [selectedOrg, setSelectedOrg] = useState(null);
+  const { currentOrganization } = useOrganization();
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -54,55 +54,21 @@ const BillingManagement = () => {
     lineItems: [{ description: '', amount: '' }]
   });
 
-  // Fetch organizations
-  useEffect(() => {
-    const fetchOrganizations = async () => {
-      if (!user?.id) return;
-      
-      try {
-        // Fetch both owned and member organizations
-        const ownerResult = await getAllUserOrganizations(user.id);
-        const memberResult = await getUserMemberOrganizations(user.id);
-        
-        // Combine and deduplicate organizations
-        const allOrgs = [...ownerResult.organizations];
-        memberResult.organizations.forEach(memberOrg => {
-          if (!allOrgs.find(org => org.id === memberOrg.id)) {
-            allOrgs.push(memberOrg);
-          }
-        });
-        
-        console.log('Fetched organizations for billing:', allOrgs);
-        setOrganizations(allOrgs);
-        
-        if (allOrgs.length > 0 && !selectedOrg) {
-          setSelectedOrg(allOrgs[0]);
-        } else if (allOrgs.length === 0) {
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Error fetching organizations:', error);
-        setError('Failed to load organizations');
-        setLoading(false);
-      }
-    };
-    
-    fetchOrganizations();
-  }, [user]);
-
   // Fetch bills when organization changes
   useEffect(() => {
-    if (selectedOrg) {
+    if (currentOrganization) {
       loadBills();
+    } else {
+      setLoading(false);
     }
-  }, [selectedOrg]);
+  }, [currentOrganization]);
 
   const loadBills = async () => {
-    if (!selectedOrg) return;
+    if (!currentOrganization) return;
     
     try {
       setLoading(true);
-      const result = await getOrganizationBills(selectedOrg.id);
+      const result = await getOrganizationBills(currentOrganization.id);
       if (result.success) {
         setBills(result.bills);
         
@@ -141,11 +107,11 @@ const BillingManagement = () => {
   };
 
   const loadBillMembers = async (billsList) => {
-    if (!selectedOrg) return;
+    if (!currentOrganization) return;
     
     try {
       // Get all organization members
-      const membersResult = await getOrganizationMembers(selectedOrg.id);
+      const membersResult = await getOrganizationMembers(currentOrganization.id);
       const allMembers = membersResult.members || [];
       
       // Store all members for later use
@@ -249,7 +215,7 @@ const BillingManagement = () => {
       `You are about to create a bill:\n\n` +
       `Title: ${formData.title}\n` +
       `Amount: $${totalAmount.toFixed(2)}\n` +
-      `Organization: ${selectedOrg.name}\n\n` +
+      `Organization: ${currentOrganization.name}\n\n` +
       `Creating as: ${creatingAs}\n\n` +
       `Is this correct?`
     );
@@ -271,8 +237,8 @@ const BillingManagement = () => {
         recurringDayOfMonth: formData.billType === 'subscription' && formData.recurringDayOfMonth 
           ? parseInt(formData.recurringDayOfMonth) 
           : null,
-        organizationId: selectedOrg.id,
-        organizationName: selectedOrg.name,
+        organizationId: currentOrganization.id,
+        organizationName: currentOrganization.name,
         ownerId: user.id,
         memberIds: formData.assignToAll ? null : formData.selectedMembers,
         // Capture active account information
@@ -475,8 +441,8 @@ const BillingManagement = () => {
           memberId: memberId,
           memberName: member?.name || member?.email || 'Unknown',
           memberEmail: member?.email || '',
-          organizationId: selectedOrg.id,
-          organizationName: selectedOrg.name,
+          organizationId: currentOrganization.id,
+          organizationName: currentOrganization.name,
           amount: amount,
           paymentMethod: paymentMethod,
           notes: paymentNotes || 'Manually marked as paid',
@@ -500,7 +466,7 @@ const BillingManagement = () => {
       
       // If viewing bill details, refresh it
       if (selectedBill && selectedBill.id === markPaidBill.id) {
-        const updatedBills = await getOrganizationBills(selectedOrg.id);
+        const updatedBills = await getOrganizationBills(currentOrganization.id);
         const updatedBill = updatedBills.bills.find(b => b.id === markPaidBill.id);
         if (updatedBill) {
           setSelectedBill(updatedBill);
@@ -589,29 +555,15 @@ const BillingManagement = () => {
           <p>Create and manage bills for your organization members</p>
         </div>
         
-        {/* Organization Selector */}
-        {organizations.length > 0 && (
-          <div className="org-selector">
-            <label>Organization:</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <select
-                value={selectedOrg?.id || ''}
-                onChange={(e) => {
-                  const org = organizations.find(o => o.id === e.target.value);
-                  setSelectedOrg(org);
-                }}
-              >
-                {organizations.map(org => (
-                  <option key={org.id} value={org.id}>{org.name}</option>
-                ))}
-              </select>
-              {selectedOrg && (
-                <OrganizationNotificationBadge 
-                  organizationId={selectedOrg.id} 
-                  userId={user?.id || user?.uid}
-                />
-              )}
-            </div>
+        {/* Organization info from global context */}
+        {currentOrganization && (
+          <div className="org-info" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', background: '#f0f8ff', borderRadius: '8px' }}>
+            <span style={{ fontWeight: '600' }}>Organization:</span>
+            <span style={{ fontWeight: '500', color: '#3b82f6' }}>{currentOrganization.name}</span>
+            <OrganizationNotificationBadge 
+              organizationId={currentOrganization.id} 
+              userId={user?.id || user?.uid}
+            />
           </div>
         )}
       </div>
