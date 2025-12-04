@@ -20,7 +20,7 @@ export const createInvitationLink = async (userId, email, organizationName, orga
     console.log('📝 Generated unique token:', token);
     console.log('📝 Token components:', { userId, timestamp, random1, random2, random3 });
 
-    // Create invitation document
+    // Create invitation document (single-use)
     const invitationData = {
       accountOwnerId: userId,
       accountOwnerEmail: email,
@@ -30,8 +30,9 @@ export const createInvitationLink = async (userId, email, organizationName, orga
       role: role === 'sub_account_owner' ? 'sub_account_owner' : 'member', // Support both member and sub_account_owner
       status: 'active',
       createdAt: serverTimestamp(),
-      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year expiry
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days expiry for single-use links
       usedCount: 0,
+      maxUses: 1, // Single use only
       description: `Join ${organizationName}`
     };
 
@@ -61,10 +62,10 @@ export const createInvitationLink = async (userId, email, organizationName, orga
   }
 };
 
-// Get account owner's invitation link for specific organization
-export const getAccountOwnerInvitationLink = async (userId, organizationId) => {
+// Get account owner's invitation link for specific organization and role
+export const getAccountOwnerInvitationLink = async (userId, organizationId, role = 'member') => {
   try {
-    console.log('🔍 Fetching invitation for userId:', userId, 'organizationId:', organizationId);
+    console.log('🔍 Fetching invitation for userId:', userId, 'organizationId:', organizationId, 'role:', role);
     
     if (!db) {
       throw new Error('Firebase Firestore not available');
@@ -85,27 +86,43 @@ export const getAccountOwnerInvitationLink = async (userId, organizationId) => {
       return null;
     }
 
-    // Filter by organizationId in memory
-    const matchingDocs = querySnapshot.docs.filter(doc => {
-      const data = doc.data();
-      return data.organizationId === organizationId;
-    });
+    // Filter by organizationId and role in memory, get most recent
+    const matchingDocs = querySnapshot.docs
+      .filter(doc => {
+        const data = doc.data();
+        return data.organizationId === organizationId && data.role === role;
+      })
+      .sort((a, b) => {
+        const aTime = a.data().createdAt?.toDate?.() || new Date(0);
+        const bTime = b.data().createdAt?.toDate?.() || new Date(0);
+        return bTime - aTime; // Most recent first
+      });
 
-    console.log('📊 Invitations matching organizationId:', matchingDocs.length);
+    console.log('📊 Invitations matching organizationId and role:', matchingDocs.length);
 
     if (matchingDocs.length === 0) {
-      console.warn('⚠️ No invitation found for organizationId:', organizationId);
+      console.warn('⚠️ No invitation found for organizationId:', organizationId, 'role:', role);
       return null;
     }
 
+    // Use the most recent invitation
     const inviteDoc = matchingDocs[0];
     const inviteData = { id: inviteDoc.id, ...inviteDoc.data() };
+
+    // Check if invitation has expired
+    if (inviteData.expiresAt && inviteData.expiresAt.toDate() < new Date()) {
+      console.warn('⚠️ Invitation has expired');
+      return null;
+    }
 
     console.log('✅ Found invitation:', {
       token: inviteData.token?.substring(0, 20) + '...',
       status: inviteData.status,
+      role: inviteData.role,
       organizationName: inviteData.organizationName,
-      organizationId: inviteData.organizationId
+      organizationId: inviteData.organizationId,
+      maxUses: inviteData.maxUses,
+      usedCount: inviteData.usedCount
     });
 
     return {
@@ -115,8 +132,10 @@ export const getAccountOwnerInvitationLink = async (userId, organizationId) => {
       link: `${window.location.origin}/register/member?token=${inviteData.token}`,
       organizationName: inviteData.organizationName,
       organizationId: inviteData.organizationId,
+      role: inviteData.role,
       createdAt: inviteData.createdAt,
       usedCount: inviteData.usedCount || 0,
+      maxUses: inviteData.maxUses || 1,
       description: inviteData.description
     };
   } catch (error) {

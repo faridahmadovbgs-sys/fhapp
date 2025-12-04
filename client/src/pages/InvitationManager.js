@@ -91,9 +91,9 @@ const InvitationManager = () => {
         setError('Loading took too long. Please refresh the page.');
       }, 10000); // 10 second timeout
       
-      // Load invitation link for the selected organization
-      let invitationResult = await getAccountOwnerInvitationLink(user.id, selectedOrg.id);
-      console.log('📊 Invitation result:', invitationResult);
+      // Load MEMBER invitation link for the selected organization
+      let invitationResult = await getAccountOwnerInvitationLink(user.id, selectedOrg.id, 'member');
+      console.log('📊 Member invitation result:', invitationResult);
       console.log('📊 Selected Org ID:', selectedOrg.id);
       console.log('📊 Invitation Org ID:', invitationResult?.organizationId);
       console.log('📊 Invitation link token:', invitationResult?.link?.split('token=')[1]);
@@ -146,25 +146,32 @@ const InvitationManager = () => {
         setInvitation(invitationResult);
       }
 
-      // If user is account owner (not sub-account owner), create SUB-ACCOUNT OWNER invitation too
+      // If user is account owner (not sub-account owner), handle SUB-ACCOUNT OWNER invitation
       if (!isSubAccountOwner && selectedOrg.ownerId === user.id) {
         try {
-          const { createInvitationLink } = await import('../services/invitationService');
+          // Check if sub-account owner invitation exists
+          let subOwnerResult = await getAccountOwnerInvitationLink(user.id, selectedOrg.id, 'sub_account_owner');
           
-          // Create SUB-ACCOUNT OWNER invitation
-          const subOwnerResult = await createInvitationLink(
-            user.id,
-            user.email,
-            selectedOrg.name,
-            selectedOrg.id,
-            null,
-            null,
-            'sub_account_owner'  // Sub-account owner role
-          );
-          console.log('✅ Sub-account owner invitation created:', subOwnerResult);
+          // If no sub-account owner invitation exists, create one
+          if (!subOwnerResult) {
+            const { createInvitationLink } = await import('../services/invitationService');
+            
+            // Create SUB-ACCOUNT OWNER invitation
+            subOwnerResult = await createInvitationLink(
+              user.id,
+              user.email,
+              selectedOrg.name,
+              selectedOrg.id,
+              null,
+              null,
+              'sub_account_owner'  // Sub-account owner role
+            );
+            console.log('✅ Sub-account owner invitation created:', subOwnerResult);
+          }
+          
           setSubOwnerInvitation(subOwnerResult);
         } catch (createError) {
-          console.error('❌ Failed to create sub-account owner invitation:', createError);
+          console.error('❌ Failed to handle sub-account owner invitation:', createError);
         }
       }
 
@@ -204,6 +211,40 @@ const InvitationManager = () => {
       setError('Failed to copy link');
     } finally {
       setCopying(false);
+    }
+  };
+
+  const handleRegenerateInvitation = async (role = 'member') => {
+    if (!selectedOrg) return;
+
+    try {
+      setLoading(true);
+      const { createInvitationLink } = await import('../services/invitationService');
+      
+      const newInvitation = await createInvitationLink(
+        user.id,
+        user.email,
+        selectedOrg.name,
+        selectedOrg.id,
+        null,
+        null,
+        role
+      );
+
+      if (role === 'member') {
+        setInvitation(newInvitation);
+        setSuccess('✅ New member invitation link generated!');
+      } else {
+        setSubOwnerInvitation(newInvitation);
+        setSuccess('✅ New sub-account owner invitation link generated!');
+      }
+      
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Error regenerating invitation:', error);
+      setError('Failed to regenerate invitation link');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -254,6 +295,9 @@ const InvitationManager = () => {
                 
                 <div className="organization-info">
                   <p><strong>Organization:</strong> {invitation.organizationName}</p>
+                  <p style={{fontSize: '13px', color: '#e67e22', marginTop: '8px', fontWeight: '500'}}>
+                    ⚠️ Single-use link - Expires after first use or in 7 days
+                  </p>
                 </div>
 
                 <div className="link-display">
@@ -272,6 +316,14 @@ const InvitationManager = () => {
                       {copying ? 'Copying...' : '📋 Copy Link'}
                     </button>
                   </div>
+                  <button
+                    onClick={() => handleRegenerateInvitation('member')}
+                    disabled={loading}
+                    className="btn btn-secondary"
+                    style={{marginTop: '10px', width: '100%'}}
+                  >
+                    🔄 Generate New Link
+                  </button>
                 </div>
               </div>
 
@@ -282,8 +334,11 @@ const InvitationManager = () => {
                   
                   <div className="organization-info">
                     <p><strong>Organization:</strong> {subOwnerInvitation.organizationName}</p>
-                    <p style={{fontSize: '14px', color: '#666', marginTop: '8px'}}>
+                    <p style={{fontSize: '13px', color: '#666', marginTop: '8px'}}>
                       People joining with this link will become sub-account owners with invitation and billing management permissions.
+                    </p>
+                    <p style={{fontSize: '13px', color: '#e67e22', marginTop: '8px', fontWeight: '500'}}>
+                      ⚠️ Single-use link - Expires after first use or in 7 days
                     </p>
                   </div>
 
@@ -311,6 +366,14 @@ const InvitationManager = () => {
                         {copying ? 'Copying...' : '📋 Copy Link'}
                       </button>
                     </div>
+                    <button
+                      onClick={() => handleRegenerateInvitation('sub_account_owner')}
+                      disabled={loading}
+                      className="btn btn-secondary"
+                      style={{marginTop: '10px', width: '100%'}}
+                    >
+                      🔄 Generate New Link
+                    </button>
                   </div>
                 </div>
               )}

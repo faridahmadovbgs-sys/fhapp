@@ -206,12 +206,15 @@ const JoinOrganization = () => {
         await updateDoc(userRef, updateData);
       }
 
-      // Increment invitation usage count
+      // Mark invitation as used (single-use system)
       await updateDoc(doc(db, 'invitations', invitationDoc.id), {
         usedCount: increment(1),
-        lastUsedAt: new Date()
+        lastUsedAt: new Date(),
+        status: 'used', // Mark as used to prevent reuse
+        usedBy: user.id
       });
 
+      console.log('✅ Invitation marked as used, will generate new one automatically');
       console.log('✅ Successfully joined organization:', organizationData.name);
 
       const successMessage = invitationData.subAccountName 
