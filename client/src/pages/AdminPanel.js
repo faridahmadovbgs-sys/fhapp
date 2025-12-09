@@ -112,30 +112,76 @@ const AdminPanel = () => {
           const currentOrg = selectedOrg || orgs[0];
           const memberIds = currentOrg.members || [];
           
-          // Fetch only organization members
-          const usersList = [];
-          const usersSnapshot = await getDocs(collection(db, 'users'));
+          console.log('🔍 Organization:', currentOrg.name);
+          console.log('📋 Member IDs in organization:', memberIds);
           
+          // Fetch only organization members (both users and sub-profiles)
+          const usersList = [];
+          
+          // Fetch all users
+          const usersSnapshot = await getDocs(collection(db, 'users'));
+          const usersMap = new Map();
           usersSnapshot.forEach((doc) => {
             const userData = doc.data();
-            // Only include users who are members of the selected organization
-            if (memberIds.includes(userData.uid)) {
-              usersList.push({
-                id: doc.id,
-                email: userData.email || 'N/A',
-                name: userData.name || userData.fullName || userData.email?.split('@')[0] || 'Unknown',
-                emailVerified: userData.emailVerified || false,
-                role: userData.role || 'user',
-                isActive: true,
-                createdAt: userData.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-                lastSignIn: userData.lastSignIn?.toDate?.()?.toISOString() || userData.lastLoginAt?.toDate?.()?.toISOString() || null,
-                photoURL: userData.photoURL || userData.profilePictureUrl || null,
-                organizationId: userData.organizationId || currentOrg.id,
-                subAccountName: userData.subAccountName || null,
-                invitedBy: userData.invitedBy || null,
-                ownerUserId: userData.ownerUserId || null,
-                permissions: rolePermissions[userData.role || 'user'] || rolePermissions.user
-              });
+            usersMap.set(userData.uid, {
+              id: doc.id,
+              uid: userData.uid,
+              email: userData.email || 'N/A',
+              name: userData.name || userData.fullName || userData.email?.split('@')[0] || 'Unknown',
+              emailVerified: userData.emailVerified || false,
+              role: userData.role || 'user',
+              isActive: true,
+              createdAt: userData.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+              lastSignIn: userData.lastSignIn?.toDate?.()?.toISOString() || userData.lastLoginAt?.toDate?.()?.toISOString() || null,
+              photoURL: userData.photoURL || userData.profilePictureUrl || null,
+              organizationId: userData.organizationId || currentOrg.id,
+              subAccountName: userData.subAccountName || null,
+              invitedBy: userData.invitedBy || null,
+              ownerUserId: userData.ownerUserId || null,
+              permissions: rolePermissions[userData.role || 'user'] || rolePermissions.user
+            });
+          });
+          
+          // Fetch all sub-profiles
+          const subProfilesSnapshot = await getDocs(collection(db, 'subProfiles'));
+          const subProfilesMap = new Map();
+          subProfilesSnapshot.forEach((doc) => {
+            const profileData = doc.data();
+            console.log('📝 Sub Profile:', doc.id, profileData.accountName);
+            subProfilesMap.set(doc.id, {
+              id: doc.id,
+              userId: profileData.userId,
+              email: profileData.email || 'N/A',
+              name: `${profileData.accountName} (${profileData.accountType || 'Sub Profile'})`,
+              displayName: profileData.accountName,
+              accountType: profileData.accountType,
+              entityName: profileData.entityName,
+              isSubProfile: true,
+              emailVerified: true,
+              role: 'member',
+              isActive: true,
+              createdAt: profileData.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+              permissions: rolePermissions.member || rolePermissions.user
+            });
+          });
+          
+          // Now match memberIds with users or sub-profiles
+          memberIds.forEach((memberId) => {
+            console.log('🔎 Checking member ID:', memberId);
+            // Check if it's a user
+            if (usersMap.has(memberId)) {
+              const userData = usersMap.get(memberId);
+              console.log('✅ Found as user:', userData.name);
+              usersList.push(userData);
+            }
+            // Check if it's a sub-profile
+            else if (subProfilesMap.has(memberId)) {
+              const profileData = subProfilesMap.get(memberId);
+              console.log('✅ Found as sub-profile:', profileData.name);
+              usersList.push(profileData);
+            }
+            else {
+              console.log('❌ Not found in users or sub-profiles');
             }
           });
           

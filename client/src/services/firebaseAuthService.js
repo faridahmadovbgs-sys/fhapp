@@ -49,7 +49,19 @@ export const firebaseAuthService = {
         throw new Error('Password must be at least 6 characters long');
       }
       
+      console.log('📝 Attempting Firebase registration with:', {
+        email: emailStr,
+        authObject: auth,
+        authApp: auth?.app,
+        authConfig: auth?.config
+      });
+      
       const userCredential = await createUserWithEmailAndPassword(auth, emailStr, passwordStr);
+      
+      console.log('✅ Firebase createUserWithEmailAndPassword succeeded:', {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email
+      });
       
       // Update user profile with name
       if (nameStr) {
@@ -72,38 +84,11 @@ export const firebaseAuthService = {
       // Save to Firestore database
       await setDoc(doc(db, 'users', userCredential.user.uid), userData);
 
-      // Sync user to MongoDB via backend API
-      try {
-        console.log('💾 Syncing user to MongoDB...');
-        const mongoResponse = await fetch('http://localhost:5000/api/auth/sync-firebase-user', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: emailStr,
-            firstName: nameStr.split(' ')[0] || nameStr, // First part of name
-            lastName: nameStr.split(' ').slice(1).join(' ') || '', // Rest of name
-            uid: userCredential.user.uid,
-            entity: entityStr
-          })
-        });
-
-        const mongoData = await mongoResponse.json();
-        
-        if (!mongoResponse.ok) {
-          console.warn('⚠️ MongoDB sync failed:', mongoData.message);
-          console.warn('Firebase registration succeeded, but MongoDB sync failed');
-        } else {
-          console.log('✅ User synced to MongoDB:', mongoData);
-        }
-      } catch (mongoError) {
-        console.warn('⚠️ MongoDB connection failed, but Firebase registration succeeded:', mongoError.message);
-      }
+      console.log('✅ User saved to Firestore successfully');
 
       return {
         success: true,
-        message: 'Registration successful! User profile created in both Firebase and MongoDB.',
+        message: 'Registration successful! User profile created in Firebase.',
         user: {
           id: userCredential.user.uid,
           email: userCredential.user.email,
@@ -127,8 +112,14 @@ export const firebaseAuthService = {
         case 'auth/invalid-email':
           message = 'Invalid email address';
           break;
+        case 'auth/network-request-failed':
+          message = 'Network error: Cannot connect to Firebase. Please check your internet connection and ensure Firebase Authentication is enabled in your Firebase Console.';
+          break;
+        case 'auth/too-many-requests':
+          message = 'Too many attempts. Please try again later.';
+          break;
         default:
-          message = error.message;
+          message = error.message || 'Registration failed. Please try again.';
       }
       
       throw new Error(message);
@@ -185,6 +176,9 @@ export const firebaseAuthService = {
           break;
         case 'auth/too-many-requests':
           message = 'Too many failed login attempts. Please try again later.';
+          break;
+        case 'auth/network-request-failed':
+          message = 'Network error: Unable to connect to Firebase. This could be due to:\n• Browser cache/service worker issues (try Ctrl+Shift+R to hard refresh)\n• Browser extensions blocking Firebase\n• Firewall/Proxy blocking connections\n\nTry opening in Incognito mode (Ctrl+Shift+N) or clearing your browser cache.';
           break;
         default:
           message = error.message;

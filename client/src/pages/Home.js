@@ -4,6 +4,7 @@ import { useAccount } from '../contexts/AccountContext';
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getUserMemberOrganizations } from '../services/organizationService';
+import { getMemberBills } from '../services/billingService';
 import OrganizationNotificationBadge from '../components/OrganizationNotificationBadge';
 import '../components/OrganizationNotificationBadge.css';
 import axios from 'axios';
@@ -26,7 +27,9 @@ const Home = ({ data }) => {
   const [userOrganizations, setUserOrganizations] = useState([]);
   const [userOrganization, setUserOrganization] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
+  const [billsDue, setBillsDue] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingBills, setLoadingBills] = useState(true);
 
   const getAccountIcon = (type) => {
     const icons = {
@@ -46,7 +49,7 @@ const Home = ({ data }) => {
       if (!user?.uid) return;
 
       try {
-        // First try MongoDB backend API
+        
         try {
           const response = await axios.get(`http://localhost:5000/api/users/uid/${user.uid}`);
           if (response.data.success && response.data.data) {
@@ -223,29 +226,50 @@ const Home = ({ data }) => {
     }
   };
 
+  // Fetch bills due for the user
+  useEffect(() => {
+    const fetchBillsDue = async () => {
+      const userId = user?.id || user?.uid;
+      if (!userId || !userOrganization) {
+        setLoadingBills(false);
+        return;
+      }
+
+      setLoadingBills(true);
+      try {
+        console.log('💰 Fetching bills for user:', userId, 'in organization:', userOrganization.id);
+        const result = await getMemberBills(userId, userOrganization.id, userRole);
+        
+        if (result.success) {
+          // Filter for unpaid bills and sort by due date
+          const unpaidBills = result.bills
+            .filter(bill => {
+              const payment = bill.payments?.find(p => p.memberId === userId);
+              return !payment || payment.status !== 'paid';
+            })
+            .sort((a, b) => {
+              const dateA = a.dueDate?.toDate?.() || new Date();
+              const dateB = b.dueDate?.toDate?.() || new Date();
+              return dateA - dateB; // Earliest due date first
+            })
+            .slice(0, 5); // Show only next 5 bills
+          
+          console.log(`✅ Found ${unpaidBills.length} unpaid bills`);
+          setBillsDue(unpaidBills);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching bills:', error);
+        setBillsDue([]);
+      } finally {
+        setLoadingBills(false);
+      }
+    };
+
+    fetchBillsDue();
+  }, [user, userOrganization, userRole]);
+
   return (
     <div>
-      <div className="hero">
-        <h1>Welcome to Integrant Platform</h1>
-        {operatingAsUser ? (
-          <p className="active-account-welcome">
-            Operating as: <strong>{user?.name || user?.displayName || user?.email}</strong>
-          </p>
-        ) : activeAccount ? (
-          <>
-            <p className="active-account-welcome">
-              Operating as: <strong>{activeAccount.accountName}</strong>
-            </p>
-            {activeAccount.entityName && (
-              <p className="active-account-entity">{activeAccount.entityName}</p>
-            )}
-          </>
-        ) : (
-          <p>Enterprise Organization Management</p>
-        )}
-        <p className="hero-subtitle">Streamline your business operations with automated billing, secure document management, and seamless team collaboration</p>
-      </div>
-
       <div className="home-controls-grid">
         {/* Account Switcher */}
         {!loadingAccounts && (
@@ -256,7 +280,7 @@ const Home = ({ data }) => {
                 className="btn-manage-profiles"
               onClick={() => navigate('/accounts')}
             >
-              Manage Accounts
+              Manage Sub Profiles
             </button>
           </div>
           
@@ -276,8 +300,8 @@ const Home = ({ data }) => {
               onClick={() => switchToAccountMode()}
             >
               <div className="mode-info">
-                <div className="mode-label">Account Mode</div>
-                <div className="mode-desc">Operate as an account</div>
+                <div className="mode-label">Sub Profile Mode</div>
+                <div className="mode-desc">Operate as a sub profile</div>
               </div>
             </button>
           </div>
@@ -294,22 +318,22 @@ const Home = ({ data }) => {
             </div>
           ) : (
             <div className="current-mode-status no-account">
-              <strong>No account selected</strong>
-              <p>Please select an account or switch to user mode</p>
+              <strong>No sub profile selected</strong>
+              <p>Please select a sub profile or switch to user mode</p>
             </div>
           )}
           
-          {/* Show account selection only when in account mode */}
+          {/* Show sub profile selection only when in sub profile mode */}
           {!operatingAsUser && (
             <>
               {accounts.length === 0 ? (
                 <div className="no-profiles-card">
-                  <p>No accounts yet.</p>
+                  <p>No sub profiles yet.</p>
                   <button 
                     className="btn-add-profile"
                     onClick={() => navigate('/accounts')}
                   >
-                    + Create Your First Account
+                    + Create Your First Sub Profile
                   </button>
                 </div>
               ) : (
@@ -340,75 +364,199 @@ const Home = ({ data }) => {
           )}
         </div>
       )}
+      </div>
 
-      {userRole === 'account_owner' && userOrganizations.length > 1 && (
-        <div className="organization-selector-home">
-          <div className="org-selector-header">
-            <label htmlFor="org-select-home">
-              <strong>Select Organization:</strong>
-            </label>
-            <button 
-              className="btn-manage-orgs"
-              onClick={() => navigate('/admin')}
-            >
-              Manage Organizations
-            </button>
+      {/* Dashboard Grid */}
+      <div className="dashboard-grid">
+        {/* Announcements Section */}
+        <div className="announcements-section">
+          <div className="section-header">
+            <h2>📢 Announcements</h2>
+            {userRole === 'account_owner' && (
+              <button className="btn-manage-section" onClick={() => navigate('/announcements')}>Manage</button>
+            )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <select
-              id="org-select-home"
-              value={userOrganization?.id || ''}
-              onChange={handleOrganizationChange}
-              className="org-dropdown-home"
+          {loading ? (
+            <p className="loading-text">Loading announcements...</p>
+          ) : announcements.length > 0 ? (
+            <div className="announcements-list">
+              {announcements.map((announcement) => (
+                <div key={announcement.id} className={`announcement-card ${announcement.priority || 'normal'}`}>
+                  <div className="announcement-header">
+                    <h3>{announcement.title || announcement.text?.substring(0, 50) + (announcement.text?.length > 50 ? '...' : '') || 'Announcement'}</h3>
+                    <span className="announcement-date">
+                      {announcement.createdAt?.toDate?.()?.toLocaleDateString() || 'Recent'}
+                    </span>
+                  </div>
+                  <p className="announcement-content">{announcement.content || announcement.text || 'No content'}</p>
+                  {(announcement.author || announcement.userName) && (
+                    <p className="announcement-author">— {announcement.author || announcement.userName}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="no-announcements">
+              <p>No announcements at this time.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Bills Due Section */}
+        <div className="bills-due-section">
+          <div className="section-header">
+            <h2>💰 Bills Due</h2>
+            <button className="btn-manage-section" onClick={() => navigate('/member-payments')}>View All</button>
+          </div>
+          {loadingBills ? (
+            <p className="loading-text">Loading bills...</p>
+          ) : billsDue.length > 0 ? (
+            <div className="bills-due-list">
+              {billsDue.map((bill) => {
+                const dueDate = bill.dueDate?.toDate?.();
+                const isOverdue = dueDate && dueDate < new Date();
+                const daysUntilDue = dueDate ? Math.ceil((dueDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                
+                return (
+                  <div key={bill.id} className={`bill-due-card ${isOverdue ? 'overdue' : ''}`}>
+                    <div className="bill-due-header">
+                      <h3>{bill.description || 'Bill Payment'}</h3>
+                      <span className={`bill-amount ${isOverdue ? 'overdue' : ''}`}>
+                        ${bill.amount?.toFixed(2) || '0.00'}
+                      </span>
+                    </div>
+                    <div className="bill-due-details">
+                      <div className="bill-due-date">
+                        <strong>Due:</strong> {dueDate?.toLocaleDateString() || 'N/A'}
+                        {daysUntilDue !== null && (
+                          <span className={`days-until ${isOverdue ? 'overdue' : daysUntilDue <= 3 ? 'urgent' : ''}`}>
+                            {isOverdue ? `${Math.abs(daysUntilDue)} days overdue` : `${daysUntilDue} days left`}
+                          </span>
+                        )}
+                      </div>
+                      {bill.category && (
+                        <div className="bill-category">
+                          <strong>Category:</strong> {bill.category}
+                        </div>
+                      )}
+                    </div>
+                    <button 
+                      className="btn-pay-bill"
+                      onClick={() => navigate('/member-payments')}
+                    >
+                      Pay Now
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="no-bills">
+              <p>✅ No bills due at this time.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* User Membership Information */}
+      <div className="user-membership-section">
+        <h2>👥 Your Memberships</h2>
+
+        {/* Sub Profiles Switcher */}
+        <div className="membership-card subprofiles-card">
+          <div className="membership-header">
+            <h3>Operating As</h3>
+          </div>
+          <div className="membership-content">
+            <select 
+              className="subprofile-dropdown"
+              value={activeAccount?.id || 'user'}
+              onChange={(e) => {
+                if (e.target.value === 'user') {
+                  switchToUserMode();
+                } else {
+                  const selectedAccount = accounts.find(acc => acc.id === e.target.value);
+                  if (selectedAccount) {
+                    switchAccount(selectedAccount);
+                  }
+                }
+              }}
             >
-              {userOrganizations.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
+              <option value="user">
+                👤 {user?.name || user?.displayName || user?.email || 'You'} (User)
+              </option>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {getAccountIcon(account.accountType)} {account.accountName}
+                  {account.isDefault ? ' (Default)' : ''}
                 </option>
               ))}
             </select>
-            {userOrganizations.map((org) => (
-              userOrganization?.id === org.id && (
-                <OrganizationNotificationBadge 
-                  key={org.id}
-                  organizationId={org.id} 
-                  userId={user?.id || user?.uid}
-                />
-              )
-            ))}
           </div>
-          <p className="org-info-home">
-            Viewing announcements for: <strong>{userOrganization?.name}</strong>
-          </p>
         </div>
-      )}
-      </div>
 
-      {/* Announcements Section */}
-      <div className="announcements-section">
-        <h2>📢 Announcements</h2>
-        {loading ? (
-          <p className="loading-text">Loading announcements...</p>
-        ) : announcements.length > 0 ? (
-          <div className="announcements-list">
-            {announcements.map((announcement) => (
-              <div key={announcement.id} className={`announcement-card ${announcement.priority || 'normal'}`}>
-                <div className="announcement-header">
-                  <h3>{announcement.title || announcement.text?.substring(0, 50) + (announcement.text?.length > 50 ? '...' : '') || 'Announcement'}</h3>
-                  <span className="announcement-date">
-                    {announcement.createdAt?.toDate?.()?.toLocaleDateString() || 'Recent'}
-                  </span>
-                </div>
-                <p className="announcement-content">{announcement.content || announcement.text || 'No content'}</p>
-                {(announcement.author || announcement.userName) && (
-                  <p className="announcement-author">— {announcement.author || announcement.userName}</p>
-                )}
+        {/* Organizations Display - Only show when operating as user */}
+        {operatingAsUser && userOrganizations.length > 0 && (
+          <div className="membership-card organizations-card">
+            <div className="membership-header">
+              <h3>Organizations ({userOrganizations.length})</h3>
+            </div>
+            <div className="membership-content">
+              <div className="organizations-list">
+                {userOrganizations.map((org) => (
+                  <div 
+                    key={org.id} 
+                    className="organization-item"
+                    onClick={() => navigate(`/organization/${org.id}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="org-main-info">
+                      <div className="org-name">
+                        <strong>{org.name}</strong>
+                        {userOrganization?.id === org.id && (
+                          <span className="active-org-badge">Active</span>
+                        )}
+                      </div>
+                      <div className="org-role">
+                        {org.role === 'account_owner' && <span className="org-role-badge owner">Owner</span>}
+                        {org.role === 'sub_account_owner' && <span className="org-role-badge sub-owner">Sub-Account Owner</span>}
+                        {org.role === 'member' && <span className="org-role-badge member">Member</span>}
+                      </div>
+                    </div>
+                    
+                    {/* Show sub-account owner if user is under one */}
+                    {org.subAccountOwner && (
+                      <div className="org-sub-account-info">
+                        <span className="sub-account-label">📎 Under:</span>
+                        <span className="sub-account-owner-name">{org.subAccountOwner}</span>
+                      </div>
+                    )}
+                    
+                    {/* Show member count for owners */}
+                    {(org.role === 'account_owner' || org.role === 'sub_account_owner') && org.memberCount && (
+                      <div className="org-member-count">
+                        👥 {org.memberCount} member{org.memberCount !== 1 ? 's' : ''}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
-        ) : (
-          <div className="no-announcements">
-            <p>No announcements at this time.</p>
+        )}
+
+        {/* No Organizations Message - Only show when operating as user */}
+        {operatingAsUser && userOrganizations.length === 0 && (
+          <div className="membership-card no-orgs-card">
+            <div className="membership-content">
+              <p>You are not a member of any organizations yet.</p>
+              <button 
+                className="btn-join-org"
+                onClick={() => navigate('/join-organization')}
+              >
+                Join an Organization
+              </button>
+            </div>
           </div>
         )}
       </div>

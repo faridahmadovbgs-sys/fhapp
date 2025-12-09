@@ -1,18 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { doc, getDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
+import { useProfile } from '../contexts/ProfileContext';
+import { doc, getDoc, updateDoc, arrayUnion, increment, collection, query, where, getDocs, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import './JoinOrganization.css';
 
 const JoinOrganization = () => {
   const { user } = useAuth();
+  const { profiles, activeProfile, loading: profilesLoading } = useProfile();
   const navigate = useNavigate();
   const [invitationLink, setInvitationLink] = useState('');
+  const [selectedProfile, setSelectedProfile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [invitationPreview, setInvitationPreview] = useState(null);
+
+  // Set default profile when profiles load
+  useEffect(() => {
+    console.log('📊 JoinOrganization profiles:', profiles);
+    console.log('👤 Active profile:', activeProfile);
+    if (profiles.length > 0 && !selectedProfile) {
+      setSelectedProfile(activeProfile || profiles[0]);
+      console.log('✅ Selected profile set to:', activeProfile?.profileName || profiles[0]?.profileName);
+    }
+  }, [profiles, activeProfile, selectedProfile]);
 
   const extractTokenFromLink = (link) => {
     try {
@@ -121,6 +134,36 @@ const JoinOrganization = () => {
 
       console.log('🔍 Looking for invitation with token:', token);
 
+      // Create a default profile if user doesn't have one
+      let profileToUse = selectedProfile;
+      if (!profileToUse && profiles.length === 0) {
+        console.log('📝 Creating default profile for new user...');
+        const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+        const newProfileRef = await addDoc(collection(db, 'subProfiles'), {
+          userId: user.id,
+          profileName: 'Personal',
+          entityType: 'individual',
+          isDefault: true,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        
+        profileToUse = {
+          id: newProfileRef.id,
+          profileName: 'Personal',
+          entityType: 'individual',
+          isDefault: true
+        };
+        console.log('✅ Default profile created:', profileToUse.id);
+      } else if (!profileToUse) {
+        setError('Please select a profile to add to the organization');
+        setLoading(false);
+        return;
+      }
+
+      console.log('👤 Using profile:', profileToUse.profileName, 'Profile ID:', profileToUse.id);
+      console.log('👤 Adding user to organization - User ID:', user.id);
+
       // Find invitation by token
       const { collection, query, where, getDocs } = await import('firebase/firestore');
       const invitationsQuery = query(
@@ -161,40 +204,40 @@ const JoinOrganization = () => {
 
       const organizationData = organizationDoc.data();
 
-      // Check if user is already a member
+      // Check if this user is already a member (check by user ID, not profile ID)
       if (organizationData.members && organizationData.members.includes(user.id)) {
-        setError('You are already a member of this organization');
+        setError(`You are already a member of this organization`);
         setLoading(false);
         return;
       }
 
-      // Add user to organization members
+      // Add user ID (not profile ID) to organization members
       await updateDoc(organizationRef, {
         members: arrayUnion(user.id),
         memberCount: increment(1)
       });
 
-      // Update user document to include organization
-      const userRef = doc(db, 'users', user.id);
-      const userDoc = await getDoc(userRef);
+      // Update profile document to include organization
+      const profileRef = doc(db, 'subProfiles', profileToUse.id);
+      const profileDoc = await getDoc(profileRef);
       
-      const updateData = {
+      const profileUpdateData = {
         organizations: arrayUnion(invitationData.organizationId)
       };
 
       // If invitation grants sub_account_owner role, store that role for this org
       if (invitationData.role === 'sub_account_owner') {
-        updateData[`organizationRoles.${invitationData.organizationId}`] = 'sub_account_owner';
+        profileUpdateData[`organizationRoles.${invitationData.organizationId}`] = 'sub_account_owner';
         console.log('👨‍💼 User joining as sub-account owner');
       }
       // Otherwise store as member (default)
       else {
-        updateData[`organizationRoles.${invitationData.organizationId}`] = 'member';
+        profileUpdateData[`organizationRoles.${invitationData.organizationId}`] = 'member';
       }
 
       // Store sub-account owner info if joining under someone's sub-account
       if (invitationData.subAccountOwnerId && invitationData.subAccountName) {
-        updateData[`subAccountOwners.${invitationData.organizationId}`] = {
+        profileUpdateData[`subAccountOwners.${invitationData.organizationId}`] = {
           ownerId: invitationData.subAccountOwnerId,
           ownerName: invitationData.subAccountName,
           joinedAt: new Date()
@@ -202,24 +245,67 @@ const JoinOrganization = () => {
         console.log('📋 Joined under sub-account owner:', invitationData.subAccountName);
       }
       
+      if (profileDoc.exists()) {
+        await updateDoc(profileRef, profileUpdateData);
+      }
+
+      // ALSO update the user document with organization membership info
+      // This is needed for the Home page and OrganizationContext to display memberships
+      const userRef = doc(db, 'users', user.id);
+      const userDoc = await getDoc(userRef);
+      
+      const userUpdateData = {
+        organizations: arrayUnion(invitationData.organizationId)
+      };
+
+      // Store role in user document
+      if (invitationData.role === 'sub_account_owner') {
+        userUpdateData[`organizationRoles.${invitationData.organizationId}`] = 'sub_account_owner';
+      } else {
+        userUpdateData[`organizationRoles.${invitationData.organizationId}`] = 'member';
+      }
+
+      // Store sub-account owner info in user document
+      if (invitationData.subAccountOwnerId && invitationData.subAccountName) {
+        userUpdateData[`subAccountOwners.${invitationData.organizationId}`] = {
+          ownerId: invitationData.subAccountOwnerId,
+          ownerName: invitationData.subAccountName,
+          joinedAt: new Date()
+        };
+      }
+
       if (userDoc.exists()) {
-        await updateDoc(userRef, updateData);
+        await updateDoc(userRef, userUpdateData);
+        console.log('✅ User document updated with organization membership');
+      } else {
+        // Create user document if it doesn't exist
+        await setDoc(userRef, {
+          userId: user.id,
+          email: user.email,
+          ...userUpdateData,
+          createdAt: new Date()
+        });
+        console.log('✅ User document created with organization membership');
       }
 
       // Mark invitation as used (single-use system)
+      // Track which profile was used for joining (for reference only)
       await updateDoc(doc(db, 'invitations', invitationDoc.id), {
         usedCount: increment(1),
         lastUsedAt: new Date(),
         status: 'used', // Mark as used to prevent reuse
-        usedBy: user.id
+        usedBy: profileToUse.id,
+        usedByUserId: user.id // Also track the actual user ID
       });
 
       console.log('✅ Invitation marked as used, will generate new one automatically');
       console.log('✅ Successfully joined organization:', organizationData.name);
+      console.log('✅ User ID added to members:', user.id);
+      console.log('✅ Profile used for joining:', profileToUse.profileName, profileToUse.id);
 
       const successMessage = invitationData.subAccountName 
-        ? `🎉 Successfully joined ${organizationData.name} under ${invitationData.subAccountName}!`
-        : `🎉 Successfully joined ${organizationData.name}!`;
+        ? `🎉 You successfully joined ${organizationData.name} under ${invitationData.subAccountName} using profile "${profileToUse.profileName}"!`
+        : `🎉 You successfully joined ${organizationData.name} using profile "${profileToUse.profileName}"!`;
       
       setSuccess(successMessage);
       
@@ -246,6 +332,71 @@ const JoinOrganization = () => {
         </div>
 
         <form onSubmit={handleJoinOrganization} className="join-organization-form">
+          {/* Profile Selection */}
+          {profilesLoading && (
+            <div style={{
+              padding: '15px',
+              backgroundColor: '#e3f2fd',
+              border: '1px solid #2196f3',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              textAlign: 'center'
+            }}>
+              <span className="spinner" style={{ display: 'inline-block', marginRight: '10px' }}></span>
+              Loading your profiles...
+            </div>
+          )}
+
+          {!profilesLoading && profiles.length > 0 && (
+            <div className="form-group">
+              <label htmlFor="profileSelect">Select Profile to Add</label>
+              <select
+                id="profileSelect"
+                value={selectedProfile?.id || ''}
+                onChange={(e) => {
+                  const profile = profiles.find(p => p.id === e.target.value);
+                  setSelectedProfile(profile);
+                  console.log('🔄 Profile selected:', profile?.profileName);
+                }}
+                disabled={loading}
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '14px',
+                  border: '2px solid #e0e0e0',
+                  borderRadius: '8px',
+                  backgroundColor: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                {profiles.map((profile) => (
+                  <option key={profile.id} value={profile.id}>
+                    {profile.profileName} {profile.isDefault ? '(Default)' : ''} - {profile.entityType || 'Personal'}
+                  </option>
+                ))}
+              </select>
+              <small className="form-hint">
+                Choose which profile you want to add to this organization ({profiles.length} profile{profiles.length !== 1 ? 's' : ''} available)
+              </small>
+            </div>
+          )}
+
+          {!profilesLoading && profiles.length === 0 && (
+            <div style={{
+              padding: '15px',
+              backgroundColor: '#fff3cd',
+              border: '1px solid #ffc107',
+              borderRadius: '8px',
+              marginBottom: '20px'
+            }}>
+              <strong>⚠️ No profiles found</strong>
+              <p style={{ margin: '8px 0 0 0', fontSize: '14px' }}>
+                You need to create a profile first. Go to your <a href="/accounts" style={{ color: '#007bff' }}>profile settings</a> to create one.
+              </p>
+            </div>
+          )}
+
           <div className="form-group">
             <label htmlFor="invitationLink">Invitation Link or Token</label>
             <textarea
@@ -277,6 +428,16 @@ const JoinOrganization = () => {
               <div className="preview-item">
                 <strong>Invited by:</strong> {invitationPreview.inviterEmail}
               </div>
+              {selectedProfile && (
+                <div className="preview-item" style={{ 
+                  backgroundColor: '#e3f2fd', 
+                  padding: '12px', 
+                  borderRadius: '6px',
+                  marginTop: '10px'
+                }}>
+                  <strong>👤 Profile to add:</strong> {selectedProfile.profileName}
+                </div>
+              )}
             </div>
           )}
 
@@ -312,7 +473,8 @@ const JoinOrganization = () => {
             <button 
               type="submit" 
               className="join-button"
-              disabled={loading}
+              disabled={loading || (profiles.length > 0 && !selectedProfile)}
+              title={profiles.length === 0 ? 'A default profile will be created for you' : ''}
             >
               {loading ? (
                 <>
@@ -338,6 +500,7 @@ const JoinOrganization = () => {
         <div className="info-section">
           <h3>ℹ️ How to Join</h3>
           <ol>
+            <li>Select which profile you want to add to the organization</li>
             <li>Get an invitation link from an organization owner or sub-account owner</li>
             <li>Paste the complete link or just the token in the field above</li>
             <li>Click "Join Organization" to become a member</li>

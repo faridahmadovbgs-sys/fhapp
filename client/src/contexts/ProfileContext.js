@@ -30,7 +30,7 @@ export const ProfileProvider = ({ children }) => {
       try {
         setLoading(true);
         const profilesQuery = query(
-          collection(db, 'userProfiles'),
+          collection(db, 'subProfiles'),
           where('userId', '==', user.id)
         );
 
@@ -63,7 +63,9 @@ export const ProfileProvider = ({ children }) => {
           setActiveProfile(profilesList[0]);
         }
 
-        console.log('✅ Profiles loaded:', profilesList.length, 'Active:', defaultProfile?.profileName || profilesList[0]?.profileName);
+        console.log('✅ Profiles loaded from subProfiles:', profilesList.length);
+        console.log('📋 Profile details:', profilesList);
+        console.log('👤 Active:', defaultProfile?.profileName || profilesList[0]?.profileName);
       } catch (err) {
         console.error('Error fetching profiles:', err);
       } finally {
@@ -87,7 +89,7 @@ export const ProfileProvider = ({ children }) => {
     try {
       // Unset all other defaults
       const updatePromises = profiles.map(profile => 
-        updateDoc(doc(db, 'userProfiles', profile.id), { 
+        updateDoc(doc(db, 'subProfiles', profile.id), { 
           isDefault: profile.id === profileId 
         })
       );
@@ -120,7 +122,7 @@ export const ProfileProvider = ({ children }) => {
 
     try {
       const profilesQuery = query(
-        collection(db, 'userProfiles'),
+        collection(db, 'subProfiles'),
         where('userId', '==', user.id)
       );
 

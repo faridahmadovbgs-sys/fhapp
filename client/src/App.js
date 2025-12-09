@@ -27,12 +27,17 @@ import MemberDocuments from './pages/MemberDocuments';
 import AnnouncementManager from './pages/AnnouncementManager';
 import AccountManager from './pages/AccountManager';
 import JoinOrganization from './pages/JoinOrganization';
+import OrganizationHome from './pages/OrganizationHome';
 import ChatNotificationBadge from './components/ChatNotificationBadge';
+import FirebaseTest from './components/FirebaseTest';
+import FirebaseDirectTest from './components/FirebaseDirectTest';
+import FirebaseDiagnostics from './components/FirebaseDiagnostics';
 import apiService from './services/apiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthorizationProvider } from './contexts/AuthorizationContext';
 import { AccountProvider } from './contexts/AccountContext';
 import { OrganizationProvider } from './contexts/OrganizationContext';
+import { ProfileProvider } from './contexts/ProfileContext';
 import { collection, query, where, onSnapshot, getDocs, orderBy } from 'firebase/firestore';
 import { db } from './config/firebase';
 
@@ -276,21 +281,9 @@ function MainApp() {
                   )}
                 </Link>
               </li>
-              <li className="nav-item-with-badge">
-                <Link to="/chat" onClick={closeMenu}>
-                  <span className="nav-icon">💬</span>
-                  <span className="nav-text">Chat</span>
-                  <ChatNotificationBadge 
-                    userId={user?.id} 
-                    onCountChange={(count) => setUnreadChatsCount(count)}
-                  />
-                </Link>
-              </li>
               
               {/* Personal */}
-              <li><Link to="/profile" onClick={closeMenu}><span className="nav-icon">👤</span><span className="nav-text">Profile</span></Link></li>
-              <li><Link to="/join-organization" onClick={closeMenu}><span className="nav-icon">🔗</span><span className="nav-text">Join Organization</span></Link></li>
-              <li><Link to="/accounts" onClick={closeMenu}><span className="nav-icon">🏦</span><span className="nav-text">My Accounts</span></Link></li>
+              <li><Link to="/accounts" onClick={closeMenu}><span className="nav-icon">🏦</span><span className="nav-text">My Sub Profiles</span></Link></li>
               <li><Link to="/documents" onClick={closeMenu}><span className="nav-icon">📄</span><span className="nav-text">My Documents</span></Link></li>
               <li className="nav-item-with-badge">
                 <Link to="/payments" onClick={closeMenu}>
@@ -303,15 +296,6 @@ function MainApp() {
               </li>
               
               {/* Organization */}
-              <li className="nav-item-with-badge">
-                <Link to="/org-documents" onClick={closeMenu}>
-                  <span className="nav-icon">🏢</span>
-                  <span className="nav-text">Org Documents</span>
-                  {newOrgDocsCount > 0 && (
-                    <span className="nav-notification-badge">{newOrgDocsCount > 99 ? '99+' : newOrgDocsCount}</span>
-                  )}
-                </Link>
-              </li>
               <PermissionGuard requiredPage="invitations">
                 <li><Link to="/members" onClick={closeMenu}><span className="nav-icon">👨‍👩‍👧‍👦</span><span className="nav-text">Members</span></Link></li>
               </PermissionGuard>
@@ -356,10 +340,6 @@ function MainApp() {
               <PermissionGuard requiredRole="admin">
                 <li><Link to="/demo-permissions" onClick={closeMenu}><span className="nav-icon">🔐</span><span className="nav-text">Permissions Demo</span></Link></li>
               </PermissionGuard>
-              
-              {/* Information */}
-              <li><Link to="/about" onClick={closeMenu}><span className="nav-icon">ℹ️</span><span className="nav-text">About</span></Link></li>
-              <li><Link to="/about-platform" onClick={closeMenu}><span className="nav-icon">🚀</span><span className="nav-text">About Platform</span></Link></li>
             </ul>
           </nav>
         </aside>
@@ -369,6 +349,7 @@ function MainApp() {
           ) : (
             <Routes>
               <Route path="/" element={<Home data={data} />} />
+              <Route path="/organization/:organizationId" element={<OrganizationHome />} />
               <Route path="/about" element={<About />} />
               <Route path="/about-platform" element={<AboutPlatform />} />
               <Route path="/join-organization" element={<JoinOrganization />} />
@@ -381,6 +362,7 @@ function MainApp() {
                 } 
               />
               <Route path="/storage-test" element={<StorageTest />} />
+              <Route path="/firebase-diagnostics" element={<FirebaseDiagnostics />} />
             <Route 
               path="/registered-users" 
               element={
@@ -486,15 +468,17 @@ function MainApp() {
 function App() {
   return (
     <AuthProvider>
-      <AuthorizationProvider>
-        <AccountProvider>
-          <OrganizationProvider>
-            <Router>
-              <AppContent />
-            </Router>
-          </OrganizationProvider>
-        </AccountProvider>
-      </AuthorizationProvider>
+      <ProfileProvider>
+        <AuthorizationProvider>
+          <AccountProvider>
+            <OrganizationProvider>
+              <Router>
+                <AppContent />
+              </Router>
+            </OrganizationProvider>
+          </AccountProvider>
+        </AuthorizationProvider>
+      </ProfileProvider>
     </AuthProvider>
   );
 }
@@ -528,6 +512,14 @@ function AppContent() {
       <Route 
         path="/register/sub-owner" 
         element={<MemberRegistration />} 
+      />
+      <Route 
+        path="/firebase-test" 
+        element={<FirebaseTest />} 
+      />
+      <Route 
+        path="/firebase-direct-test" 
+        element={<FirebaseDirectTest />} 
       />
       <Route 
         path="/login" 

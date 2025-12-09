@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Firebase Auth Test</title>
+</head>
+<body>
+    <h1>Firebase Authentication Test</h1>
+    <button onclick="testFirebase()">Test Firebase Registration</button>
+    <div id="result"></div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBYG7mANiuKWSHvZKOTuR-Jjgx0ZwTgcvE",
+            authDomain: "fhapp-ca321.firebaseapp.com",
+            projectId: "fhapp-ca321",
+            storageBucket: "fhapp-ca321.firebasestorage.app",
+            messagingSenderId: "321828975722",
+            appId: "1:321828975722:web:b1c8e8ab6462f74eb8c613",
+            measurementId: "G-C13GEDVMBF"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        window.testFirebase = async function() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const testEmail = 'test' + Date.now() + '@example.com';
+                const testPassword = 'Test123456';
+                
+                console.log('Attempting to create user:', testEmail);
+                const userCredential = await createUserWithEmailAndPassword(auth, testEmail, testPassword);
+                
+                resultDiv.innerHTML = `
+                    <div style="color: green;">
+                        ✅ SUCCESS! Firebase is working!<br>
+                        User created: ${userCredential.user.email}<br>
+                        UID: ${userCredential.user.uid}
+                    </div>
+                `;
+                console.log('Success:', userCredential.user);
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div style="color: red;">
+                        ❌ ERROR: ${error.code}<br>
+                        Message: ${error.message}<br><br>
+                        <strong>Troubleshooting:</strong><br>
+                        ${error.code === 'auth/network-request-failed' ? 
+                            '- Check Windows Firewall<br>- Disable Antivirus temporarily<br>- Try different browser/incognito mode<br>- Check if VPN is blocking Firebase' :
+                            '- This is a different error, Firebase is reachable!'
+                        }
+                    </div>
+                `;
+                console.error('Error details:', error);
+            }
+        };
+    </script>
+</body>
+</html>

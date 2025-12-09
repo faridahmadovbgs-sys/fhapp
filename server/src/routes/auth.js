@@ -2,8 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import { body, validationResult } from 'express-validator';
-import { initializeApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import auth from '../config/firebase.js';
 import User from '../models/User.js';
 import demoAuthService from '../services/demoAuth.js';
 import emailService from '../services/emailService.js';
@@ -12,20 +11,6 @@ const router = express.Router();
 
 // JWT secret (should be in environment variables)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
-
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY || "AIzaSyD5x5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q",
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN || "fhapp-ca321.firebaseapp.com",
-  projectId: process.env.FIREBASE_PROJECT_ID || "fhapp-ca321",
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "fhapp-ca321.firebasestorage.app",
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "123456789",
-  appId: process.env.FIREBASE_APP_ID || "1:123456789:web:abcdef123456"
-};
-
-// Initialize Firebase
-const firebaseApp = initializeApp(firebaseConfig);
-const auth = getAuth(firebaseApp);
 
 // Register new user with Firebase Auth + MongoDB
 router.post('/register', [
@@ -79,9 +64,14 @@ router.post('/register', [
 
     console.log('🔥 Creating Firebase Auth user...');
 
-    // Step 1: Create Firebase Auth user
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const firebaseUid = userCredential.user.uid;
+    // Step 1: Create Firebase Auth user using Admin SDK
+    const firebaseUser = await auth.createUser({
+      email: email,
+      password: password,
+      displayName: `${firstName} ${lastName}`,
+      emailVerified: false
+    });
+    const firebaseUid = firebaseUser.uid;
 
     console.log('✅ Firebase user created:', firebaseUid);
 

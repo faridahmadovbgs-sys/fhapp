@@ -17,10 +17,10 @@ export const AccountProvider = ({ children }) => {
   const { user } = useAuth();
   const [accounts, setAccounts] = useState([]);
   const [activeAccount, setActiveAccount] = useState(null);
-  const [operatingAsUser, setOperatingAsUser] = useState(false); // NEW: Track if operating as user
+  const [operatingAsUser, setOperatingAsUser] = useState(true); // Default to User mode
   const [loading, setLoading] = useState(true);
 
-  // Fetch user accounts
+  // Fetch user sub profiles
   useEffect(() => {
     const fetchAccounts = async () => {
       if (!user?.id || !db) {
@@ -31,7 +31,7 @@ export const AccountProvider = ({ children }) => {
       try {
         setLoading(true);
         const accountsQuery = query(
-          collection(db, 'userAccounts'),
+          collection(db, 'subProfiles'),
           where('userId', '==', user.id)
         );
 
@@ -57,16 +57,14 @@ export const AccountProvider = ({ children }) => {
 
         setAccounts(accountsList);
 
-        // Set active account to default or first available
-        if (defaultAccount) {
-          setActiveAccount(defaultAccount);
-        } else if (accountsList.length > 0) {
-          setActiveAccount(accountsList[0]);
-        }
+        // Default to User mode - don't automatically set an active sub profile
+        // Users can manually switch to a sub profile if needed
+        setActiveAccount(null);
+        setOperatingAsUser(true);
 
-        console.log('✅ Accounts loaded:', accountsList.length, 'Active:', defaultAccount?.accountName || accountsList[0]?.accountName);
+        console.log('✅ Sub profiles loaded:', accountsList.length, 'Defaulting to User mode');
       } catch (err) {
-        console.error('Error fetching accounts:', err);
+        console.error('Error fetching sub profiles:', err);
       } finally {
         setLoading(false);
       }
@@ -75,12 +73,12 @@ export const AccountProvider = ({ children }) => {
     fetchAccounts();
   }, [user]);
 
-  // Switch active account
+  // Switch active sub profile
   const switchAccount = (account) => {
     if (account && account.id) {
       setActiveAccount(account);
-      setOperatingAsUser(false); // Switch to account mode
-      console.log('🔄 Switched to account:', account.accountName);
+      setOperatingAsUser(false); // Switch to sub profile mode
+      console.log('🔄 Switched to sub profile:', account.accountName);
     }
   };
 
@@ -91,12 +89,12 @@ export const AccountProvider = ({ children }) => {
     console.log('👤 Switched to user mode:', user?.displayName || user?.email);
   };
 
-  // Switch to account mode with specific account or default
+  // Switch to sub profile mode with specific sub profile or default
   const switchToAccountMode = (account = null) => {
     if (account) {
       switchAccount(account);
     } else {
-      // Switch to default or first account
+      // Switch to default or first sub profile
       const defaultAcc = accounts.find(a => a.isDefault) || accounts[0];
       if (defaultAcc) {
         switchAccount(defaultAcc);
@@ -104,12 +102,12 @@ export const AccountProvider = ({ children }) => {
     }
   };
 
-  // Set account as default
+  // Set sub profile as default
   const setAsDefault = async (accountId) => {
     try {
       // Unset all other defaults
       const updatePromises = accounts.map(account => 
-        updateDoc(doc(db, 'userAccounts', account.id), { 
+        updateDoc(doc(db, 'subProfiles', account.id), { 
           isDefault: account.id === accountId 
         })
       );
@@ -128,7 +126,7 @@ export const AccountProvider = ({ children }) => {
         setActiveAccount(newDefault);
       }
 
-      console.log('✅ Default account updated');
+      console.log('✅ Default sub profile updated');
       return true;
     } catch (err) {
       console.error('Error setting default:', err);
@@ -136,13 +134,13 @@ export const AccountProvider = ({ children }) => {
     }
   };
 
-  // Refresh accounts (after add/delete)
+  // Refresh sub profiles (after add/delete)
   const refreshAccounts = async () => {
     if (!user?.id || !db) return;
 
     try {
       const accountsQuery = query(
-        collection(db, 'userAccounts'),
+        collection(db, 'subProfiles'),
         where('userId', '==', user.id)
       );
 
@@ -167,23 +165,22 @@ export const AccountProvider = ({ children }) => {
 
       setAccounts(accountsList);
 
-      // Update active account if needed
+      // Update active account only if one was already active
       if (activeAccount) {
         const updatedActive = accountsList.find(a => a.id === activeAccount.id);
         if (updatedActive) {
           setActiveAccount(updatedActive);
-        } else if (accountsList.length > 0) {
-          setActiveAccount(defaultAccount || accountsList[0]);
         } else {
+          // If active account was deleted, switch back to User mode
           setActiveAccount(null);
+          setOperatingAsUser(true);
         }
-      } else if (accountsList.length > 0) {
-        setActiveAccount(defaultAccount || accountsList[0]);
       }
+      // If no active account, keep User mode (don't auto-select)
 
-      console.log('✅ Accounts refreshed');
+      console.log('✅ Sub profiles refreshed');
     } catch (err) {
-      console.error('Error refreshing accounts:', err);
+      console.error('Error refreshing sub profiles:', err);
     }
   };
 

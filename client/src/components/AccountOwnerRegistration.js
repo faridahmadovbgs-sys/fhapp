@@ -292,6 +292,32 @@ Share this link with team members so they can join your organization. You can vi
           <p>Create your organization account and start inviting team members</p>
         </div>
 
+        {/* Firebase Setup Banner */}
+        <div style={{
+          backgroundColor: '#fff3cd',
+          border: '1px solid #ffc107',
+          borderRadius: '4px',
+          padding: '12px 15px',
+          marginBottom: '20px',
+          fontSize: '13px'
+        }}>
+          <strong>⚠️ First Time Setup Required:</strong>
+          <p style={{ margin: '8px 0 0 0', lineHeight: '1.5' }}>
+            If you're getting network errors, you need to enable Email/Password authentication in Firebase Console:
+          </p>
+          <ol style={{ margin: '8px 0 0 0', paddingLeft: '20px', lineHeight: '1.6' }}>
+            <li>Go to <a href="https://console.firebase.google.com/project/fhapp-ca321/authentication/providers" target="_blank" rel="noopener noreferrer" style={{ color: '#007bff' }}>Firebase Console</a></li>
+            <li>Click Authentication → Sign-in method</li>
+            <li>Enable "Email/Password" provider</li>
+            <li>Return here and try again</li>
+          </ol>
+          <p style={{ margin: '8px 0 0 0' }}>
+            <a href="/firebase-diagnostics" style={{ color: '#007bff' }}>
+              Run diagnostics to check Firebase setup →
+            </a>
+          </p>
+        </div>
+
         {error && (
           <div className="error-message">
             {error}

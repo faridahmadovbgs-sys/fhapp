@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useAccount } from '../contexts/AccountContext';
 import { 
   collection, 
   query, 
@@ -17,6 +18,7 @@ import './PersonalDocuments.css';
 
 const PersonalDocuments = () => {
   const { user } = useAuth();
+  const { accounts, activeAccount, operatingAsUser } = useAccount();
   const fileInputRef = useRef(null);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +28,9 @@ const PersonalDocuments = () => {
   const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [userOrganizations, setUserOrganizations] = useState([]);
+  const [selectedOrganization, setSelectedOrganization] = useState('');
+  const [uploadingProfile, setUploadingProfile] = useState('user');
 
   const [formData, setFormData] = useState({
     title: '',
@@ -53,6 +58,30 @@ const PersonalDocuments = () => {
   useEffect(() => {
     loadDocuments();
   }, [user]);
+
+  useEffect(() => {
+    loadUserOrganizations();
+  }, [user, uploadingProfile]);
+
+  const loadUserOrganizations = async () => {
+    if (!user?.id) return;
+
+    try {
+      // Determine which profile to get organizations for
+      const profileId = uploadingProfile === 'user' ? user.id : uploadingProfile;
+      
+      const { getUserMemberOrganizations } = await import('../services/organizationService');
+      const result = await getUserMemberOrganizations(profileId);
+      
+      if (result.success) {
+        setUserOrganizations(result.organizations);
+        console.log(`📋 Loaded ${result.organizations.length} organizations for profile:`, profileId);
+      }
+    } catch (error) {
+      console.error('Error loading organizations:', error);
+      setUserOrganizations([]);
+    }
+  };
 
   const loadDocuments = async () => {
     if (!user?.id || !db) return;
@@ -153,56 +182,19 @@ const PersonalDocuments = () => {
     try {
       setUploading(true);
 
-      // Get user's organization and determine who to share document with
-      let shareWithUserId = null;
-      let shareWithRole = null;
-      try {
-        // First, check if user was invited by someone (has invitedBy field)
-        const userDoc = await getDoc(doc(db, 'users', user.id));
-        const userData = userDoc.data();
-        
-        if (userData && userData.invitedBy) {
-          // User was invited by someone - get the inviter's info
-          const inviterQuery = query(
-            collection(db, 'users'),
-            where('uid', '==', userData.invitedBy)
-          );
-          const inviterSnapshot = await getDocs(inviterQuery);
-          
-          if (!inviterSnapshot.empty) {
-            const inviterData = inviterSnapshot.docs[0].data();
-            const inviterId = inviterSnapshot.docs[0].id;
-            
-            console.log('📤 User invited by:', inviterData.email, 'Role:', inviterData.role);
-            
-            // If invited by sub account owner, share with them
-            if (inviterData.role === 'sub_account_owner') {
-              shareWithUserId = inviterId;
-              shareWithRole = 'sub_account_owner';
-              console.log('📤 Document will be shared with sub account owner:', inviterData.email);
-            }
-          }
-        }
-        
-        // If not invited by sub account owner, find and share with account owner
-        if (!shareWithUserId) {
-          const { getUserMemberOrganizations } = await import('../services/organizationService');
-          const orgsResult = await getUserMemberOrganizations(user.id);
-          if (orgsResult.success && orgsResult.organizations.length > 0) {
-            const userOrg = orgsResult.organizations[0];
-            shareWithUserId = userOrg.ownerId;
-            shareWithRole = 'account_owner';
-            console.log('📤 Document will be shared with account owner:', shareWithUserId);
-          }
-        }
-      } catch (orgError) {
-        console.warn('Could not find share target:', orgError);
-      }
+      // Determine which profile is uploading
+      const uploaderId = uploadingProfile === 'user' ? user.id : uploadingProfile;
+      const uploaderName = uploadingProfile === 'user' 
+        ? (user.name || user.displayName || user.email)
+        : accounts.find(acc => acc.id === uploadingProfile)?.accountName || 'Sub Profile';
 
+      // Prepare document data
       const docData = {
-        userId: user.id,
+        userId: uploaderId,
         userEmail: user.email,
-        userName: user.name || user.email,
+        userName: uploaderName,
+        uploadedBy: uploadingProfile === 'user' ? 'primary' : 'subprofile',
+        subProfileId: uploadingProfile === 'user' ? null : uploadingProfile,
         title: formData.title.trim(),
         description: formData.description.trim(),
         category: formData.category,
@@ -210,22 +202,34 @@ const PersonalDocuments = () => {
         fileSize: formData.fileSize,
         fileType: formData.fileType,
         fileData: formData.fileData,
-        sharedWith: shareWithUserId ? [shareWithUserId] : [],
-        sharedWithRole: shareWithRole,
+        sharedWith: [],
+        organizationId: selectedOrganization || null,
+        organizationShared: !!selectedOrganization,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
 
+      // If shared with organization, add all organization members to sharedWith
+      if (selectedOrganization) {
+        try {
+          const orgDoc = await getDoc(doc(db, 'organizations', selectedOrganization));
+          if (orgDoc.exists()) {
+            const orgData = orgDoc.data();
+            docData.sharedWith = orgData.members || [];
+            docData.organizationName = orgData.name;
+          }
+        } catch (orgError) {
+          console.error('Error fetching organization:', orgError);
+        }
+      }
+
       await addDoc(collection(db, 'documents'), docData);
 
-      if (shareWithUserId) {
-        if (shareWithRole === 'sub_account_owner') {
-          setSuccess('✅ Document uploaded and shared with sub account owner!');
-        } else {
-          setSuccess('✅ Document uploaded and shared with account owner!');
-        }
+      if (selectedOrganization) {
+        const orgName = userOrganizations.find(org => org.id === selectedOrganization)?.name || 'organization';
+        setSuccess(`✅ Document uploaded by ${uploaderName} and shared with ${orgName}!`);
       } else {
-        setSuccess('✅ Document uploaded successfully!');
+        setSuccess(`✅ Document uploaded successfully by ${uploaderName}!`);
       }
       
       // Reset form
@@ -238,6 +242,8 @@ const PersonalDocuments = () => {
         fileSize: 0,
         fileType: ''
       });
+      setSelectedOrganization('');
+      setUploadingProfile('user');
       
       // Reset file input
       if (fileInputRef.current) {
@@ -403,6 +409,56 @@ const PersonalDocuments = () => {
           <h3>Upload New Document</h3>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
+              <label>Upload From Profile *</label>
+              <select
+                value={uploadingProfile}
+                onChange={(e) => {
+                  setUploadingProfile(e.target.value);
+                  setSelectedOrganization(''); // Clear organization when profile changes
+                }}
+                className="profile-selector"
+              >
+                <option value="user">
+                  👤 {user?.name || user?.displayName || user?.email || 'You'} (Primary)
+                </option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.accountType === 'llc' && '🏢'}
+                    {account.accountType === 'trust' && '🏛️'}
+                    {account.accountType === 'corporation' && '🏭'}
+                    {account.accountType === 'partnership' && '🤝'}
+                    {account.accountType === 'nonprofit' && '❤️'}
+                    {account.accountType === 'personal' && '👤'}
+                    {account.accountType === 'other' && '📋'}
+                    {' '}{account.accountName}
+                  </option>
+                ))}
+              </select>
+              <small className="helper-text">
+                Choose which profile is uploading this document
+              </small>
+            </div>
+
+            <div className="form-group">
+              <label>Share With Organization (Optional)</label>
+              <select
+                value={selectedOrganization}
+                onChange={(e) => setSelectedOrganization(e.target.value)}
+                className="org-selector"
+              >
+                <option value="">-- Keep Private --</option>
+                {userOrganizations.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    🏢 {org.name}
+                  </option>
+                ))}
+              </select>
+              <small className="helper-text">
+                Choose an organization to share this document with, or keep it private
+              </small>
+            </div>
+
+            <div className="form-group">
               <label>Document Title *</label>
               <input
                 type="text"
@@ -513,6 +569,7 @@ const PersonalDocuments = () => {
                 <th>Title</th>
                 <th>File</th>
                 <th>Size</th>
+                <th>Shared With</th>
                 <th>Date</th>
                 <th>Actions</th>
               </tr>
@@ -535,6 +592,17 @@ const PersonalDocuments = () => {
                   </td>
                   <td className="table-filename">{document.fileName}</td>
                   <td>{formatFileSize(document.fileSize)}</td>
+                  <td>
+                    {document.organizationShared && document.organizationName ? (
+                      <span className="shared-badge shared-org">
+                        🏢 {document.organizationName}
+                      </span>
+                    ) : (
+                      <span className="shared-badge shared-private">
+                        🔒 Private
+                      </span>
+                    )}
+                  </td>
                   <td>{formatDate(document.createdAt)}</td>
                   <td>
                     <div className="table-actions">
